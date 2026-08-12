@@ -299,6 +299,24 @@ const idsOnly = await app.db.use('orders').query().join(false).limit(1000);
 | `authenticated` | Logged-in users only |
 | `owner` | Only user who created the record |
 | `admin` | Admin users only |
+| `system` | Internal calls only — denied even for admins |
+| `never` | Nobody, ever. Use for fields like `password` |
+
+Both spellings are accepted and behave identically:
+
+```json
+"read": "admin"
+"read": { "level": "admin" }
+```
+
+> ⚠️ **Writes default to closed.** If you declare `read` but no `write` /
+> `create` / `update` / `delete` rule, mutations require a logged-in user. Reads
+> keep the permissive default: an undeclared `read` is public. Declare the levels
+> you want explicitly rather than relying on either default.
+>
+> An unrecognised level (a typo like `"addmin"`) denies access rather than
+> falling back to something permissive. If a database starts returning 403s after
+> a security edit, check the spelling of the level first.
 
 ### Field-Level
 

@@ -219,7 +219,12 @@ async function handler(request, { params }) {
     
     
     // 5. Validate security rules
-    // For search operations, treat as read operation for security validation
+    // A search is a read, so a POST carrying operation:'search' is validated
+    // against the read policy rather than the write policy.
+    //
+    // SECURITY: this determination and the dispatch below MUST agree. If a
+    // request is validated as a search but then falls through to the create
+    // branch, it writes under read permissions. Both branch on this same flag.
     let isSearchOperation = false;
     if (request.method === 'POST') {
       try {
@@ -229,7 +234,7 @@ async function handler(request, { params }) {
         // Body might not be JSON or empty - that's okay, it's not a search operation
       }
     }
-    
+
     const operationMethod = isSearchOperation ? 'GET' : request.method;
     const security = validateSecurity(
       databases[resolvedParams.database], 
@@ -301,9 +306,11 @@ async function handler(request, { params }) {
       
       case 'POST':
         if (!body) throw new Error('Request body required');
-        
-        // Check if this is a search operation
-        if (body.operation === 'search') {
+
+        // SECURITY: branch on the SAME flag the security check used, not on a
+        // fresh read of the body. Re-parsing here would let the two disagree and
+        // allow a write to execute under read permissions.
+        if (isSearchOperation) {
           // Handle search operation
           const { searchTerm, limit = 10, filters = {} } = body;
 

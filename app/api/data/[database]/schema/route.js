@@ -141,12 +141,14 @@ async function handler(request, { params }) {
       schema: schema,
       database: resolvedParams.database,
       type: databaseConfig.type || 'unknown',
+      // validateSecurity returns null when a database declares no read rule, so
+      // every access here must tolerate that rather than dereferencing it.
       security: {
-        level: security.level,
+        level: security?.level ?? 'public',
         canRead: true, // User has read access if they reached this point
-        canCreate: security.level !== 'none' && databaseConfig.security?.create?.level !== 'none',
-        canUpdate: security.level !== 'none' && databaseConfig.security?.update?.level !== 'none',
-        canDelete: security.level !== 'none' && databaseConfig.security?.delete?.level !== 'none'
+        canCreate: security?.level !== 'none' && databaseConfig.security?.create?.level !== 'none',
+        canUpdate: security?.level !== 'none' && databaseConfig.security?.update?.level !== 'none',
+        canDelete: security?.level !== 'none' && databaseConfig.security?.delete?.level !== 'none'
       }
     });
 

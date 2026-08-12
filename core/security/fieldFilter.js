@@ -1,10 +1,42 @@
 // core/security/fieldFilter.js
 // Shared security field filtering utilities
 
+// Security levels that require no session. Anything not listed here needs auth,
+// so a typo in a level name fails closed rather than opening the database.
+const PUBLIC_LEVELS = new Set(['public']);
+
+/**
+ * Normalize a security rule to its object form.
+ *
+ * Both spellings appear in the wild and in our own docs:
+ *   { "read": "admin" }              <- string form
+ *   { "read": { "level": "admin" } } <- object form
+ *
+ * The string form used to fall through validateSecurityLevel's `!security.level`
+ * guard and return unvalidated, so `{"read": "admin"}` silently meant "public".
+ * That exposed cat_miembros (269 emails, 268 WhatsApp numbers) to anonymous GETs.
+ * Accept both spellings and treat them identically.
+ */
+export function normalizeSecurityRule(security) {
+  if (security === null || security === undefined) return null;
+  if (typeof security === 'string') return { level: security };
+  if (typeof security === 'object' && typeof security.level === 'string') return security;
+
+  // Some other shape (a bare object, an array, a number). We cannot tell what was
+  // meant, so treat it as a declared-but-unreadable rule and fail closed.
+  return { level: '__malformed__', __original: security };
+}
+
 // Validate specific security level
 // SECURITY: For admin checks, this should be followed by database verification
 export function validateSecurityLevel(security, session) {
-  if (!security || !security.level) return security || true;
+  const rule = normalizeSecurityRule(security);
+
+  // No rule at all: the caller decides. validateSecurity() never passes null here
+  // for a write, so this only reaches reads with no declared policy.
+  if (!rule) return security || true;
+
+  security = rule;
 
   // SECURITY NOTE: This is a preliminary check based on session
   // For admin-level access, the calling code should verify with database
@@ -44,9 +76,16 @@ export function validateSecurityLevel(security, session) {
       // Only system/internal calls allowed (even admins can't access)
       throw new Error('This operation is restricted to system use only');
 
+    case 'never':
+      // Documented in docs/databases.md for fields like password. Nobody gets it.
+      throw new Error('This operation is not permitted');
+
     default:
-      // Unknown security level, default to authenticated (or admin)
-      if (!session && !isAdmin) throw new Error('Authentication required');
+      // Unknown or malformed level. Fail closed: an unrecognised level must never
+      // be more permissive than the strictest one the author might have meant.
+      if (!isAdmin) {
+        throw new Error('Access denied: unrecognised security level');
+      }
       return security;
   }
 }
@@ -61,6 +100,29 @@ export function validateSecurity(database, method, session) {
     if (operationType !== 'read' && database.security?.write) {
       return validateSecurityLevel(database.security.write, session);
     }
+
+    // SECURITY: writes default to closed.
+    //
+    // This used to return null ("no rule, nothing to filter") for every
+    // operation, which meant a database declaring only `read` left create,
+    // update and delete wide open to anonymous requests. Declaring a read
+    // policy and saying nothing about writes is the common case, so the common
+    // case was an unauthenticated write endpoint.
+    //
+    // Reads keep the permissive default: an undeclared read policy has always
+    // meant public, and pages rely on that. Only mutations change behaviour.
+    if (operationType !== 'read') {
+      const sessionRoles = Array.isArray(session?.user?.roles)
+        ? session.user.roles
+        : [session?.user?.role || 'user'];
+      const isAdmin = sessionRoles.includes('admin') || session?.user?.isAdmin;
+
+      if (!session?.user?.id && !isAdmin) {
+        throw new Error('Authentication required');
+      }
+      return { level: 'authenticated', __implicit: true };
+    }
+
     return null; // Return null to indicate no filtering needed
   }
 
