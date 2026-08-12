@@ -24,7 +24,7 @@
     "build": "next build",
     "start": "next start --port 3000",
     "lint": "next lint",
-    "smoke": "node --test \"tests/smoke/*.test.mjs\"",
+    "smoke": "node --test tests/smoke/*.test.mjs",
     "test:unit": "node core/utils/deepMerge.test.js"
   },
   "dependencies": {
