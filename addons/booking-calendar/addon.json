@@ -1,0 +1,101 @@
+{
+  "name": "booking-calendar",
+  "displayName": "Booking Calendar",
+  "type": "plugin",
+  "version": "0.1.0",
+  "description": "Calendly-class booking flow that intersects freebusy across multiple Google Calendars. Drop-in `Book` component for public booking pages + admin settings for connecting accounts and configuring availability.",
+  "author": {
+    "name": "JasonJS",
+    "url": "https://github.com/andycufari/jasonjs"
+  },
+  "license": "MIT",
+  "tags": ["booking", "calendar", "google", "scheduling", "oauth"],
+
+  "dependencies": {
+    "googleapis": "^140.0.0",
+    "luxon": "^3.4.0"
+  },
+
+  "environmentVariables": {
+    "GOOGLE_CLIENT_ID": {
+      "type": "string",
+      "required": true,
+      "description": "OAuth 2.0 client ID from Google Cloud Console"
+    },
+    "GOOGLE_CLIENT_SECRET": {
+      "type": "string",
+      "required": true,
+      "description": "OAuth 2.0 client secret"
+    },
+    "GOOGLE_REDIRECT_URI": {
+      "type": "string",
+      "required": true,
+      "description": "Authorized redirect URI. Must be https://<your-domain>/api/addons/booking-calendar/google/callback"
+    },
+    "BOOKING_CALENDAR_STATE_SECRET": {
+      "type": "string",
+      "required": true,
+      "description": "64-char hex used to HMAC OAuth state parameter (anti-CSRF)"
+    }
+  },
+
+  "api": {
+    "prefix": "/api/addons/booking-calendar",
+    "routes": [
+      { "path": "google/url",            "methods": ["POST"], "auth": true,  "description": "Build Google OAuth authorization URL for the current user" },
+      { "path": "google/callback",       "methods": ["GET"],  "auth": false, "description": "OAuth callback: exchange code for tokens, persist encrypted" },
+      { "path": "connections/list",      "methods": ["GET"],  "auth": true,  "description": "List the current user's connected Google accounts (no tokens)" },
+      { "path": "connections/disconnect","methods": ["POST"], "auth": true,  "description": "Revoke + delete a connection" },
+      { "path": "availability/get",      "methods": ["GET"],  "auth": true,  "description": "Read the current user's availability rules" },
+      { "path": "availability/save",     "methods": ["POST"], "auth": true,  "description": "Upsert availability rules" },
+      { "path": "slots",                 "methods": ["GET"],  "auth": false, "description": "Public: intersect freebusy across all connections, return free slots" },
+      { "path": "bookings/create",       "methods": ["POST"], "auth": false, "description": "Public: verify slot, insert event into host's Google Calendar" },
+      { "path": "bookings/list",         "methods": ["GET"],  "auth": true,  "description": "Host: list upcoming bookings" },
+      { "path": "bookings/cancel",       "methods": ["POST"], "auth": "mixed", "description": "Host by session OR guest by cancelToken" }
+    ]
+  },
+
+  "components": {
+    "Book": {
+      "description": "Public guest booking widget. Shows available slots, collects guest details, creates the booking.",
+      "file": "components/Book.jsx",
+      "props": {
+        "userId":       { "type": "string",  "required": true, "description": "Host userId to book with (the account whose calendar gets the event)" },
+        "meetingType":  { "type": "string",  "default": "default", "description": "Availability-rule key (Phase 1: always \"default\")" },
+        "brand":        { "type": "object",  "description": "Visual branding: { primaryColor, logoUrl }" },
+        "styles":       { "type": "object",  "description": "Tailwind class overrides keyed by slot/day/button" }
+      }
+    },
+    "Settings": {
+      "description": "Host-only settings shell. Tabs: Connections / Availability / Bookings. Gated on app.auth.user.",
+      "file": "components/Settings.jsx",
+      "props": {
+        "allowedEmails": { "type": "array",  "description": "Phase 1 allow-list. If set, only these user emails can see settings. Defaults to any authenticated user." }
+      }
+    },
+    "ConnectionsList": {
+      "description": "Rows of connected Google accounts. Button to connect another.",
+      "file": "components/ConnectionsList.jsx",
+      "props": {}
+    },
+    "AvailabilityEditor": {
+      "description": "Weekly-hours grid, timezone, duration, buffers.",
+      "file": "components/AvailabilityEditor.jsx",
+      "props": {}
+    }
+  },
+
+  "databases": {
+    "bc_connections": { "schema": "databases/bc_connections.json" },
+    "bc_availability_rules": { "schema": "databases/bc_availability_rules.json" },
+    "bc_bookings": { "schema": "databases/bc_bookings.json" }
+  },
+
+  "configuration": {
+    "requiresAuth": true,
+    "requiresDatabase": true,
+    "databaseType": "jason"
+  },
+
+  "ai_prompt": "## Booking Calendar Addon — Implementation Guide\n\n### Overview\nCalendly replacement. Host connects one or more Google accounts → availability rules are defined → a public `Book` component renders slots computed as the intersection of every connection's freebusy.\n\n### Step 1: Environment\nSet these in `settings/.env.json` for the site:\n```\nGOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com\nGOOGLE_CLIENT_SECRET=GOCSPX-...\nGOOGLE_REDIRECT_URI=https://<your-domain>/api/addons/booking-calendar/google/callback\nBOOKING_CALENDAR_STATE_SECRET=<64-hex>\n```\n\nRegister the redirect URI in Google Cloud Console under OAuth 2.0 Client.\n\n### Step 2: Host settings page (`pages/admin/booking.json`)\n```json\n{\n  \"meta\": { \"title\": \"Booking Settings\" },\n  \"auth\": true,\n  \"layout\": \"main\",\n  \"components\": [\n    {\n      \"component\": \"div\",\n      \"attributes\": { \"className\": \"max-w-4xl mx-auto px-6 py-12\" },\n      \"components\": [\n        { \"component\": \"h1\", \"attributes\": { \"className\": \"text-3xl font-bold mb-8\" }, \"innerHTML\": \"Booking calendar\" },\n        { \"component\": \"@addons/booking-calendar/Settings\" }\n      ]\n    }\n  ]\n}\n```\n\n### Step 3: Public booking page (`pages/book.json`)\n```json\n{\n  \"meta\": { \"title\": \"Book a meeting\" },\n  \"layout\": \"main\",\n  \"fetch_data\": {\n    \"host\": { \"database\": \"users\", \"query\": { \"email\": \"host@example.com\" }, \"findOne\": true }\n  },\n  \"components\": [\n    {\n      \"component\": \"div\",\n      \"attributes\": { \"className\": \"max-w-3xl mx-auto px-6 py-16\" },\n      \"components\": [\n        { \"component\": \"h1\", \"attributes\": { \"className\": \"text-4xl font-bold mb-2\" }, \"innerHTML\": \"Book time with me\" },\n        { \"component\": \"p\", \"attributes\": { \"className\": \"text-muted-foreground mb-8\" }, \"innerHTML\": \"30 minutes. Google Meet link included.\" },\n        {\n          \"component\": \"@addons/booking-calendar/Book\",\n          \"attributes\": {\n            \"userId\": \"{{host.id}}\",\n            \"meetingType\": \"default\"\n          }\n        }\n      ]\n    }\n  ]\n}\n```\n\n### Notes\n- Token fields are encrypted at rest via schema `encrypted: true` (handled by framework).\n- `getAvailableSlots` is rate-limited (30 req/min per IP).\n- Double-booking is prevented by a partial unique index on confirmed bookings.\n- Phase 1 supports a single meeting type (`default`, 30 min). More types in Phase 2."
+}

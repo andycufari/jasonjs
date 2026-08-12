@@ -1,0 +1,204 @@
+{
+  "name": "Footer",
+  "component": "@framework/website/Footer",
+  "version": "2.0.0",
+  "description": "Comprehensive footer component with logo, multi-column links, newsletter signup, social media, and multiple layout variants",
+  "category": "navigation",
+  "tags": ["footer", "navigation", "newsletter", "social", "links", "sitemap"],
+  "author": "JasonJS Framework",
+  "license": "MIT",
+  "parameters": [
+    {
+      "name": "logo",
+      "type": "string | ReactNode",
+      "required": false,
+      "description": "Logo image URL or custom React element",
+      "default": null
+    },
+    {
+      "name": "logoText",
+      "type": "string",
+      "required": false,
+      "description": "Text to display with logo",
+      "default": "JasonJS"
+    },
+    {
+      "name": "logoHref",
+      "type": "string",
+      "required": false,
+      "description": "URL for logo link",
+      "default": "/"
+    },
+    {
+      "name": "copyright",
+      "type": "string",
+      "required": false,
+      "description": "Custom copyright text (overrides auto-generated)",
+      "default": null
+    },
+    {
+      "name": "companyName",
+      "type": "string",
+      "required": false,
+      "description": "Company name for auto-generated copyright",
+      "default": "JasonJS Framework"
+    },
+    {
+      "name": "year",
+      "type": "number",
+      "required": false,
+      "description": "Year for copyright (auto-set to current year)",
+      "default": "new Date().getFullYear()"
+    },
+    {
+      "name": "links",
+      "type": "Array<{name: string, href: string, target?: string}>",
+      "required": false,
+      "description": "Simple array of footer links (used in centered layout)",
+      "default": []
+    },
+    {
+      "name": "linkGroups",
+      "type": "Array<{title: string, links: Array<{name: string, href: string}>}>",
+      "required": false,
+      "description": "Grouped links for multi-column layout (used in default layout)",
+      "default": []
+    },
+    {
+      "name": "socialLinks",
+      "type": "Array<{name: string, href: string, icon?: string}>",
+      "required": false,
+      "description": "Social media links with optional icons",
+      "default": []
+    },
+    {
+      "name": "showNewsletter",
+      "type": "boolean",
+      "required": false,
+      "description": "Show newsletter signup form",
+      "default": false
+    },
+    {
+      "name": "newsletterTitle",
+      "type": "string",
+      "required": false,
+      "description": "Newsletter section title",
+      "default": "Subscribe to our newsletter"
+    },
+    {
+      "name": "newsletterPlaceholder",
+      "type": "string",
+      "required": false,
+      "description": "Newsletter input placeholder text",
+      "default": "Enter your email"
+    },
+    {
+      "name": "onNewsletterSubmit",
+      "type": "function",
+      "required": false,
+      "description": "Callback function when newsletter form is submitted (receives email as parameter)",
+      "default": null
+    },
+    {
+      "name": "variant",
+      "type": "'default' | 'gradient' | 'dark' | 'minimal'",
+      "required": false,
+      "description": "Visual style variant",
+      "default": "default"
+    },
+    {
+      "name": "layout",
+      "type": "'default' | 'centered'",
+      "required": false,
+      "description": "Footer layout style - default (multi-column) or centered (simple)",
+      "default": "default"
+    },
+    {
+      "name": "showBadges",
+      "type": "boolean",
+      "required": false,
+      "description": "Show technology badges (Next.js, React, etc.)",
+      "default": false
+    },
+    {
+      "name": "badges",
+      "type": "Array<{text: string, gradient?: string, border?: string, color?: string}>",
+      "required": false,
+      "description": "Custom badge configuration (overrides defaults)",
+      "default": []
+    },
+    {
+      "name": "className",
+      "type": "string",
+      "required": false,
+      "description": "Additional CSS classes",
+      "default": ""
+    }
+  ],
+  "example": {
+    "component": "@framework/website/Footer",
+    "attributes": {
+      "logo": "/images/logo.png",
+      "logoText": "My Company",
+      "companyName": "My Company Inc.",
+      "variant": "gradient",
+      "layout": "default",
+      "linkGroups": [
+        {
+          "title": "Product",
+          "links": [
+            { "name": "Features", "href": "/features" },
+            { "name": "Pricing", "href": "/pricing" },
+            { "name": "FAQ", "href": "/faq" }
+          ]
+        },
+        {
+          "title": "Company",
+          "links": [
+            { "name": "About", "href": "/about" },
+            { "name": "Blog", "href": "/blog" },
+            { "name": "Careers", "href": "/careers" }
+          ]
+        },
+        {
+          "title": "Legal",
+          "links": [
+            { "name": "Privacy", "href": "/privacy" },
+            { "name": "Terms", "href": "/terms" }
+          ]
+        }
+      ],
+      "socialLinks": [
+        { "name": "Twitter", "href": "https://twitter.com/mycompany", "icon": "𝕏" },
+        { "name": "GitHub", "href": "https://github.com/mycompany", "icon": "⚡" }
+      ],
+      "showNewsletter": true,
+      "showBadges": true
+    }
+  },
+  "useCases": [
+    "E-commerce store footer with product categories and legal links",
+    "SaaS application footer with newsletter signup",
+    "Marketing landing page with simple centered footer",
+    "Blog footer with social media links and categories",
+    "Corporate website with comprehensive sitemap"
+  ],
+  "features": [
+    "Logo and brand section",
+    "Multi-column link groups (default layout)",
+    "Centered simple layout option",
+    "Newsletter signup form with callback",
+    "Social media links",
+    "Technology badges",
+    "Multiple visual variants (default, gradient, dark, minimal)",
+    "Dark mode support",
+    "Theme-aware styling",
+    "Responsive design",
+    "Auto-generated copyright with current year"
+  ],
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.0.0"
+  },
+  "documentation": "/docs/components/framework/website/Footer.md"
+}

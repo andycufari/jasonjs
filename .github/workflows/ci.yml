@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-smoke:
+    name: Build + smoke (pinned Next)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npm run test:unit
+      - run: npm run build
+      - run: npm run smoke
+
+  next-canary:
+    name: Canary — latest Next.js
+    runs-on: ubuntu-latest
+    # Informational: tells us when the newest Next release breaks us,
+    # so we can bump the pin when green. Never blocks PRs.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npm install next@latest --legacy-peer-deps
+      - run: npx next --version
+      - run: npm run build
+      - run: npm run smoke

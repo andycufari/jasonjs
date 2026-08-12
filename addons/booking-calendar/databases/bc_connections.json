@@ -1,0 +1,24 @@
+{
+  "id": "bc_connections",
+  "name": "Booking Calendar — Google Connections",
+  "description": "One row per connected Google account per host user. Tokens are encrypted at rest by the framework.",
+  "type": "jason",
+  "schema": {
+    "userId":             { "type": "string", "required": true, "description": "Host user id (app.auth.user.id)" },
+    "label":              { "type": "string", "description": "Human label, e.g. 'Andy personal'" },
+    "googleAccountEmail": { "type": "string", "description": "Email of the connected Google account" },
+    "scope":              { "type": "string", "description": "OAuth scopes granted" },
+    "accessToken":        { "type": "string",  "encrypted": true },
+    "refreshToken":       { "type": "string",  "encrypted": true },
+    "expiryAt":           { "type": "datetime", "description": "Access-token expiration" },
+    "calendarIds":        { "type": "array",  "description": "Which calendars from this account feed freebusy" },
+    "writeCalendarId":    { "type": "string", "description": "Where events are written (primary connection only)" },
+    "isPrimary":          { "type": "boolean", "description": "Exactly one per user — the write target" }
+  },
+  "security": {
+    "read":   { "level": "owner" },
+    "create": { "level": "authenticated" },
+    "update": { "level": "owner" },
+    "delete": { "level": "owner" }
+  }
+}

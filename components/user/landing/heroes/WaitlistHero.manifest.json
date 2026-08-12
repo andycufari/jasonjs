@@ -1,0 +1,73 @@
+{
+  "name": "WaitlistHero",
+  "version": "2.0.0",
+  "description": "Pre-launch hero with email capture and social proof",
+  "category": "landing",
+  "component": "@landing/heroes/WaitlistHero",
+  "parameters": [
+    {
+      "name": "headline",
+      "type": "string",
+      "required": true,
+      "description": "Main headline for the waitlist"
+    },
+    {
+      "name": "subheadline",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "Supporting text below headline"
+    },
+    {
+      "name": "ctaText",
+      "type": "string",
+      "required": false,
+      "default": "Join Waitlist",
+      "description": "Submit button text"
+    },
+    {
+      "name": "variant",
+      "type": "string",
+      "required": false,
+      "default": "gradient",
+      "description": "Visual variant: gradient, minimal, or animated"
+    },
+    {
+      "name": "showCount",
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "description": "Show number of people on waitlist"
+    },
+    {
+      "name": "database",
+      "type": "string",
+      "required": false,
+      "default": "waitlist",
+      "description": "Database collection to store signups"
+    },
+    {
+      "name": "headlineClasses",
+      "type": "string",
+      "required": false,
+      "description": "Custom Tailwind classes for headline"
+    },
+    {
+      "name": "buttonClasses",
+      "type": "string",
+      "required": false,
+      "description": "Custom Tailwind classes for button"
+    }
+  ],
+  "example": {
+    "component": "@landing/heroes/WaitlistHero",
+    "attributes": {
+      "headline": "Something amazing is coming",
+      "subheadline": "Be the first to know when we launch",
+      "ctaText": "Get Early Access",
+      "variant": "animated",
+      "showCount": true,
+      "database": "waitlist"
+    }
+  }
+}

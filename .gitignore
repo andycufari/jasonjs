@@ -1,0 +1,88 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Production builds
+.next/
+out/
+build/
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Logs
+logs
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+
+# MongoDB backups (keeping in git per project structure)
+# mongodb_backups/
+
+# ClaudePoint checkpoints
+.checkpoints/
+
+# User components (project-specific, not part of framework)
+# components/user/
+
+.audio_cache/
+.image-cache/
+
+# Generated site components (trusted database components)
+sites/*/components/
+!sites/example.com/components/
+!sites/localhost/components/
+
+# ClaudePoint checkpoint system
+.claudepoint/
+.claude/
+.audio_cache/
+
+# JasonJS encryption key (dev auto-generated) — never commit
+.jasonjs-encryption-key
+# Runtime app data written by the file-backed app.db store
+sites/*/data/
+# Private CM64 multi-tenant addon (own repo, cloned into place)
+.cm64/

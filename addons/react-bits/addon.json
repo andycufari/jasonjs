@@ -1,0 +1,195 @@
+{
+  "name": "react-bits",
+  "displayName": "React Bits - Visual Effects",
+  "type": "addon",
+  "version": "1.0.0",
+  "description": "High-performance visual effects components using WebGL and Three.js for creating stunning interactive experiences",
+  "author": "JasonJS Framework",
+  "tags": ["effects", "visual", "webgl", "three.js", "animation", "3d", "ascii", "shaders"],
+  "license": "MIT",
+  "credits": 5,
+
+  "capabilities": [
+    "provides_components"
+  ],
+
+  "components": {
+    "ASCIIText": {
+      "file": "./components/ASCIIText.jsx",
+      "description": "Animated 3D text rendered as ASCII art with WebGL effects, mouse interaction, and dynamic hue rotation"
+    },
+    "ColorBends": {
+      "file": "./components/ColorBends.jsx",
+      "description": "Fluid, morphing color patterns with shader effects. Supports custom colors, rotation, mouse parallax, and various warp effects"
+    },
+    "Dither": {
+      "file": "./components/Dither.jsx",
+      "description": "Retro dithered wave effect with Bayer matrix post-processing, Perlin noise waves, and mouse interaction"
+    }
+  },
+
+  "dependencies": {
+    "three": "^0.160.0",
+    "postprocessing": "^6.0.0",
+    "@react-three/fiber": "^8.0.0",
+    "@react-three/postprocessing": "^2.0.0"
+  },
+
+  "usage": {
+    "ASCIIText": {
+      "example": "<ASCIIText text=\"Hello\" asciiFontSize={8} textFontSize={200} textColor=\"#fdf9f3\" planeBaseHeight={8} enableWaves={true} />",
+      "props": {
+        "text": {
+          "type": "string",
+          "default": "David!",
+          "description": "The text to display"
+        },
+        "asciiFontSize": {
+          "type": "number",
+          "default": 8,
+          "description": "Font size for the ASCII characters"
+        },
+        "textFontSize": {
+          "type": "number",
+          "default": 200,
+          "description": "Font size for the source text texture"
+        },
+        "textColor": {
+          "type": "string",
+          "default": "#fdf9f3",
+          "description": "Color of the text"
+        },
+        "planeBaseHeight": {
+          "type": "number",
+          "default": 8,
+          "description": "Height of the 3D plane"
+        },
+        "enableWaves": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable wave distortion effects"
+        }
+      }
+    },
+    "ColorBends": {
+      "example": "<ColorBends colors={['#FF6188', '#FC9867', '#FFD866']} rotation={45} speed={0.2} transparent={true} warpStrength={1} mouseInfluence={1} />",
+      "props": {
+        "className": {
+          "type": "string",
+          "description": "Additional CSS classes"
+        },
+        "style": {
+          "type": "object",
+          "description": "Inline styles"
+        },
+        "rotation": {
+          "type": "number",
+          "default": 45,
+          "description": "Base rotation angle in degrees"
+        },
+        "speed": {
+          "type": "number",
+          "default": 0.2,
+          "description": "Animation speed multiplier"
+        },
+        "colors": {
+          "type": "array",
+          "default": [],
+          "description": "Array of hex color strings (max 8 colors). Empty array uses default RGB effect"
+        },
+        "transparent": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable transparency"
+        },
+        "autoRotate": {
+          "type": "number",
+          "default": 0,
+          "description": "Auto-rotation speed (degrees per second)"
+        },
+        "scale": {
+          "type": "number",
+          "default": 1,
+          "description": "Zoom scale"
+        },
+        "frequency": {
+          "type": "number",
+          "default": 1,
+          "description": "Pattern frequency"
+        },
+        "warpStrength": {
+          "type": "number",
+          "default": 1,
+          "description": "Distortion strength (0-2+)"
+        },
+        "mouseInfluence": {
+          "type": "number",
+          "default": 1,
+          "description": "Mouse interaction strength"
+        },
+        "parallax": {
+          "type": "number",
+          "default": 0.5,
+          "description": "Parallax effect intensity"
+        },
+        "noise": {
+          "type": "number",
+          "default": 0.1,
+          "description": "Grain/noise amount"
+        }
+      }
+    },
+    "Dither": {
+      "example": "<Dither waveColor={[0.2,0.7,1]} disableAnimation={false} enableMouseInteraction={true} mouseRadius={0.9} colorNum={2.5} waveAmplitude={0.65} waveFrequency={0} waveSpeed={0.03} />",
+      "props": {
+        "waveSpeed": {
+          "type": "number",
+          "default": 0.05,
+          "description": "Speed of the wave animation"
+        },
+        "waveFrequency": {
+          "type": "number",
+          "default": 3,
+          "description": "Frequency of the wave pattern"
+        },
+        "waveAmplitude": {
+          "type": "number",
+          "default": 0.3,
+          "description": "Amplitude of the wave pattern"
+        },
+        "waveColor": {
+          "type": "array",
+          "default": [0.5, 0.5, 0.5],
+          "description": "RGB color array with values 0-1 (e.g. [0.2, 0.7, 1.0])"
+        },
+        "colorNum": {
+          "type": "number",
+          "default": 4,
+          "description": "Number of dither color levels. Lower values = more retro"
+        },
+        "pixelSize": {
+          "type": "number",
+          "default": 2,
+          "description": "Size of dither pixels"
+        },
+        "disableAnimation": {
+          "type": "boolean",
+          "default": false,
+          "description": "Freeze the animation"
+        },
+        "enableMouseInteraction": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable mouse-driven wave distortion"
+        },
+        "mouseRadius": {
+          "type": "number",
+          "default": 1,
+          "description": "Radius of the mouse interaction effect"
+        }
+      }
+    }
+  },
+
+  "ai_prompt": "# React Bits - Visual Effects Addon\n\n## When to Use This Addon\n\nUse React Bits components to add high-impact visual effects to projects that need:\n- Hero sections with eye-catching animated backgrounds\n- Landing pages that need to stand out\n- Creative portfolio websites\n- Brand showcases requiring premium visual effects\n- Interactive marketing pages\n- Loading screens with artistic flair\n\n## Implementation Guidelines\n\n### ASCIIText Component\n\n**Best For:**\n- Hero section headlines with retro/tech aesthetic\n- Creative text displays that need to be memorable\n- Sections where text is the main focal point\n- Tech/developer-focused brands\n- Nostalgic or retro-themed designs\n\n**Implementation Pattern:**\n```jsx\n<div style={{ position: 'relative', width: '100%', height: '500px', background: '#000' }}>\n  <ASCIIText \n    text=\"Your Text\"\n    asciiFontSize={8}\n    textFontSize={200}\n    textColor=\"#fdf9f3\"\n    enableWaves={true}\n  />\n</div>\n```\n\n**Important Notes:**\n- Parent container MUST have explicit width and height\n- Parent MUST have position: relative or absolute\n- Works best on dark backgrounds\n- Performance-intensive - use sparingly (one per page recommended)\n- Mouse movement creates 3D rotation effect\n- Automatically handles resize and cleanup\n\n### ColorBends Component\n\n**Best For:**\n- Animated backgrounds for hero sections\n- Abstract visual elements\n- Section dividers with artistic flair\n- Loading screens\n- Brand identity elements\n- Overlays behind content\n\n**Implementation Pattern:**\n```jsx\n// As background\n<div style={{ position: 'relative', width: '100%', height: '100vh' }}>\n  <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>\n    <ColorBends \n      colors={['#FF6188', '#FC9867', '#FFD866']}\n      rotation={45}\n      speed={0.2}\n      transparent={true}\n      warpStrength={1}\n    />\n  </div>\n  <div style={{ position: 'relative', zIndex: 10 }}>\n    {/* Your content here */}\n  </div>\n</div>\n```\n\n**Color Selection:**\n- Use brand colors for cohesive design\n- 2-4 colors work best (max 8)\n- Empty colors array gives default RGB gradient\n- Colors blend and morph smoothly\n\n**Performance Tuning:**\n- Lower `frequency` for smoother patterns\n- Reduce `warpStrength` for simpler animations\n- Set `transparent={false}` if no transparency needed\n- Use `autoRotate` sparingly for subtle motion\n\n### Dither Component\n\n**Best For:**\n- Retro/lo-fi aesthetic backgrounds\n- Cyberpunk or vaporwave themed sections\n- Dark hero sections with subtle animation\n- Artistic noise-based visuals\n- Unique loading or transition effects\n\n**Implementation Pattern:**\n```jsx\n<div style={{ width: '100%', height: '600px', position: 'relative' }}>\n  <Dither\n    waveColor={[0.2, 0.7, 1]}\n    disableAnimation={false}\n    enableMouseInteraction={true}\n    mouseRadius={0.9}\n    colorNum={2.5}\n    waveAmplitude={0.65}\n    waveFrequency={0}\n    waveSpeed={0.03}\n  />\n</div>\n```\n\n**Important Notes:**\n- Parent container MUST have explicit width and height\n- `waveColor` uses RGB values from 0-1 (not 0-255)\n- Lower `colorNum` values create a more retro/posterized look\n- `waveFrequency` of 0 creates smooth organic patterns\n- Uses Three.js Canvas with post-processing for the dither effect\n- Mouse interaction creates a wave distortion at cursor position\n\n**Tuning Guide:**\n- For minimal movement: `waveSpeed={0.01}` + `waveFrequency={0}`\n- For aggressive patterns: `waveFrequency={5}` + `waveAmplitude={0.5}`\n- For 1-bit retro look: `colorNum={2}` + `pixelSize={4}`\n- For smooth gradients: `colorNum={8}` + `pixelSize={1}`\n\n## Installation Requirements\n\n```json\n{\n  \"dependencies\": {\n    \"three\": \"^0.160.0\",\n    \"postprocessing\": \"^6.0.0\",\n    \"@react-three/fiber\": \"^8.0.0\",\n    \"@react-three/postprocessing\": \"^2.0.0\"\n  }\n}\n```\n\nAll components use Three.js for WebGL rendering. Dither additionally requires @react-three/fiber, @react-three/postprocessing, and postprocessing.\n\n## Common Patterns\n\n### Hero Section with ASCIIText\n```jsx\n<section className=\"hero\">\n  <div style={{ position: 'relative', width: '100%', height: '600px', background: '#000' }}>\n    <ASCIIText text=\"Welcome\" asciiFontSize={10} textFontSize={250} />\n  </div>\n</section>\n```\n\n### Background with Overlay Content\n```jsx\n<div style={{ position: 'relative', minHeight: '100vh' }}>\n  <div style={{ position: 'absolute', inset: 0 }}>\n    <ColorBends \n      colors={['#667eea', '#764ba2', '#f093fb']}\n      speed={0.15}\n      warpStrength={0.8}\n    />\n  </div>\n  <div style={{ position: 'relative', zIndex: 10, padding: '4rem' }}>\n    <h1>Your Content</h1>\n    <p>Text remains readable over the animated background</p>\n  </div>\n</div>\n```\n\n### Retro Dither Background\n```jsx\n<div style={{ position: 'relative', width: '100%', height: '100vh' }}>\n  <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>\n    <Dither\n      waveColor={[0.2, 0.7, 1]}\n      colorNum={2.5}\n      waveAmplitude={0.65}\n      waveFrequency={0}\n      waveSpeed={0.03}\n      enableMouseInteraction={true}\n      mouseRadius={0.9}\n    />\n  </div>\n  <div style={{ position: 'relative', zIndex: 10, padding: '4rem', color: '#fff' }}>\n    <h1>Your Content</h1>\n  </div>\n</div>\n```\n\n### Loading Screen\n```jsx\n<div style={{ \n  position: 'fixed', \n  inset: 0, \n  display: 'flex', \n  alignItems: 'center', \n  justifyContent: 'center',\n  zIndex: 9999 \n}}>\n  <ColorBends \n    colors={['#FF6B9D', '#C06C84', '#6C5B7B']}\n    speed={0.3}\n    autoRotate={10}\n    warpStrength={1.5}\n  />\n  <div style={{ position: 'absolute', zIndex: 1 }}>\n    <p>Loading...</p>\n  </div>\n</div>\n```\n\n## Performance Considerations\n\n1. **Limit Usage**: These are GPU-intensive components. Use 1-2 per page maximum.\n2. **Mobile**: Consider disabling or using simpler settings on mobile devices\n3. **Lazy Loading**: Load these components only when visible\n4. **Cleanup**: Components handle cleanup automatically - no manual intervention needed\n\n## Troubleshooting\n\n**Component not visible:**\n- Check parent has explicit width/height\n- Verify parent has position: relative or absolute\n- For ASCIIText, ensure background is dark enough\n\n**Performance issues:**\n- Reduce frequency and warpStrength\n- Lower asciiFontSize for ASCIIText\n- Disable autoRotate\n- Use fewer colors in ColorBends\n\n**WebGL errors:**\n- Ensure Three.js is installed: `npm install three`\n- Check browser supports WebGL\n- Test if multiple WebGL contexts are being created\n\n## Design Tips\n\n1. **ASCIIText**: Works best with short text (1-2 words). Longer text becomes harder to read.\n2. **ColorBends**: Use as backgrounds, not main content. Always have content layered above it.\n3. **Color Harmony**: Match colors to your brand palette for cohesive design.\n4. **Subtlety**: Lower speed values (0.1-0.3) feel more premium than fast animations.\n5. **Contrast**: Ensure text over effects has sufficient contrast for readability.\n6. **Dither**: Great for retro/lo-fi aesthetics. Use low colorNum (2-3) for maximum dither effect, higher (6-8) for subtle texture.\n\n## When NOT to Use\n\n- Accessibility-critical sections (effects can be distracting)\n- Content-heavy pages (interferes with reading)\n- Forms or input areas (can be distracting)\n- Mobile-first projects with limited GPU (consider static alternatives)\n- Professional/corporate sites requiring conservative design\n\nRemember: These components are statement pieces. Use them strategically to create impact, not on every page element."
+}

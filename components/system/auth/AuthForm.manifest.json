@@ -1,0 +1,45 @@
+{
+  "name": "AuthForm",
+  "version": "1.0.0",
+  "description": "Authentication form for login, signup, and password reset",
+  "category": "auth",
+  "parameters": [
+    {
+      "name": "mode",
+      "type": "string",
+      "required": false,
+      "default": "login",
+      "description": "Form mode: 'login', 'signup', or 'reset'"
+    },
+    {
+      "name": "redirectTo",
+      "type": "string",
+      "required": false,
+      "default": "/dashboard",
+      "description": "URL to redirect after successful auth"
+    },
+    {
+      "name": "showSocial",
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "description": "Show social login options"
+    },
+    {
+      "name": "providers",
+      "type": "array",
+      "required": false,
+      "default": ["google", "github"],
+      "description": "Social providers to display"
+    }
+  ],
+  "example": {
+    "component": "AuthForm",
+    "attributes": {
+      "mode": "login",
+      "redirectTo": "/app",
+      "showSocial": true,
+      "providers": ["google", "github", "twitter"]
+    }
+  }
+}

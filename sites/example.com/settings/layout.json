@@ -1,0 +1,62 @@
+{
+  "main": {
+    "components": [
+      {
+        "component": "div",
+        "attributes": {
+          "className": "min-h-screen bg-gray-900"
+        },
+        "components": [
+          {
+            "component": "@framework/website/Navbar",
+            "attributes": {}
+          },
+          {
+            "component": "main",
+            "components": ["@@PageComponents@@"]
+          },
+          {
+            "component": "@framework/website/Footer",
+            "attributes": {
+              "socialLinks": [
+                {
+                  "name": "GitHub",
+                  "href": "https://github.com/cm64-studio/jasonjs-framework",
+                  "icon": "🔗"
+                },
+                {
+                  "name": "Discord",
+                  "href": "#",
+                  "icon": "💬"
+                },
+                {
+                  "name": "Twitter",
+                  "href": "#",
+                  "icon": "🐦"
+                }
+              ],
+              "links": [
+                {
+                  "name": "Documentation",
+                  "href": "/docs"
+                },
+                {
+                  "name": "Examples",
+                  "href": "/examples"
+                },
+                {
+                  "name": "API Reference",
+                  "href": "/api"
+                },
+                {
+                  "name": "Community",
+                  "href": "/community"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "name": "dynamic-docs",
+  "title": "Documentation",
+  "path": "/docs/:slug",
+  "layout": "main",
+  "meta": {
+    "title": "{{params.slug}} - JasonJS Framework Documentation",
+    "description": "Learn about {{params.slug}} in JasonJS Framework"
+  },
+
+  "theme": {
+    "colors": {
+      "primary": "#00ffff",
+      "secondary": "#ff00ff", 
+      "accent": "#ffff00",
+      "background": "#0a0a0f",
+      "surface": "#1a1a2e",
+      "text": "#ffffff"
+    }
+  },
+  "components": [
+    {
+      "component": "@framework/website/Hero",
+      "attributes": {
+        "headline": "📚 {{params.slug}} Documentation",
+        "subheadline": "Comprehensive guide for developers and live coders",
+        "ctaText": "🔙 Back to Docs",
+        "ctaUrl": "/docs",
+        "sectionClasses": "py-16 bg-gradient-to-br from-gray-900 via-purple-900/50 to-gray-900 text-cyan-300 relative overflow-hidden",
+        "headlineClasses": "text-3xl md:text-5xl font-bold mb-6 leading-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-yellow-400",
+        "subheadlineClasses": "text-lg text-cyan-200 mb-8 leading-relaxed max-w-3xl mx-auto",
+        "ctaClasses": "inline-flex items-center px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 text-black font-semibold rounded-xl hover:from-cyan-400 hover:to-purple-500 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105"
+      }
+    },
+    {
+      "component": "@framework/website/MarkdownRenderer",
+      "attributes": {
+        "markdownFile": "{{params.slug}}"
+      }
+    },
+    {
+      "component": "@framework/website/DocSection",
+      "attributes": {
+        "title": "📚 Explore More Documentation",
+        "sectionClasses": "py-16 bg-gradient-to-b from-gray-800 to-gray-900 border-t border-cyan-500/20"
+      },
+      "components": [
+        {
+          "component": "@framework/website/DocsGrid",
+          "attributes": {}
+        }
+      ]
+    }
+  ]
+}

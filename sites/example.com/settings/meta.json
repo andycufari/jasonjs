@@ -1,0 +1,56 @@
+{
+  "title": "JasonJS Framework - JSON-Driven Web Development",
+  "description": "Open-source framework for building web applications with JSON configuration. Features component marketplace, theme system, and multi-database support.",
+  "keywords": ["json", "web framework", "open source", "component library", "no-code", "low-code", "next.js"],
+  "lang": "en",
+  "robots": "index,follow",
+  
+  "favIcon": "/favicon.ico",
+  
+  "ogTitle": "JasonJS Framework - Revolutionary JSON-Driven Development",
+  "ogDescription": "Transform web development with JSON configuration. Build powerful applications without complex code using our open-source framework.",
+  "ogImage": "/assets/jasonjs-og.jpg",
+  "ogImageWidth": 1200,
+  "ogImageHeight": 630,
+  "ogUrl": "https://jasonjs.dev",
+  "ogSiteName": "JasonJS Framework",
+  "ogType": "website",
+  
+  "twitterCard": "summary_large_image",
+  "twitterSite": "@jasonjs_dev",
+  "twitterCreator": "@cm64studio",
+  
+  "customMeta": {
+    "author": "CM64 Studio",
+    "copyright": "© 2025 CM64 Studio. All rights reserved.",
+    "generator": "JasonJS Framework",
+    "theme-color": "#6366f1",
+    "msapplication-TileColor": "#6366f1",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+    "apple-mobile-web-app-title": "JasonJS",
+    "application-name": "JasonJS Framework",
+    "mobile-web-app-capable": "yes"
+  },
+  
+  "structured_data": {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication", 
+    "name": "JasonJS Framework",
+    "description": "Open-source JSON-driven web application framework",
+    "url": "https://jasonjs.dev",
+    "author": {
+      "@type": "Organization",
+      "name": "CM64 Studio",
+      "url": "https://cm64.studio"
+    },
+    "operatingSystem": "Web Browser",
+    "applicationCategory": "DeveloperApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "license": "https://opensource.org/licenses/MIT"
+  }
+}

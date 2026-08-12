@@ -1,0 +1,51 @@
+{
+  "name": "Hero",
+  "version": "1.0.0",
+  "description": "Hero section with animated background and CTA",
+  "category": "landing",
+  "component": "@landing/Hero",
+  "parameters": [
+    {
+      "name": "title",
+      "type": "string",
+      "required": true,
+      "description": "Main headline text"
+    },
+    {
+      "name": "subtitle",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "Supporting text below title"
+    },
+    {
+      "name": "buttonText",
+      "type": "string",
+      "required": false,
+      "default": "Get Started",
+      "description": "CTA button label"
+    },
+    {
+      "name": "buttonLink",
+      "type": "string",
+      "required": false,
+      "default": "#",
+      "description": "Button link destination"
+    },
+    {
+      "name": "backgroundImage",
+      "type": "string",
+      "required": false,
+      "description": "Background image URL"
+    }
+  ],
+  "example": {
+    "component": "@landing/Hero",
+    "attributes": {
+      "title": "Build Something Amazing",
+      "subtitle": "The platform that helps you launch faster",
+      "buttonText": "Start Building",
+      "buttonLink": "/signup"
+    }
+  }
+}

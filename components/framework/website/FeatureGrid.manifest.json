@@ -1,0 +1,39 @@
+{
+  "name": "FeatureGrid",
+  "version": "2.0.0",
+  "description": "Feature grid section with icons, titles, and descriptions. Works with zero config.",
+  "category": "website",
+  "props": {
+    "title": {
+      "type": "string",
+      "default": "Everything You Need",
+      "description": "Section title"
+    },
+    "subtitle": {
+      "type": "string",
+      "default": "Complete development environment with powerful features.",
+      "description": "Section subtitle"
+    },
+    "features": {
+      "type": "array",
+      "default": [],
+      "description": "Array of features with icon, title, description, and optional details"
+    },
+    "columns": {
+      "type": "number",
+      "default": 3,
+      "description": "Number of columns (1-4)"
+    },
+    "variant": {
+      "type": "string",
+      "default": "default",
+      "description": "Visual style: default, gradient, minimal"
+    },
+    "showExpandable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show expandable details for features"
+    }
+  },
+  "dependencies": ["IconWrapper"]
+}

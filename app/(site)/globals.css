@@ -1,0 +1,380 @@
+/* app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* shadcn/ui CSS variables */
+@layer base {
+  :root {
+    /* Modern light theme with better contrast */
+    --background: 0 0% 95%;           /* Light gray background */
+    --foreground: 222.2 47% 11%;      /* Dark text for readability */
+    --card: 0 0% 100%;                /* Pure white cards */
+    --card-foreground: 222.2 47% 11%; /* Dark text on cards */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47% 11%;
+    --primary: 221.2 83.2% 53.3%;     /* Vibrant blue primary */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 220 14% 91%;         /* Soft gray for secondary */
+    --secondary-foreground: 222.2 47% 11%;
+    --muted: 220 14% 95%;             /* Very light gray for muted areas */
+    --muted-foreground: 220 9% 46%;   /* Medium gray for muted text */
+    --accent: 221.2 83.2% 53.3%;      /* Same as primary for consistency */
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 13% 88%;            /* Defined borders */
+    --input: 220 13% 91%;             /* Slightly darker input borders */
+    --ring: 221.2 83.2% 53.3%;
+    --success: 142 76% 36%;           /* Success green */
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;            /* Warning orange */
+    --warning-foreground: 0 0% 100%;
+    --info: 199 89% 48%;              /* Info blue */
+    --info-foreground: 0 0% 100%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.75rem;
+  }
+  
+  /* Dark mode fallback values - tenant theme.json will override these */
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Animated blob backgrounds for auth pages */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Beautiful form inputs for auth system - using CSS variables */
+@layer components {
+  /* Animated gradient border using theme colors and keyframes */
+  .animated-gradient-border {
+    position: relative;
+  }
+  .animated-gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 2px; /* border width */
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--color-accent), var(--color-primary), var(--color-accent));
+    background-size: 200% 200%;
+    animation: gradient-x 6s ease infinite;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+  .auth-input {
+    @apply w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 font-sans;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--color-text, #ffffff);
+  }
+  
+  .auth-input::placeholder {
+    color: var(--color-textMuted, rgba(255, 255, 255, 0.5));
+  }
+  
+  .auth-input:focus {
+    border-color: var(--color-primary, #6366f1);
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb, 99, 102, 241), 0.1);
+  }
+  
+  .auth-button {
+    @apply w-full py-3 px-4 text-white font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 transform hover:scale-[1.02] font-sans;
+    background-color: var(--color-primary, #6366f1);
+  }
+  
+  .auth-button:hover {
+    background-color: var(--color-primary, #6366f1);
+    opacity: 0.9;
+  }
+  
+  .auth-button:focus {
+    box-shadow: 0 0 0 2px transparent, 0 0 0 4px var(--color-primary, #6366f1);
+  }
+  
+  .auth-link {
+    @apply font-medium transition-colors font-sans;
+    color: var(--color-primary, #6366f1);
+  }
+  
+  .auth-link:hover {
+    color: var(--color-primary, #6366f1);
+    opacity: 0.8;
+  }
+  
+  .auth-page {
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Ubuntu', 'Cantarell', 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  }
+  
+  .auth-title {
+    @apply font-bold text-white font-sans;
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Ubuntu', 'Cantarell', 'Noto Sans', sans-serif;
+  }
+  
+  .auth-brand {
+    @apply font-bold text-white font-sans;
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Ubuntu', 'Cantarell', 'Noto Sans', sans-serif;
+  }
+
+  /* ============================================
+   * MarkdownView Component Styles
+   * Theme-aware markdown rendering using CSS variables
+   * ============================================ */
+
+  /* Code block container */
+  .markdown-code-block {
+    @apply relative my-4 rounded-lg overflow-hidden;
+    background-color: hsl(var(--muted));
+  }
+
+  /* Pre element inside code blocks */
+  .markdown-pre {
+    @apply p-4 overflow-x-auto text-sm font-mono;
+    background-color: hsl(var(--muted));
+    color: hsl(var(--foreground));
+  }
+
+  /* Code element styling */
+  .markdown-code {
+    @apply font-mono text-sm;
+    color: hsl(var(--foreground));
+  }
+
+  /* Inline code (not in code blocks) */
+  .markdown-inline-code {
+    @apply px-1.5 py-0.5 rounded text-sm font-mono;
+    background-color: hsl(var(--muted));
+    color: hsl(var(--primary));
+  }
+
+  /* Language badge on code blocks */
+  .markdown-code-language {
+    @apply absolute top-2 right-2 px-2 py-0.5 text-xs font-medium rounded;
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Syntax highlighter container (when using full highlighting) */
+  .markdown-syntax-highlighter {
+    @apply p-4 overflow-x-auto text-sm;
+    background-color: hsl(var(--muted)) !important;
+  }
+
+  /* Links in markdown */
+  .markdown-link {
+    color: hsl(var(--primary));
+    @apply underline underline-offset-2 hover:opacity-80 transition-opacity;
+  }
+
+  /* Images in markdown */
+  .markdown-image {
+    @apply rounded-lg max-w-full h-auto my-4;
+  }
+
+  /* Blockquotes */
+  .markdown-blockquote {
+    @apply pl-4 my-4 italic;
+    border-left: 4px solid hsl(var(--primary));
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Table wrapper for horizontal scroll */
+  .markdown-table-wrapper {
+    @apply overflow-x-auto my-4;
+  }
+
+  /* Tables */
+  .markdown-table {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .markdown-table th {
+    @apply px-4 py-2 text-left font-semibold;
+    background-color: hsl(var(--muted));
+    border: 1px solid hsl(var(--border));
+  }
+
+  .markdown-table td {
+    @apply px-4 py-2;
+    border: 1px solid hsl(var(--border));
+  }
+
+  .markdown-table tr:nth-child(even) {
+    background-color: hsl(var(--muted) / 0.5);
+  }
+
+  /* Empty state */
+  .markdown-empty {
+    @apply py-8 text-center;
+  }
+
+  /* ============================================
+   * Syntax Highlighting Token Colors
+   * Uses CSS variables for theme compatibility
+   * Applied when codeHighlight="full"
+   * ============================================ */
+
+  /* Comments */
+  .markdown-view .token.comment,
+  .markdown-view .token.prolog,
+  .markdown-view .token.doctype,
+  .markdown-view .token.cdata {
+    color: hsl(var(--muted-foreground));
+    font-style: italic;
+  }
+
+  /* Punctuation */
+  .markdown-view .token.punctuation {
+    color: hsl(var(--foreground) / 0.7);
+  }
+
+  /* Properties, tags, constants, symbols */
+  .markdown-view .token.property,
+  .markdown-view .token.tag,
+  .markdown-view .token.constant,
+  .markdown-view .token.symbol,
+  .markdown-view .token.deleted {
+    color: hsl(var(--destructive));
+  }
+
+  /* Booleans, numbers */
+  .markdown-view .token.boolean,
+  .markdown-view .token.number {
+    color: hsl(var(--chart-3));
+  }
+
+  /* Selectors, attr-name, strings, chars, inserted */
+  .markdown-view .token.selector,
+  .markdown-view .token.attr-name,
+  .markdown-view .token.string,
+  .markdown-view .token.char,
+  .markdown-view .token.builtin,
+  .markdown-view .token.inserted {
+    color: hsl(var(--chart-2));
+  }
+
+  /* Operators, entities, URLs, CSS strings */
+  .markdown-view .token.operator,
+  .markdown-view .token.entity,
+  .markdown-view .token.url,
+  .markdown-view .language-css .token.string,
+  .markdown-view .style .token.string {
+    color: hsl(var(--chart-4));
+  }
+
+  /* Keywords, at-rules, control */
+  .markdown-view .token.atrule,
+  .markdown-view .token.attr-value,
+  .markdown-view .token.keyword {
+    color: hsl(var(--primary));
+  }
+
+  /* Functions, class names */
+  .markdown-view .token.function,
+  .markdown-view .token.class-name {
+    color: hsl(var(--chart-1));
+  }
+
+  /* Regex, important, variable */
+  .markdown-view .token.regex,
+  .markdown-view .token.important,
+  .markdown-view .token.variable {
+    color: hsl(var(--chart-5));
+  }
+
+  /* Important, bold */
+  .markdown-view .token.important,
+  .markdown-view .token.bold {
+    font-weight: bold;
+  }
+
+  /* Italic */
+  .markdown-view .token.italic {
+    font-style: italic;
+  }
+
+  /* JSX specific */
+  .markdown-view .token.tag .token.punctuation {
+    color: hsl(var(--foreground) / 0.7);
+  }
+
+  .markdown-view .token.tag .token.tag {
+    color: hsl(var(--destructive));
+  }
+
+  .markdown-view .token.tag .token.attr-name {
+    color: hsl(var(--chart-2));
+  }
+
+  .markdown-view .token.tag .token.attr-value {
+    color: hsl(var(--chart-2));
+  }
+
+  .markdown-view .token.tag .token.script {
+    color: hsl(var(--foreground));
+  }
+}

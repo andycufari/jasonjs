@@ -1,0 +1,35 @@
+{
+  "name": "docs-getting-started",
+  "title": "Getting Started - JasonJS Framework Documentation",
+  "path": "/docs/getting-started",
+  "layout": "main",
+  "meta": {
+    "title": "Getting Started - JasonJS Framework Documentation",
+    "description": "Learn how to build web applications with JasonJS Framework using JSON configuration."
+  },
+  "theme": {
+    "colors": {
+      "primary": "#00ffff",
+      "secondary": "#ff00ff", 
+      "accent": "#ffff00",
+      "background": "#0a0a0f",
+      "surface": "#1a1a2e",
+      "text": "#ffffff"
+    }
+  },
+  "components": [
+    {
+      "component": "@framework/website/DocsLayout",
+      "components": [
+        {
+          "component": "@framework/website/MarkdownRenderer",
+          "attributes": {
+            "markdownFile": "getting-started",
+            "sectionClasses": "py-8 bg-gray-900",
+            "containerClasses": "container mx-auto px-6 max-w-4xl"
+          }
+        }
+      ]
+    }
+  ]
+}

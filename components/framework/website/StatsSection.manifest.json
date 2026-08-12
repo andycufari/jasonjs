@@ -1,0 +1,39 @@
+{
+  "name": "StatsSection",
+  "version": "2.0.0",
+  "description": "Stats section with animated numbers. Works with zero config.",
+  "category": "website",
+  "props": {
+    "title": {
+      "type": "string",
+      "default": "Trusted by Thousands",
+      "description": "Section title"
+    },
+    "subtitle": {
+      "type": "string",
+      "default": "Numbers that speak for themselves.",
+      "description": "Section subtitle"
+    },
+    "stats": {
+      "type": "array",
+      "default": [],
+      "description": "Array of stats with value, suffix, label, icon, and description"
+    },
+    "columns": {
+      "type": "number",
+      "default": 4,
+      "description": "Number of columns (2-4)"
+    },
+    "variant": {
+      "type": "string",
+      "default": "default",
+      "description": "Visual style: default, cards, minimal"
+    },
+    "animate": {
+      "type": "boolean",
+      "default": true,
+      "description": "Animate numbers on scroll (respects prefers-reduced-motion)"
+    }
+  },
+  "dependencies": ["IconWrapper"]
+}

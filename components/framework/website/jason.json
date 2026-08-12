@@ -1,0 +1,82 @@
+{
+  "name": "framework-simple-landing",
+  "description": "Basic landing page components that ship with JasonJS Framework",
+  "version": "1.0.0",
+  "author": "CM64 Studio",
+  "created": "2025-01-06",
+  "updated": "2025-01-06",
+  "tags": ["framework", "landing", "basic", "open-source"],
+  "license": "MIT",
+  "type": "framework-core",
+  "dependencies": {
+    "react": "^18.0.0"
+  },
+  "components": [
+    {
+      "name": "Hero",
+      "description": "Basic hero section with headline, subheadline, and CTA buttons",
+      "props": {
+        "headline": "string",
+        "subheadline": "string",
+        "ctaText": "string",
+        "ctaUrl": "string",
+        "secondaryCta": "string",
+        "secondaryUrl": "string",
+        "features": "array",
+        "codeExample": "object",
+        "className": "string",
+        "headlineClasses": "string",
+        "subheadlineClasses": "string",
+        "ctaClasses": "string",
+        "secondaryCtaClasses": "string",
+        "containerClasses": "string",
+        "sectionClasses": "string"
+      },
+      "example": {
+        "component": "@framework/simple-landing/Hero",
+        "attributes": {
+          "headline": "Build with JSON, Deploy Anywhere",
+          "subheadline": "Transform web development with JSON-driven configuration",
+          "ctaText": "Get Started",
+          "ctaUrl": "/docs",
+          "features": ["Zero-config setup", "Component marketplace", "Multi-database support"]
+        }
+      }
+    },
+    {
+      "name": "FeatureGrid",
+      "description": "Grid layout for showcasing features with expandable details",
+      "props": {
+        "title": "string",
+        "subtitle": "string", 
+        "features": "array",
+        "className": "string",
+        "titleClasses": "string",
+        "subtitleClasses": "string",
+        "containerClasses": "string",
+        "sectionClasses": "string",
+        "gridClasses": "string",
+        "featureClasses": "string"
+      },
+      "example": {
+        "component": "@framework/simple-landing/FeatureGrid",
+        "attributes": {
+          "title": "Framework Features",
+          "subtitle": "Everything you need to build modern web applications",
+          "features": [
+            {
+              "icon": "⚡",
+              "title": "JSON-Driven",
+              "description": "Configure everything with simple JSON files",
+              "details": ["Declarative components", "Dynamic data binding"]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "installation": {
+    "note": "These components are included with JasonJS Framework core",
+    "usage": "Use @framework/simple-landing/ prefix in your JSON configurations"
+  }
+}

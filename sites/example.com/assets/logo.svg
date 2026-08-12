@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="32" viewBox="0 0 120 32" role="img" aria-label="JasonJS">
+  <rect x="1" y="1" width="30" height="30" rx="7" fill="#111827"/>
+  <text x="16" y="22" text-anchor="middle" font-family="ui-monospace, monospace" font-size="14" fill="#fbbf24">{}</text>
+  <text x="38" y="22" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="700" fill="#111827">JasonJS</text>
+</svg>

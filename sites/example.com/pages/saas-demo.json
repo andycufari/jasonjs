@@ -1,0 +1,448 @@
+{
+  "meta": {
+    "title": "ProductFlow - Streamline Your Team's Workflow",
+    "description": "The all-in-one platform for project management, team collaboration, and productivity. Start your free trial today.",
+    "keywords": ["project management", "team collaboration", "productivity", "saas"]
+  },
+  "layout": {
+    "className": "min-h-screen bg-white"
+  },
+  "components": [
+    {
+      "component": "@landing/SaaSHero",
+      "attributes": {
+        "headline": "Streamline your team's workflow like never before",
+        "subheadline": "The all-in-one platform that brings your projects, team, and goals together in perfect harmony. Trusted by 10,000+ teams worldwide.",
+        "ctaText": "Start Free Trial",
+        "secondaryCta": "Watch Demo",
+        "features": [
+          "Everything you need in one platform",
+          "Scales with teams from 2 to 2,000+",
+          "Enterprise-grade security included",
+          "99.9% uptime guarantee"
+        ],
+        "userCount": "10,000+",
+        "rating": 4.9,
+        "variant": "product",
+        "ctaUrl": "/signup",
+        "demoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+      }
+    },
+
+    {
+      "component": "@landing/LogoCloud",
+      "attributes": {
+        "title": "Trusted by teams at leading companies",
+        "variant": "carousel",
+        "showCount": true,
+        "companyCount": "500+",
+        "autoplay": true,
+        "speed": 25,
+        "logos": [
+          {
+            "name": "Innovate Corp",
+            "width": 140,
+            "height": 40
+          },
+          {
+            "name": "TechFlow",
+            "width": 130,
+            "height": 35
+          },
+          {
+            "name": "StartupHub",
+            "width": 125,
+            "height": 45
+          },
+          {
+            "name": "CloudFirst",
+            "width": 135,
+            "height": 38
+          },
+          {
+            "name": "NextGen Solutions",
+            "width": 150,
+            "height": 42
+          },
+          {
+            "name": "Digital Dynamics",
+            "width": 145,
+            "height": 36
+          }
+        ]
+      }
+    },
+
+    {
+      "component": "section",
+      "attributes": {
+        "className": "py-20 bg-gray-50"
+      },
+      "components": [
+        {
+          "component": "div",
+          "attributes": {
+            "className": "container mx-auto px-4"
+          },
+          "components": [
+            {
+              "component": "div",
+              "attributes": {
+                "className": "text-center mb-16"
+              },
+              "components": [
+                {
+                  "component": "h2",
+                  "attributes": {
+                    "className": "text-4xl md:text-5xl font-bold text-gray-900 mb-6"
+                  },
+                  "components": ["Everything your team needs to succeed"]
+                },
+                {
+                  "component": "p",
+                  "attributes": {
+                    "className": "text-xl text-gray-600 max-w-3xl mx-auto"
+                  },
+                  "components": ["From planning to execution, ProductFlow provides all the tools your team needs to collaborate effectively and deliver results."]
+                }
+              ]
+            },
+            {
+              "component": "div",
+              "attributes": {
+                "className": "grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+              },
+              "components": [
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                  },
+                  "components": [
+                    {
+                      "component": "div",
+                      "attributes": {
+                        "className": "w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6"
+                      },
+                      "components": [
+                        {
+                          "component": "span",
+                          "attributes": {
+                            "className": "text-2xl"
+                          },
+                          "components": ["📋"]
+                        }
+                      ]
+                    },
+                    {
+                      "component": "h3",
+                      "attributes": {
+                        "className": "text-xl font-semibold text-gray-900 mb-3"
+                      },
+                      "components": ["Project Management"]
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-gray-600 mb-4"
+                      },
+                      "components": ["Plan, track, and manage projects with intuitive Kanban boards, Gantt charts, and timeline views."]
+                    },
+                    {
+                      "component": "ul",
+                      "attributes": {
+                        "className": "text-sm text-gray-500 space-y-1"
+                      },
+                      "components": [
+                        {
+                          "component": "li",
+                          "components": ["• Custom workflows"]
+                        },
+                        {
+                          "component": "li",
+                          "components": ["• Task dependencies"]
+                        },
+                        {
+                          "component": "li",
+                          "components": ["• Progress tracking"]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                  },
+                  "components": [
+                    {
+                      "component": "div",
+                      "attributes": {
+                        "className": "w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-6"
+                      },
+                      "components": [
+                        {
+                          "component": "span",
+                          "attributes": {
+                            "className": "text-2xl"
+                          },
+                          "components": ["👥"]
+                        }
+                      ]
+                    },
+                    {
+                      "component": "h3",
+                      "attributes": {
+                        "className": "text-xl font-semibold text-gray-900 mb-3"
+                      },
+                      "components": ["Team Collaboration"]
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-gray-600 mb-4"
+                      },
+                      "components": ["Real-time communication, file sharing, and collaborative editing keep everyone on the same page."]
+                    },
+                    {
+                      "component": "ul",
+                      "attributes": {
+                        "className": "text-sm text-gray-500 space-y-1"
+                      },
+                      "components": [
+                        {
+                          "component": "li",
+                          "components": ["• Real-time chat"]
+                        },
+                        {
+                          "component": "li",
+                          "components": ["• Video calls"]
+                        },
+                        {
+                          "component": "li",
+                          "components": ["• Document collaboration"]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                  },
+                  "components": [
+                    {
+                      "component": "div",
+                      "attributes": {
+                        "className": "w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-6"
+                      },
+                      "components": [
+                        {
+                          "component": "span",
+                          "attributes": {
+                            "className": "text-2xl"
+                          },
+                          "components": ["📊"]
+                        }
+                      ]
+                    },
+                    {
+                      "component": "h3",
+                      "attributes": {
+                        "className": "text-xl font-semibold text-gray-900 mb-3"
+                      },
+                      "components": ["Analytics & Insights"]
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-gray-600 mb-4"
+                      },
+                      "components": ["Powerful reporting and analytics to understand team performance and project health."]
+                    },
+                    {
+                      "component": "ul",
+                      "attributes": {
+                        "className": "text-sm text-gray-500 space-y-1"
+                      },
+                      "components": [
+                        {
+                          "component": "li",
+                          "components": ["• Performance metrics"]
+                        },
+                        {
+                          "component": "li",
+                          "components": ["• Custom dashboards"]
+                        },
+                        {
+                          "component": "li",
+                          "components": ["• Automated reports"]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "component": "@landing/PricingTable",
+      "attributes": {
+        "title": "Simple, transparent pricing",
+        "subtitle": "Choose the plan that's right for your team. Start free, scale as you grow.",
+        "showYearlyToggle": true,
+        "yearlyDiscount": 20,
+        "popularPlanId": "pro",
+        "plans": [
+          {
+            "id": "starter",
+            "name": "Starter",
+            "description": "Perfect for small teams getting started",
+            "price": {
+              "monthly": 0,
+              "yearly": 0
+            },
+            "features": [
+              "Up to 5 team members",
+              "3 projects",
+              "Basic project templates",
+              "Email support",
+              "5GB storage"
+            ],
+            "cta": "Start Free",
+            "ctaVariant": "secondary"
+          },
+          {
+            "id": "pro",
+            "name": "Professional",
+            "description": "For growing teams that need advanced features",
+            "price": {
+              "monthly": 12,
+              "yearly": 10
+            },
+            "features": [
+              "Up to 50 team members",
+              "Unlimited projects",
+              "Advanced analytics",
+              "Priority support",
+              "100GB storage",
+              "Custom integrations",
+              "Time tracking",
+              "Advanced permissions"
+            ],
+            "cta": "Start Free Trial",
+            "ctaVariant": "primary",
+            "popular": true
+          },
+          {
+            "id": "enterprise",
+            "name": "Enterprise",
+            "description": "For large organizations with advanced needs",
+            "price": {
+              "monthly": 25,
+              "yearly": 20
+            },
+            "features": [
+              "Unlimited team members",
+              "Advanced security (SSO, SAML)",
+              "Custom workflows",
+              "24/7 phone support",
+              "Unlimited storage",
+              "API access",
+              "Custom branding",
+              "Dedicated success manager"
+            ],
+            "cta": "Contact Sales",
+            "ctaVariant": "secondary"
+          }
+        ]
+      }
+    },
+
+    {
+      "component": "section",
+      "attributes": {
+        "className": "py-20 bg-blue-600 text-white"
+      },
+      "components": [
+        {
+          "component": "div",
+          "attributes": {
+            "className": "container mx-auto px-4 text-center"
+          },
+          "components": [
+            {
+              "component": "h2",
+              "attributes": {
+                "className": "text-4xl md:text-5xl font-bold mb-6"
+              },
+              "components": ["Ready to transform your workflow?"]
+            },
+            {
+              "component": "p",
+              "attributes": {
+                "className": "text-xl text-blue-100 mb-8 max-w-2xl mx-auto"
+              },
+              "components": ["Join thousands of teams who have already revolutionized their productivity with ProductFlow."]
+            },
+            {
+              "component": "div",
+              "attributes": {
+                "className": "flex flex-col sm:flex-row gap-4 justify-center items-center"
+              },
+              "components": [
+                {
+                  "component": "a",
+                  "attributes": {
+                    "href": "/signup",
+                    "className": "inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors"
+                  },
+                  "components": [
+                    "Start Free Trial",
+                    {
+                      "component": "span",
+                      "attributes": {
+                        "className": "ml-2"
+                      },
+                      "components": ["→"]
+                    }
+                  ]
+                },
+                {
+                  "component": "a",
+                  "attributes": {
+                    "href": "/demo",
+                    "className": "inline-flex items-center px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-blue-600 transition-colors"
+                  },
+                  "components": [
+                    "Book a Demo",
+                    {
+                      "component": "span",
+                      "attributes": {
+                        "className": "ml-2"
+                      },
+                      "components": ["📅"]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "component": "p",
+              "attributes": {
+                "className": "text-sm text-blue-200 mt-6"
+              },
+              "components": ["No credit card required • 14-day free trial • Cancel anytime"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Andrés Cufari - Hacker & Artist</title>
+    <style>
+        /* Global Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        body {
+            background-color: #000080;
+            color: #FFFFFF;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            cursor: default;
+        }
+        
+        /* Header Styles */
+        .header {
+            background-color: #00AAAA;
+            color: #FFFFFF;
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 10px;
+            border-bottom: 2px solid #000000;
+        }
+        
+        /* Main Container */
+        .container {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        
+        /* Panels Container */
+        .panels {
+            display: flex;
+            flex-grow: 1;
+        }
+        
+        /* Left and Right Panels */
+        .panel {
+            width: 50%;
+            border: 2px solid #FFFFFF;
+            margin: 5px;
+            display: flex;
+            flex-direction: column;
+            background-color: #0000AA;
+            overflow: hidden;
+        }
+        
+        /* Panel Header */
+        .panel-header {
+            background-color: #00AAAA;
+            color: #FFFFFF;
+            padding: 2px 5px;
+            text-align: center;
+            border-bottom: 1px solid #FFFFFF;
+        }
+        
+        /* Panel Content */
+        .panel-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        /* Directory Listing Styles */
+        .dir-item {
+            padding: 2px 10px;
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+        }
+        
+        .dir-item:hover, .dir-item.active {
+            background-color: #0000FF;
+            color: #FFFFFF;
+        }
+        
+        .dir-type {
+            width: 80px;
+            display: inline-block;
+        }
+        
+        .dir-name {
+            flex-grow: 1;
+        }
+        
+        .dir-size {
+            width: 100px;
+            text-align: right;
+        }
+        
+        /* Footer Styles */
+        .footer {
+            background-color: #00AAAA;
+            padding: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            border-top: 2px solid #000000;
+        }
+        
+        .command {
+            background-color: #0000AA;
+            color: #FFFFFF;
+            padding: 0px 5px;
+            margin: 0 5px;
+            border: 1px solid #FFFFFF;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #0000AA;
+            border: 2px solid #FFFFFF;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 10;
+            padding: 10px;
+        }
+        
+        .modal-header {
+            background-color: #00AAAA;
+            color: #FFFFFF;
+            padding: 5px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .modal-content {
+            padding: 10px;
+        }
+        
+        .modal-footer {
+            padding: 5px;
+            text-align: right;
+            margin-top: 10px;
+        }
+        
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 5;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #000080;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #00AAAA;
+        }
+        
+        /* Blinking Cursor */
+        .cursor {
+            animation: blink 1s step-end infinite;
+            display: inline-block;
+            width: 8px;
+            height: 1em;
+            background-color: #FFFFFF;
+            margin-left: 2px;
+            vertical-align: middle;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        
+        /* Info Box Styles */
+        .info-box {
+            margin: 5px;
+            border: 2px solid #FFFFFF;
+            background-color: #0000AA;
+            padding: 5px;
+            height: 150px;
+            overflow: auto;
+        }
+        
+        /* Prompt */
+        .prompt {
+            background-color: #000080;
+            padding: 5px;
+            margin-top: 5px;
+            display: flex;
+        }
+        
+        /* File Content Viewer */
+        .file-content {
+            padding: 10px;
+            white-space: pre-wrap;
+            line-height: 1.3;
+        }
+        
+        .file-content img {
+            max-width: 100%;
+        }
+        
+        /* Vignette effect for CRT look */
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: 0 0 200px rgba(0, 0, 0, 0.9) inset;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        /* Scan lines for CRT look */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(255, 255, 255, 0) 100%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 101;
+        }
+        
+        /* Text highlighting */
+        ::selection {
+            background-color: #00AAAA;
+            color: #FFFFFF;
+        }
+        
+        /* Content for the brain panels */
+        .tech-hemisphere {
+            background-color: #0000AA;
+        }
+        
+        .art-hemisphere {
+            background-color: #0000AA;
+        }
+        
+        /* Status text (bottom left) */
+        .status-text {
+            padding: 2px 5px;
+            color: #FFFFFF;
+        }
+    </style>
+</head>
+<body>
+    <!-- CRT Effects -->
+    <div class="vignette"></div>
+    <div class="scanlines"></div>
+    
+    <!-- Header -->
+    <div class="header">
+        <div>The Norton Commander, Version 5.51</div>
+        <div>1 July 1998</div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Panels Container -->
+        <div class="panels">
+            <!-- Left Panel (Technical Hemisphere) -->
+            <div class="panel tech-hemisphere" id="left-panel">
+                <div class="panel-header">Technical Hemisphere</div>
+                <div class="panel-content" id="left-content">
+                    <div class="dir-item" data-type="folder" data-file="software-projects">
+                        <span class="dir-type">&lt;DIR&gt;</span>
+                        <span class="dir-name">Software Projects</span>
+                        <span class="dir-size"></span>
+                    </div>
+                    <div class="dir-item" data-type="folder" data-file="tech-skills">
+                        <span class="dir-type">&lt;DIR&gt;</span>
+                        <span class="dir-name">Tech Skills</span>
+                        <span class="dir-size"></span>
+                    </div>
+                    <div class="dir-item" data-type="file" data-file="bio.txt">
+                        <span class="dir-type">TXT</span>
+                        <span class="dir-name">bio.txt</span>
+                        <span class="dir-size">4.2 KB</span>
+                    </div>
+                    <div class="dir-item" data-type="file" data-file="resume.txt">
+                        <span class="dir-type">TXT</span>
+                        <span class="dir-name">resume.txt</span>
+                        <span class="dir-size">8.7 KB</span>
+                    </div>
+                    <div class="dir-item" data-type="file" data-file="manifesto.txt">
+                        <span class="dir-type">TXT</span>
+                        <span class="dir-name">manifesto.txt</span>
+                        <span class="dir-size">3.8 KB</span>
+                    </div>
+                    <div class="dir-item" data-type="folder" data-file="accessibility-projects">
+                        <span class="dir-type">&lt;DIR&gt;</span>
+                        <span class="dir-name">Accessibility Projects</span>
+                        <span class="dir-size"></span>
+                    </div>
+                    <div class="dir-item" data-type="folder" data-file="ai-experiments">
+                        <span class="dir-type">&lt;DIR&gt;</span>
+                        <span class="dir-name">AI Experiments</span>
+                        <span class="dir-size"></span>
+                    </div>
+                    <div class="dir-item" data-type="file" data-file="hacker-ethos.txt">
+                        <span class="dir-type">TXT</span>
+                        <span class="dir-name">hacker-ethos.txt</span>
+                        <span class="dir-size">5.6 KB</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel (Artistic Hemisphere) -->
+            <div class="panel art-hemisphere" id="right-panel">
+                <div class="panel-header">Artistic Hemisphere</div>
+                <div class="panel-content" id="right-content">
+                    <div class="dir-item" data-type="folder" data-file="music-projects">
+                        <span class="dir-type">&lt;DIR&gt;</span>
+                        <span class="dir-name">Music Projects</span>
+                        <span class="dir-size"></span>
+                    </div>
+                    <div class="dir-item" data-type="folder" data-file="apparel-line">
+                        <span class="dir-type">&lt;DIR&gt;</span>
+                        <span class="dir-name">Apparel Line</span>
+                        <span class="dir-size"></span>
+                    </div>
+                    <div class="dir-item" data-type="folder" data-file="book-project">
+                        <span class="dir-type">&lt;DIR&gt;</span>
+                        <span class="dir-name">Book Project</span>
+                        <span class="dir-size"></span>
+                    </div>
+                    <div class="dir-item" data-type="folder" data-file="gaming-ventures">
+                        <span class="dir-type">&lt;DIR&gt;</span>
+                        <span class="dir-name">Gaming Ventures</span>
+                        <span class="dir-size"></span>
+                    </div>
+                    <div class="dir-item" data-type="file" data-file="snowboarding.txt">
+                        <span class="dir-type">TXT</span>
+                        <span class="dir-name">snowboarding.txt</span>
+                        <span class="dir-size">4.1 KB</span>
+                    </div>
+                    <div class="dir-item" data-type="file" data-file="fatherhood.txt">
+                        <span class="dir-type">TXT</span>
+                        <span class="dir-name">fatherhood.txt</span>
+                        <span class="dir-size">3.2 KB</span>
+                    </div>
+                    <div class="dir-item" data-type="file" data-file="cats.txt">
+                        <span class="dir-type">TXT</span>
+                        <span class="dir-name">cats.txt</span>
+                        <span class="dir-size">2.8 KB</span>
+                    </div>
+                    <div class="dir-item" data-type="file" data-file="inspiration.txt">
+                        <span class="dir-type">TXT</span>
+                        <span class="dir-name">inspiration.txt</span>
+                        <span class="dir-size">6.3 KB</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Info Box -->
+        <div class="info-box">
+            <div id="file-info">
+                <strong>Andrés Cufari - Hacker & Artist</strong><br>
+                Welcome to my digital brain. Navigate using arrow keys and tab.<br>
+                Press Enter to open files and folders.<br>
+                <br>
+                Memory: 655 360 Bytes<br>
+                Free: 560 480 Bytes<br>
+                <br>
+                2 147 155 968 total bytes on drive C:<br>
+                2 147 155 968 bytes free on drive C:<br>
+            </div>
+        </div>
+        
+        <!-- Footer Commands -->
+        <div class="footer">
+            <div>
+                <span class="command">1.Help</span>
+                <span class="command">2.Menu</span>
+                <span class="command">3.View</span>
+                <span class="command">4.Edit</span>
+                <span class="command">5.Copy</span>
+            </div>
+            <div>
+                <span class="command">6.Move</span>
+                <span class="command">7.Dir</span>
+                <span class="command">8.Delete</span>
+                <span class="command">9.Config</span>
+                <span class="command">10.Quit</span>
+            </div>
+        </div>
+        
+        <!-- Command Prompt -->
+        <div class="prompt">
+            <span>C:\ANDRES_CUFARI></span>
+            <span class="cursor"></span>
+        </div>
+    </div>
+    
+    <!-- Modal for file content -->
+    <div class="modal" id="file-modal">
+        <div class="modal-header" id="modal-header">File Viewer</div>
+        <div class="modal-content file-content" id="modal-content"></div>
+        <div class="modal-footer">
+            Press ESC to close
+        </div>
+    </div>
+    
+    <!-- Overlay -->
+    <div class="overlay" id="overlay"></div>
+    
+    <script>
+        // File contents
+        const fileContents = {
+            'bio.txt': `
+==========================================
+            ANDRÉS CUFARI
+        HACKER & ARTIST BIO
+==========================================
+
+I am Andrés Cufari, a digital explorer at the intersection of technology and creativity. 
+
+My journey began with creating a Norton Commander clone for Windows 3.1 - a tribute to 
+the golden age when software was created for exploration rather than profit.
+
+Today, I continue to hack, build, and create at the boundaries of technology. I believe 
+in making technology more accessible to everyone, breaking down barriers between humans 
+and machines.
+
+As both hacker and artist, I see code as my medium and innovation as my canvas. My work 
+spans software development, music production, gaming, writing, and even apparel design.
+
+When not in my studio creating, I'm spending time with my young daughter, occasionally 
+escaping to the mountains with my snowboard, or contemplating the universe with my cats.
+
+My mission: to keep the original spirit of technology alive - curious, accessible, and in 
+service of human creativity rather than the other way around.
+
+-- 
+Andrés Cufari
+Hacker & Artist
+`,
+            'resume.txt': `
+===================================================================
+                        ANDRÉS CUFARI
+                   PROFESSIONAL EXPERIENCE
+===================================================================
+
+TECHNICAL EXPERTISE
+-------------------
+- Full-stack development
+- System architecture
+- UX/UI design
+- AI & machine learning
+- Accessibility technologies
+- Digital audio production
+- Game development
+
+NOTABLE PROJECTS
+---------------
+» Norton Commander Clone (Windows 3.1)
+  My first major development project - a file manager inspired by
+  the iconic Norton Commander. This project sparked my love for
+  creating intuitive interfaces for complex systems.
+
+» Technology Accessibility Initiative
+  Leading efforts to make technology more accessible to underserved
+  communities through open-source software, educational programs,
+  and simplified interfaces.
+
+» AI-Enhanced Creative Tools
+  Developing tools that use artificial intelligence to augment
+  human creativity rather than replace it, with applications
+  in music, visual arts, and writing.
+
+» Experimental Sound Project
+  A fusion of digital audio technology with traditional instruments
+  to create immersive soundscapes for interactive experiences.
+
+» Sustainable Tech Fashion Line
+  Merging technology with sustainable fashion, creating wearable
+  items that reflect the aesthetic of early computing while using
+  eco-friendly materials.
+
+SKILLS
+------
+Programming: Multiple languages across paradigms
+Design: UI/UX, graphics, sound
+Production: Music, multimedia, apparel
+Business: Entrepreneurship, project management
+Creative: Writing, concept development
+
+CONTACT
+-------
+For collaborations and projects: andres@cufari.com
+Website: You're looking at it!
+`,
+            'manifesto.txt': `
+=================================================
+          THE HACKER'S MANIFESTO 2.0
+              by Andrés Cufari
+=================================================
+
+I am a hacker. Enter my world.
+
+Mine is a world that begins with the command line
+and extends to the furthest reaches of human creativity.
+
+I believe:
+
+1. Technology should SERVE humanity, not control it.
+
+2. Access to knowledge and tools should be UNIVERSAL.
+
+3. The best innovations happen at the INTERSECTIONS 
+   of disciplines.
+
+4. The spirit of PLAY is essential to discovery.
+
+5. We should BUILD what we cannot find.
+
+6. SHARING multiplies knowledge; hoarding diminishes it.
+
+7. CURIOSITY is the most powerful tool we possess.
+
+8. SIMPLICITY on the surface requires COMPLEXITY underneath.
+
+9. The best systems grow ORGANICALLY, not by dictate.
+
+10. TRUE security comes from understanding, not obscurity.
+
+This is not a rejection of the modern world, but a call
+to remember why we build technology in the first place:
+to extend human capability, to connect, to create.
+
+Join me. Explore. Build. Share. Hack the planet.
+`,
+            'hacker-ethos.txt': `
+==========================================================
+                    THE HACKER ETHOS
+==========================================================
+
+The word "hacker" has been misunderstood. A true hacker is 
+not a digital vandal but an explorer, a builder, a problem 
+solver who finds creative ways to make systems work better 
+than they were designed to.
+
+THE HACKER MINDSET:
+
+1. CURIOSITY ABOVE ALL
+   Always ask "what if?" and "why not?"
+   Never accept "because that's how it's done"
+
+2. HANDS-ON IMPERATIVE
+   To understand something, take it apart
+   To improve something, rebuild it
+   To learn something, teach it
+
+3. INFORMATION WANTS TO BE FREE
+   Knowledge grows when shared
+   Secrecy breeds stagnation
+   Transparency fosters trust
+
+4. MISTRUST AUTHORITY
+   Question the defaults
+   Challenge the gatekeepers
+   Test the boundaries
+
+5. ART AND BEAUTY MATTER
+   Elegant code is its own reward
+   Function and form are not enemies
+   Aesthetics enhance usability
+
+6. COMPUTERS CAN CHANGE LIFE FOR THE BETTER
+   Technology should empower, not control
+   Tools should extend human capability
+   Innovation should serve human needs
+
+This ethos guides my work across all domains, whether I'm 
+coding a new application, composing music, designing 
+apparel, or writing. It's about bringing the hacker spirit 
+to everything I create.
+`,
+            'snowboarding.txt': `
+===============================================
+         SNOWBOARDING PHILOSOPHY
+===============================================
+
+There's something about standing at the summit, 
+strapped to a board, facing the infinite white 
+canvas before you that perfectly mirrors the 
+creative process.
+
+LESSONS FROM THE MOUNTAIN:
+
+1. COMMITMENT
+   You can't half-commit to a line. Once you've 
+   chosen your path, you must follow through.
+   Same with creative projects - commit fully
+   or don't begin.
+
+2. BALANCE
+   Snowboarding is a constant negotiation between
+   opposing forces: edge and slide, speed and control.
+   My creative life requires the same balance between
+   structure and freedom.
+
+3. FLOW STATE
+   That perfect run where time slows down and you're
+   completely present - it's the same state I chase
+   in the studio when coding or creating.
+
+4. RESPECT THE MOUNTAIN
+   The forces of nature demand respect. So too with
+   technology - we must understand its power and
+   limitations.
+
+5. PROGRESSION
+   Always learning, always pushing boundaries, but
+   within your capabilities. Take calculated risks.
+
+The mountain taught me patience, humility, and the
+joy of pure motion. Though I spend less time there
+since becoming a father, its lessons remain central
+to my approach to life and work.
+
+Snow will wait. The mountains endure. I'll return.
+`,
+            'fatherhood.txt': `
+==========================================
+             FATHERHOOD LOGS
+==========================================
+
+Being a father to my young daughter has changed 
+everything - how I work, what I create, and why.
+
+OBSERVATIONS:
+
+- Children are natural hackers. They explore, 
+  experiment, and question everything. They have
+  no preconceptions about how things "should" work.
+
+- Time has new meaning. Efficiency matters more, 
+  but so does being present in the moment.
+
+- I now build with the future in mind. What world
+  am I leaving for her? What tools? What values?
+
+- The joy of seeing something through new eyes
+  is incomparable. Explaining technology to a child
+  reveals its wonders and absurdities anew.
+
+- The greatest creation is helping shape a curious,
+  kind, creative human being.
+
+My studio now has two chairs. Code now has comments.
+Projects now have documentation. Everything is a
+teaching opportunity, a chance to pass on not just
+knowledge but ways of thinking.
+
+My daughter reminds me daily why I create: to make
+a world where curiosity is rewarded and exploration
+is celebrated.
+`,
+            'cats.txt': `
+=========================================
+        IN PRAISE OF FELINE LOGIC
+=========================================
+
+I've always been surrounded by cats. Their presence 
+in my creative space is no accident - they embody 
+qualities I aspire to in my work:
+
+INDEPENDENCE - A cat never follows trends. They do
+what makes sense to them, regardless of external
+expectations.
+
+CURIOSITY - Everything is interesting to a cat,
+worthy of investigation. Nothing is too familiar 
+to be re-examined.
+
+EFFICIENCY - Maximum effect for minimum effort. 
+A cat never wastes energy on unnecessary movement.
+
+PERSISTENCE - When something matters to a cat,
+they'll keep at it until they succeed. The closed
+door will eventually open.
+
+BALANCE - A cat is both predator and playmate,
+fierce and gentle, alert and relaxed.
+
+DISCERNMENT - Cats choose their affections carefully.
+Not everyone deserves their attention.
+
+My current studio companions - Luna and Pixel - 
+keep me company during late-night coding sessions,
+occasionally contributing keyboard input of
+questionable value but undeniable conviction.
+
+There's wisdom in their whiskers. I pay attention.
+`,
+            'inspiration.txt': `
+==============================================
+         SOURCES OF INSPIRATION
+==============================================
+
+The creative mind requires constant feeding. These
+are the wells I return to when seeking inspiration:
+
+RETROCOMPUTING
+--------------
+The constraints of early systems produced elegant
+solutions. Norton Commander, early DOS interfaces,
+and the aesthetics of 8-bit computing continue to
+influence my design sensibilities.
+
+ELECTRONIC MUSIC PIONEERS
+-------------------------
+Artists who built their own instruments, created
+new sounds from primitive technology, and embraced
+both the warmth and the glitch of electronic systems.
+
+OPEN SOURCE COMMUNITIES
+----------------------
+The collaborative spirit of open source development
+demonstrates that great things come from shared
+knowledge and distributed creativity.
+
+SCIENCE FICTION
+--------------
+Not just for the technology it imagines, but for
+asking "what if?" about human relationships with
+machines and with each other.
+
+NATURE'S PATTERNS
+----------------
+Fractals, growth systems, emergent behaviors -
+nature's algorithms inform my approach to creating
+complex systems from simple rules.
+
+STREET ART
+---------
+The democratic, accessible nature of expression
+in public spaces - technology should be as open
+and available to all.
+
+I believe the most interesting creations happen
+at the intersection of disciplines. My work draws
+from all these sources, combining them in ways
+that hopefully create something new.
+`
+        };
+        
+        // Directory contents
+        const directoryContents = {
+            'software-projects': [
+                { type: 'file', name: 'norton-clone.txt', size: '4.5 KB' },
+                { type: 'file', name: 'current-projects.txt', size: '7.2 KB' },
+                { type: 'file', name: 'open-source.txt', size: '5.1 KB' },
+                { type: 'folder', name: 'Web Apps', size: '' },
+                { type: 'folder', name: 'Mobile Development', size: '' },
+                { type: 'folder', name: 'Legacy Code Museum', size: '' }
+            ],
+            'tech-skills': [
+                { type: 'file', name: 'languages.txt', size: '3.8 KB' },
+                { type: 'file', name: 'frameworks.txt', size: '4.2 KB' },
+                { type: 'file', name: 'design-patterns.txt', size: '6.7 KB' },
+                { type: 'file', name: 'learning-paths.txt', size: '5.3 KB' }
+            ],
+            'accessibility-projects': [
+                { type: 'file', name: 'mission.txt', size: '3.1 KB' },
+                { type: 'file', name: 'current-initiatives.txt', size: '8.4 KB' },
+                { type: 'file', name: 'success-stories.txt', size: '6.2 KB' },
+                { type: 'folder', name: 'Research', size: '' }
+            ],
+            'ai-experiments': [
+                { type: 'file', name: 'creative-ai.txt', size: '7.5 KB' },
+                { type: 'file', name: 'ethical-guidelines.txt', size: '4.8 KB' },
+                { type: 'file', name: 'future-directions.txt', size: '5.6 KB' },
+                { type: 'folder', name: 'Prototypes', size: '' }
+            ],
+            'music-projects': [
+                { type: 'file', name: 'compositions.txt', size: '4.1 KB' },
+                { type: 'file', name: 'studio-setup.txt', size: '3.7 KB' },
+                { type: 'file', name: 'influences.txt', size: '6.3 KB' },
+                { type: 'folder', name: 'Releases', size: '' },
+                { type: 'folder', name: 'Work in Progress', size: '' }
+            ],
+            'apparel-line': [
+                { type: 'file', name: 'concept.txt', size: '3.9 KB' },
+                { type: 'file', name: 'materials.txt', size: '4.5 KB' },
+                { type: 'file', name: 'designs.txt', size: '7.2 KB' },
+                { type: 'folder', name: 'Collections', size: '' }
+            ],
+            'book-project': [
+                { type: 'file', name: 'outline.txt', size: '5.8 KB' },
+                { type: 'file', name: 'chapters.txt', size: '9.3 KB' },
+                { type: 'file', name: 'notes.txt', size: '12.7 KB' },
+                { type: 'folder', name: 'Research', size: '' },
+                { type: 'folder', name: 'Drafts', size: '' }
+            ],
+            'gaming-ventures': [
+                { type: 'file', name: 'game-concepts.txt', size: '6.7 KB' },
+                { type: 'file', name: 'development-log.txt', size: '8.4 KB' },
+                { type: 'file', name: 'play-testing.txt', size: '4.2 KB' },
+                { type: 'folder', name: 'Assets', size: '' },
+                { type: 'folder', name: 'Prototypes', size: '' }
+            ]
+        };
+        
+        // Current directory paths
+        let leftPath = '';
+        let rightPath = '';
+        
+        // Active panel (left or right)
+        let activePanel = 'left';
+        
+        // Currently selected item in each panel
+        let leftSelected = 0;
+        let rightSelected = 0;
+        
+        // DOM references
+        const leftContent = document.getElementById('left-content');
+        const rightContent = document.getElementById('right-content');
+        const fileModal = document.getElementById('file-modal');
+        const modalHeader = document.getElementById('modal-header');
+        const modalContent = document.getElementById('modal-content');
+        const overlay = document.getElementById('overlay');
+        const fileInfo = document.getElementById('file-info');
+        
+        // Function to highlight the selected item
+        function highlightSelected() {
+            // Remove active class from all items
+            document.querySelectorAll('.dir-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Add active class to the selected item in the active panel
+            const items = activePanel === 'left' 
+                ? leftContent.querySelectorAll('.dir-item')
+                : rightContent.querySelectorAll('.dir-item');
+            
+            const selectedIndex = activePanel === 'left' ? leftSelected : rightSelected;
+            
+            if (items.length > 0 && selectedIndex < items.length) {
+                items[selectedIndex].classList.add('active');
+            }
+            
+            // Update file info
+            updateFileInfo();
+        }
+        
+        // Function to update file information panel
+        function updateFileInfo() {
+            const items = activePanel === 'left' 
+                ? leftContent.querySelectorAll('.dir-item')
+                : rightContent.querySelectorAll('.dir-item');
+            
+            const selectedIndex = activePanel === 'left' ? leftSelected : rightSelected;
+            
+            if (items.length > 0 && selectedIndex < items.length) {
+                const selectedItem = items[selectedIndex];
+                const itemType = selectedItem.getAttribute('data-type');
+                const itemName = selectedItem.getAttribute('data-file');
+                const displayName = selectedItem.querySelector('.dir-name').textContent;
+                
+                // Update file info panel
+                fileInfo.innerHTML = `
+                    <strong>${displayName}</strong><br>
+                    Type: ${itemType.toUpperCase()}<br>
+                    Path: C:\\ANDRES_CUFARI\\${activePanel === 'left' ? 'TECH' : 'ART'}\\${leftPath || rightPath ? (activePanel === 'left' ? leftPath : rightPath) + '\\' : ''}${itemName}<br>
+                    <br>
+                    Use arrow keys to navigate.<br>
+                    Press Tab to switch hemispheres.<br>
+                    Press Enter to open item.
+                `;
+            }
+        }
+        
+        // Function to open a file or directory
+        function openItem() {
+            const items = activePanel === 'left' 
+                ? leftContent.querySelectorAll('.dir-item')
+                : rightContent.querySelectorAll('.dir-item');
+            
+            const selectedIndex = activePanel === 'left' ? leftSelected : rightSelected;
+            
+            if (items.length > 0 && selectedIndex < items.length) {
+                const selectedItem = items[selectedIndex];
+                const itemType = selectedItem.getAttribute('data-type');
+                const itemName = selectedItem.getAttribute('data-file');
+                
+                if (itemType === 'file') {
+                    // Open file in modal
+                    modalHeader.textContent = selectedItem.querySelector('.dir-name').textContent;
+                    modalContent.textContent = fileContents[itemName] || 'File content not available.';
+                    fileModal.style.display = 'block';
+                    overlay.style.display = 'block';
+                } else if (itemType === 'folder') {
+                    // Navigate to folder
+                    if (activePanel === 'left') {
+                        leftPath = itemName;
+                        loadDirectoryContent(leftContent, itemName);
+                    } else {
+                        rightPath = itemName;
+                        loadDirectoryContent(rightContent, itemName);
+                    }
+                }
+            }
+        }
+        
+        // Function to load directory content
+        function loadDirectoryContent(contentElement, directoryName) {
+            // Clear current content
+            contentElement.innerHTML = '';
+            
+            // Add parent directory option if we're in a subdirectory
+            if (directoryName) {
+                const parentItem = document.createElement('div');
+                parentItem.className = 'dir-item';
+                parentItem.setAttribute('data-type', 'parent');
+                parentItem.setAttribute('data-file', '');
+                parentItem.innerHTML = `
+                    <span class="dir-type">&lt;DIR&gt;</span>
+                    <span class="dir-name">..</span>
+                    <span class="dir-size"></span>
+                `;
+                contentElement.appendChild(parentItem);
+            }
+            
+            // Add directory content
+            const content = directoryContents[directoryName] || [];
+            content.forEach(item => {
+                const dirItem = document.createElement('div');
+                dirItem.className = 'dir-item';
+                dirItem.setAttribute('data-type', item.type);
+                dirItem.setAttribute('data-file', item.name);
+                dirItem.innerHTML = `
+                    <span class="dir-type">${item.type === 'folder' ? '&lt;DIR&gt;' : item.name.split('.').pop().toUpperCase()}</span>
+                    <span class="dir-name">${item.name}</span>
+                    <span class="dir-size">${item.size}</span>
+                `;
+                contentElement.appendChild(dirItem);
+            });
+            
+            // Reset selected item
+            if (activePanel === 'left') {
+                leftSelected = 0;
+            } else {
+                rightSelected = 0;
+            }
+            
+            // Highlight selected item
+            highlightSelected();
+        }
+        
+        // Function to navigate back to parent directory
+        function navigateToParent() {
+            if (activePanel === 'left' && leftPath) {
+                leftPath = '';
+                loadDirectoryContent(leftContent, '');
+            } else if (activePanel === 'right' && rightPath) {
+                rightPath = '';
+                loadDirectoryContent(rightContent, '');
+            }
+        }
+        
+        // Function to close modal
+        function closeModal() {
+            fileModal.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            const items = activePanel === 'left' 
+                ? leftContent.querySelectorAll('.dir-item')
+                : rightContent.querySelectorAll('.dir-item');
+            
+            // Check if modal is open
+            if (fileModal.style.display === 'block') {
+                // Modal is open, only handle ESC to close
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+                return;
+            }
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                    // Move selection up
+                    if (activePanel === 'left') {
+                        leftSelected = Math.max(0, leftSelected - 1);
+                    } else {
+                        rightSelected = Math.max(0, rightSelected - 1);
+                    }
+                    highlightSelected();
+                    e.preventDefault();
+                    break;
+                    
+                case 'ArrowDown':
+                    // Move selection down
+                    if (activePanel === 'left') {
+                        leftSelected = Math.min(items.length - 1, leftSelected + 1);
+                    } else {
+                        rightSelected = Math.min(items.length - 1, rightSelected + 1);
+                    }
+                    highlightSelected();
+                    e.preventDefault();
+                    break;
+                    
+                case 'Tab':
+                    // Switch active panel
+                    activePanel = activePanel === 'left' ? 'right' : 'left';
+                    highlightSelected();
+                    e.preventDefault();
+                    break;
+                    
+                case 'Enter':
+                    // Open selected item
+                    openItem();
+                    e.preventDefault();
+                    break;
+                    
+                case 'Backspace':
+                    // Navigate to parent directory
+                    navigateToParent();
+                    e.preventDefault();
+                    break;
+                    
+                case 'Escape':
+                    // Close modal if open, or go to parent directory
+                    if (fileModal.style.display === 'block') {
+                        closeModal();
+                    } else {
+                        navigateToParent();
+                    }
+                    e.preventDefault();
+                    break;
+                    
+                case 'F1':
+                case '1':
+                    // Help
+                    modalHeader.textContent = 'Help';
+                    modalContent.innerHTML = `
+                        <h2>Norton Commander-style Navigation</h2>
+                        <p>Welcome to Andrés Cufari's digital brain!</p>
+                        <br>
+                        <p><strong>Keyboard Controls:</strong></p>
+                        <ul>
+                            <li>↑/↓ - Navigate up and down in the current panel</li>
+                            <li>Tab - Switch between left and right panels</li>
+                            <li>Enter - Open file or directory</li>
+                            <li>Backspace - Go to parent directory</li>
+                            <li>Esc - Close open windows or go back</li>
+                            <li>F1/1 - Show this help</li>
+                            <li>F10/0 - Exit (Not implemented)</li>
+                        </ul>
+                        <br>
+                        <p>This interface is inspired by Norton Commander, one of the most
+                        influential file managers of the early computing era.</p>
+                    `;
+                    fileModal.style.display = 'block';
+                    overlay.style.display = 'block';
+                    e.preventDefault();
+                    break;
+                    
+                case 'F10':
+                case '0':
+                    // Exit (not really implemented)
+                    modalHeader.textContent = 'Exit';
+                    modalContent.textContent = 'You can never truly exit. The digital world is forever.';
+                    fileModal.style.display = 'block';
+                    overlay.style.display = 'block';
+                    e.preventDefault();
+                    break;
+            }
+        });
+        
+        // Click handlers for directory items
+        document.querySelectorAll('.panel-content').forEach(panel => {
+            panel.addEventListener('click', (e) => {
+                const dirItem = e.target.closest('.dir-item');
+                if (dirItem) {
+                    // Set active panel
+                    activePanel = dirItem.closest('#left-content') ? 'left' : 'right';
+                    
+                    // Find index of clicked item
+                    const items = Array.from(dirItem.parentElement.querySelectorAll('.dir-item'));
+                    const clickedIndex = items.indexOf(dirItem);
+                    
+                    if (activePanel === 'left') {
+                        leftSelected = clickedIndex;
+                    } else {
+                        rightSelected = clickedIndex;
+                    }
+                    
+                    highlightSelected();
+                    
+                    // Double-click to open
+                    if (e.detail === 2) {
+                        openItem();
+                    }
+                }
+            });
+        });
+        
+        // Click handler for modal overlay (to close)
+        overlay.addEventListener('click', closeModal);
+        
+        // Initialize
+        highlightSelected();
+        
+        // Add CRT flicker effect
+        setInterval(() => {
+            document.body.style.opacity = (Math.random() * 0.05) + 0.95;
+        }, 100);
+        
+        // Simulate typing effect in prompt
+        const prompt = document.querySelector('.prompt');
+        let commandText = 'dir';
+        let commandIndex = 0;
+        
+        function typeCommand() {
+            if (commandIndex < commandText.length) {
+                const currentText = prompt.textContent;
+                prompt.textContent = currentText.substring(0, currentText.length - 1) + commandText.charAt(commandIndex);
+                commandIndex++;
+                setTimeout(typeCommand, 150);
+            } else {
+                setTimeout(() => {
+                    commandIndex = 0;
+                    prompt.textContent = 'C:\\ANDRES_CUFARI>';
+                    commandText = ['dir', 'cd studio', 'edit code.txt', 'create', 'explore'][Math.floor(Math.random() * 5)];
+                    setTimeout(typeCommand, 2000);
+                }, 1500);
+            }
+        }
+        
+        setTimeout(typeCommand, 2000);
+        
+        // Easter egg - Konami code
+        let konamiCode = [
+            'ArrowUp', 'ArrowUp', 
+            'ArrowDown', 'ArrowDown', 
+            'ArrowLeft', 'ArrowRight', 
+            'ArrowLeft', 'ArrowRight', 
+            'b', 'a'
+        ];
+        let konamiIndex = 0;
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === konamiCode[konamiIndex]) {
+                konamiIndex++;
+                if (konamiIndex === konamiCode.length) {
+                    // Activate easter egg
+                    document.body.style.animation = 'rainbow 5s infinite';
+                    modalHeader.textContent = 'Easter Egg Unlocked!';
+                    modalContent.innerHTML = `
+                        <div style="text-align: center;">
+                            <h2>You found the secret!</h2>
+                            <p>As a true hacker, you know the importance of exploration.</p>
+                            <p>This is a tribute to the days when software had hidden surprises.</p>
+                            <p>– Andrés Cufari</p>
+                        </div>
+                    `;
+                    fileModal.style.display = 'block';
+                    overlay.style.display = 'block';
+                    konamiIndex = 0;
+                }
+            } else {
+                konamiIndex = 0;
+            }
+        });
+    </script>
+</body>
+</html>

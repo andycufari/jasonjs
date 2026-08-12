@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "bridgeSecret": "[[env.MOBILE_BRIDGE_SECRET]]",
+  "autoInit": true,
+  "permissions": {
+    "gps": true,
+    "camera": true,
+    "haptics": true,
+    "biometrics": true,
+    "contacts": false,
+    "notifications": true,
+    "sensors": true,
+    "clipboard": true,
+    "sharing": true
+  },
+  "fallbacks": {
+    "enabled": true,
+    "gps": true,
+    "clipboard": true,
+    "sharing": true,
+    "haptics": true
+  }
+}

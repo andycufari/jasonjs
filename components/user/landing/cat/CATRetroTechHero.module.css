@@ -1,0 +1,681 @@
+/* CATRetroTechHero.module.css */
+
+/* Importación de fuentes monoespaciadas para el efecto retro/tech */
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Space+Mono:wght@400;700&family=Orbitron:wght@400;500;700&display=swap');
+
+/* Animación de elementos flotantes */
+@keyframes float {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.floatingElement {
+  animation: float 20s linear infinite;
+}
+
+/* Efecto de cursor parpadeante */
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.blinkingCursor {
+  animation: blink 1s step-end infinite;
+}
+
+/* Efecto de texto glitch para títulos */
+@keyframes glitch {
+  0% {
+    text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+  }
+  14% {
+    text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+  }
+  15% {
+    text-shadow: -0.05em -0.025em 0 rgba(82, 152, 255, 0.75),
+                0.025em 0.025em 0 rgba(65, 242, 244, 0.75),
+                -0.05em -0.05em 0 rgba(144, 97, 247, 0.75);
+  }
+  49% {
+    text-shadow: -0.05em -0.025em 0 rgba(82, 152, 255, 0.75),
+                0.025em 0.025em 0 rgba(65, 242, 244, 0.75),
+                -0.05em -0.05em 0 rgba(144, 97, 247, 0.75);
+  }
+  50% {
+    text-shadow: 0.025em 0.05em 0 rgba(82, 152, 255, 0.75),
+                0.05em 0 0 rgba(65, 242, 244, 0.75),
+                0 -0.05em 0 rgba(144, 97, 247, 0.75);
+  }
+  99% {
+    text-shadow: 0.025em 0.05em 0 rgba(82, 152, 255, 0.75),
+                0.05em 0 0 rgba(65, 242, 244, 0.75),
+                0 -0.05em 0 rgba(144, 97, 247, 0.75);
+  }
+  100% {
+    text-shadow: -0.025em 0 0 rgba(82, 152, 255, 0.75),
+                -0.025em -0.025em 0 rgba(65, 242, 244, 0.75),
+                -0.025em -0.05em 0 rgba(144, 97, 247, 0.75);
+  }
+}
+
+.textGlitch:hover {
+  animation: glitch 2s infinite;
+}
+
+/* Efecto de bootup para las transiciones */
+@keyframes bootup {
+  0% {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  20% {
+    opacity: 0.3;
+    transform: scale(0.99);
+  }
+  40% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  60% {
+    opacity: 0.4;
+    transform: scale(0.99);
+  }
+  80% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.bootupAnimation {
+  animation: bootup 1.5s ease-in-out;
+}
+
+/* Efecto de escaneo para título */
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+/* Efecto de scanlines para simular monitores CRT */
+.scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(transparent 50%, rgba(0, 0, 0, 0.02) 50%);
+  background-size: 100% 4px;
+  z-index: 20;
+}
+
+/* Malla de coordenadas estilo 90s */
+.gridBackground {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(100, 116, 139, 0.02) 1px, transparent 1px);
+  background-size: 20px 20px;
+  z-index: 0;
+}
+
+/* Contenedor para el terminal Linux */
+.linuxTerminal {
+  background-color: rgba(10, 10, 10, 0.8);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  box-shadow: 0 4px 20px -1px rgba(20, 184, 166, 0.25);
+  font-family: 'Space Mono', monospace;
+  color: #e2e8f0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.terminalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background-color: rgba(15, 23, 42, 0.8);
+  border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.terminalTitle {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.windowControls {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.windowButton {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+}
+
+.buttonRed {
+  background-color: #f87171;
+}
+
+.buttonYellow {
+  background-color: #facc15;
+}
+
+.buttonGreen {
+  background-color: #4ade80;
+}
+
+.terminalContent {
+  padding: 1rem;
+  line-height: 1.5;
+}
+/* Efecto hacker para el título */
+@keyframes glitchText {
+    0% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(0% 0% 0% 0%);
+    }
+    2% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(15% 0% 49% 0%);
+    }
+    4% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(9% 0% 61% 0%);
+    }
+    6% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(31% 0% 40% 0%);
+    }
+    8% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(12% 0% 59% 0%);
+    }
+    10% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(71% 0% 6% 0%);
+    }
+    12% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(0% 0% 0% 0%);
+    }
+    27% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(0% 0% 0% 0%);
+    }
+    29% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(66% 0% 12% 0%);
+    }
+    31% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(8% 0% 82% 0%);
+    }
+    33% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(48% 0% 35% 0%);
+    }
+    35% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(0% 0% 0% 0%);
+    }
+    70% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(0% 0% 0% 0%);
+    }
+    72% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(65% 0% 13% 0%);
+    }
+    74% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(21% 0% 61% 0%);
+    }
+    76% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(89% 0% 3% 0%);
+    }
+    78% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(0% 0% 0% 0%);
+    }
+    100% {
+      text-shadow: 0.05em 0 0 rgba(82, 152, 255, 0.75),
+                  -0.05em -0.025em 0 rgba(65, 242, 244, 0.75),
+                  0.025em 0.05em 0 rgba(144, 97, 247, 0.75);
+      clip-path: inset(0% 0% 0% 0%);
+    }
+  }
+  
+  @keyframes displace {
+    0% {
+      transform: translateX(0) skew(0deg);
+    }
+    2% {
+      transform: translateX(-3px) skew(0.5deg);
+    }
+    4% {
+      transform: translateX(3px) skew(-0.25deg);
+    }
+    6% {
+      transform: translateX(0) skew(0deg);
+    }
+    30% {
+      transform: translateX(0) skew(0deg);
+    }
+    32% {
+      transform: translateX(5px) skew(-0.5deg);
+    }
+    34% {
+      transform: translateX(-5px) skew(0.25deg);
+    }
+    36% {
+      transform: translateX(0) skew(0deg);
+    }
+    75% {
+      transform: translateX(0) skew(0deg);
+    }
+    77% {
+      transform: translateX(-2px) skew(0.5deg);
+    }
+    79% {
+      transform: translateX(2px) skew(-0.5deg);
+    }
+    81% {
+      transform: translateX(0) skew(0deg);
+    }
+    100% {
+      transform: translateX(0) skew(0deg);
+    }
+  }
+  
+  /* Pseudo-elementos para el efecto glitch */
+  @keyframes textRShadow {
+    0% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(0);
+    }
+    2% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(3px);
+    }
+    4% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(-3px);
+    }
+    6% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(0);
+    }
+    30% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(0);
+    }
+    32% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(5px);
+    }
+    34% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(-5px);
+    }
+    36% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(0);
+    }
+    75% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(0);
+    }
+    77% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(2px);
+    }
+    79% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(-2px);
+    }
+    81% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(0);
+    }
+    100% {
+      text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75);
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes textBShadow {
+    0% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(0);
+    }
+    2% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(-3px);
+    }
+    4% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(3px);
+    }
+    6% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(0);
+    }
+    30% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(0);
+    }
+    32% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(-5px);
+    }
+    34% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(5px);
+    }
+    36% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(0);
+    }
+    75% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(0);
+    }
+    77% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(-2px);
+    }
+    79% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(2px);
+    }
+    81% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(0);
+    }
+    100% {
+      text-shadow: -0.05em -0.025em 0 rgba(0, 255, 255, 0.75);
+      transform: translateX(0);
+    }
+  }
+  
+  /* Título estilo tech con efecto hacker */
+  .techTitle {
+    display: flex;
+    flex-direction: column;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    text-align: center;
+    font-size: 2.2rem;
+    line-height: 1.2;
+    letter-spacing: 0.05em;
+    color: transparent;
+    background: linear-gradient(to right, #3b82f6, #8b5cf6, #a855f7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    position: relative;
+    text-transform: uppercase;
+    animation: glitchText 8s infinite, displace 8s infinite;
+  }
+  
+  /* Pseudo-elementos para efecto hacker */
+  .techTitle::before,
+  .techTitle::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    color: transparent;
+    background: linear-gradient(to right, #3b82f6, #8b5cf6, #a855f7);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+  
+  .techTitle::before {
+    animation: textRShadow 8s infinite;
+  }
+  
+  .techTitle::after {
+    animation: textBShadow 8s infinite;
+  }
+  
+  .techTitle span {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .techTitle span::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(59, 130, 246, 0.1);
+    transform: skew(var(--skew, 0deg));
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  
+  .techTitle:hover span::before {
+    opacity: 1;
+    transform: skew(var(--skew, 5deg));
+  }
+  
+  .techTitle span:nth-child(odd) {
+    --skew: 5deg;
+  }
+  
+  .techTitle span:nth-child(even) {
+    --skew: -5deg;
+  }
+  
+  @media (min-width: 768px) {
+    .techTitle {
+      font-size: 3.2rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .techTitle {
+      font-size: 4rem;
+    }
+  }
+  
+  /* Escaneo adicional para efecto hacker */
+  .techTitle::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(59, 130, 246, 0.2), transparent, rgba(139, 92, 246, 0.2));
+    background-size: 100% 200%;
+    animation: scanline 4s linear infinite;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  
+  /* Efecto de interferencia digital */
+  @keyframes noise {
+    0% {
+      background-position: 0 0;
+    }
+    100% {
+      background-position: 100% 100%;
+    }
+  }
+  
+  .hackerEffect {
+    position: relative;
+  }
+  
+  .hackerEffect::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.05;
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNi1jMTExIDc5LjE1ODMyNSwgMjAxNS8wOS8xMC0wMToxMDoyMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIDIwMTUgKFdpbmRvd3MpIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOkI0QzQyNDEwRUVGNjExRTdCMTk1RkI5QkM5REJDREI5IiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOkI0QzQyNDExRUVGNjExRTdCMTk1RkI5QkM5REJDREI5Ij4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6QjRDNDI0MEVFRUYyMTFFN0IxOTVGQjlCQzlEQkNEQjkiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6QjRDNDI0MEZFRUYyMTFFN0IxOTVGQjlCQzlEQkNEQjkiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz6YE8VgAAAAwFBMVEX////x8fHv7+/t7e3r6+vp6enn5+fl5eXj4+Ph4eHf39/d3d3Z2dnX19fV1dXT09PR0dHPz8/MzMzJycnHx8fFxcXDw8PBwcG/v7+9vb27u7u5ubm3t7e1tbWzs7Oxs7Ovr6+tra2rq6upqammpqalpaWjo6OhoaGfn5+dnZ2ZmZmXl5eTk5ORkZGNjY2Li4uJiYmHh4eEhISDg4OBgYF+fn59fX15eXl3d3d1dXVzc3NxcXFvb29tbW1ra2tpaWkiGX18AAAA/0lEQVR42uTZ3Q6CMBAE4FqLKFjEH8QfRBGUHwX1/d/LNF5IPA0XMLMY9oKva3bbQspRD1n1GON/I9fiKQtZX8ofTGK65uOJ6dKPKNpd1F+GfNJoxf3he1f+QjyneL+iE1V6dKNKj25kCYdu5CB06MYOQodupGjGAncziW7s/OhGzT26McHOiuLsjGjKjoam7Ghoxo6G5uz00I/ZiRoKOz1jdhb9iJ0FOzt0Y3aisWJnQXF2eiE7PR92En3EzqT/WzE7Ff3Y6WnOTk+Y4GYW0dlZSDd2ehpJ9B912FmgG1kyc8TOpL+pxE6hHzt9NJToP+qy06EbO33N2SkDdt7BdL8CDADlkRjn76GhTQAAAABJRU5ErkJggg==");
+    background-size: 100px 100px;
+    background-repeat: repeat;
+    animation: noise 0.5s linear infinite;
+    pointer-events: none;
+  }
+
+/* Estilos para el botón de CTA */
+.ctaButton {
+  position: relative;
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.375rem;
+  background: linear-gradient(to right, #3b82f6, #8b5cf6);
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transform: translateY(0);
+  transition: all 0.2s;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3), 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.ctaButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4), 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.ctaButtonContent {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+}
+
+.ctaButtonOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, #e2fff6, #003c9b);
+  transform: translateY(100%);
+  transition: transform 0.3s;
+}
+
+.ctaButton:hover .ctaButtonOverlay {
+  transform: translateY(0);
+}
+
+.ctaButtonCursor {
+  margin-left: 0.5rem;
+  opacity: 0;
+  transform: translateX(-0.5rem);
+  transition: all 0.3s;
+}
+
+.ctaButton:hover .ctaButtonCursor {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Contenedor principal del hero con fade-in */
+.mainContainer {
+  max-width: 64rem;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  position: relative;
+  z-index: 30;
+  transition: all 1s;
+  padding: 0 1rem;
+}
+
+.fadeIn {
+  opacity: 1;
+  transform: none;
+}
+
+.fadeOut {
+  opacity: 0;
+  transform: translateY(2.5rem);
+}
+
+/* Efecto de bootup para la secuencia de inicio */
+.bootSequence {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(3, 7, 18, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  padding: 1rem;
+}

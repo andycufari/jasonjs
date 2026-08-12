@@ -1,0 +1,163 @@
+{
+  "provider": "stripe",
+  "stripe": {
+    "secretKey": "[[env.STRIPE_SECRET_KEY]]",
+    "publishableKey": "[[env.STRIPE_PUBLISHABLE_KEY]]",
+    "webhookSecret": "[[env.STRIPE_WEBHOOK_SECRET]]",
+    "mode": "test",
+    "plans": [
+      {
+        "id": "free",
+        "name": "Free Plan",
+        "price": 0,
+        "currency": "usd",
+        "interval": "month",
+        "features": [
+          "feature_basic_access",
+          "feature_community_support"
+        ],
+        "description": "Perfect for getting started"
+      },
+      {
+        "id": "basic",
+        "name": "Basic Plan",
+        "priceId": "price_1ABC123",
+        "price": 9.99,
+        "currency": "usd",
+        "interval": "month",
+        "features": [
+          "feature_basic_access",
+          "feature_community_support",
+          "feature_email_support",
+          "feature_10gb_storage"
+        ],
+        "description": "For individuals and small projects"
+      },
+      {
+        "id": "pro",
+        "name": "Pro Plan",
+        "priceId": "price_1XYZ789",
+        "price": 29.99,
+        "currency": "usd",
+        "interval": "month",
+        "features": [
+          "feature_basic_access",
+          "feature_community_support",
+          "feature_priority_support",
+          "feature_unlimited_storage",
+          "feature_advanced_analytics",
+          "feature_custom_domain"
+        ],
+        "description": "For growing businesses",
+        "popular": true
+      },
+      {
+        "id": "enterprise",
+        "name": "Enterprise Plan",
+        "priceId": "price_1ENT999",
+        "price": 99.99,
+        "currency": "usd",
+        "interval": "month",
+        "features": [
+          "feature_basic_access",
+          "feature_dedicated_support",
+          "feature_unlimited_storage",
+          "feature_advanced_analytics",
+          "feature_custom_domain",
+          "feature_white_label",
+          "feature_sla_guarantee",
+          "feature_custom_integrations"
+        ],
+        "description": "For large organizations"
+      }
+    ],
+    "paymentLinks": [
+      {
+        "id": "donation-5",
+        "amount": 500,
+        "currency": "usd",
+        "description": "$5 Donation"
+      },
+      {
+        "id": "donation-10",
+        "amount": 1000,
+        "currency": "usd",
+        "description": "$10 Donation"
+      },
+      {
+        "id": "donation-25",
+        "amount": 2500,
+        "currency": "usd",
+        "description": "$25 Donation"
+      },
+      {
+        "id": "one-time-fee",
+        "amount": 4999,
+        "currency": "usd",
+        "description": "One-time Setup Fee"
+      }
+    ],
+    "returnUrl": "/billing/success",
+    "cancelUrl": "/billing/canceled"
+  },
+  "mercadopago": {
+    "accessToken": "[[env.MERCADOPAGO_ACCESS_TOKEN]]",
+    "publicKey": "[[env.MERCADOPAGO_PUBLIC_KEY]]",
+    "mode": "sandbox",
+    "plans": [
+      {
+        "id": "basic",
+        "name": "Plan Básico",
+        "reason": "Suscripción Plan Básico - Mensual",
+        "autoRecurring": {
+          "frequency": 1,
+          "frequencyType": "months",
+          "transactionAmount": 999,
+          "currencyId": "ARS"
+        },
+        "features": [
+          "feature_basic_access",
+          "feature_community_support",
+          "feature_email_support"
+        ],
+        "description": "Para individuos y proyectos pequeños"
+      },
+      {
+        "id": "pro",
+        "name": "Plan Pro",
+        "reason": "Suscripción Plan Pro - Mensual",
+        "autoRecurring": {
+          "frequency": 1,
+          "frequencyType": "months",
+          "transactionAmount": 2999,
+          "currencyId": "ARS"
+        },
+        "features": [
+          "feature_basic_access",
+          "feature_community_support",
+          "feature_priority_support",
+          "feature_unlimited_storage",
+          "feature_advanced_analytics"
+        ],
+        "description": "Para negocios en crecimiento",
+        "popular": true
+      }
+    ],
+    "paymentLinks": [
+      {
+        "id": "donation-100",
+        "amount": 100,
+        "currency": "ARS",
+        "description": "Donación AR$100"
+      },
+      {
+        "id": "donation-500",
+        "amount": 500,
+        "currency": "ARS",
+        "description": "Donación AR$500"
+      }
+    ],
+    "returnUrl": "/billing/success",
+    "cancelUrl": "/billing/canceled"
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "config": {
+    "enabled": true,
+    "models": {
+      "text": ["gpt-5-mini", "gpt-5-nano", "gpt-5"],
+      "image": ["gpt-image-1"],
+      "speech": ["gpt-4o-mini-tts"]
+    },
+    "features": {
+      "text": true,
+      "image": true,
+      "speech": true,
+      "allowFiles": true
+    },
+    "limits": {
+      "requestsPerMinute": 10,
+      "requestsPerHour": 100,
+      "requestsPerDay": 500,
+      "maxInputTokens": 4000,
+      "maxImageSize": "1536x1536",
+      "maxSpeechLength": 4096
+    },
+    "security": {
+      "allowedContexts": ["functions", "system-components", "client"],
+      "allowArbitraryPrompts": false,
+      "requireAuth": false,
+      "allowedOrigins": ["same-origin"]
+    }
+  },
+  "prompts": {
+    "generateProductDescription": {
+      "template": "Generate a compelling, SEO-optimized product description for: {{productName}}. Key features: {{features}}. Target audience: {{audience}}. Make it engaging and conversion-focused.",
+      "model": "gpt-5-mini",
+      "maxTokens": 500,
+      "temperature": 0.8,
+      "allowedContexts": ["client", "functions"]
+    },
+    "analyzeImage": {
+      "template": "Analyze this image and provide: 1) Main objects/subjects, 2) Context/setting, 3) Notable details, 4) Suggested uses. {{additionalInstructions}}",
+      "model": "gpt-5",
+      "maxTokens": 1000,
+      "allowFiles": true,
+      "allowedContexts": ["functions"]
+    },
+    "summarizeText": {
+      "template": "Summarize the following text in {{length}} sentences, focusing on key points: {{text}}",
+      "model": "gpt-5-mini",
+      "maxTokens": 300,
+      "temperature": 0.3,
+      "allowedContexts": ["client", "functions"]
+    },
+    "generateBlogPost": {
+      "template": "Write a {{tone}} blog post about {{topic}}. Include: 1) Engaging title, 2) Introduction hook, 3) {{sections}} main sections, 4) Conclusion with CTA. Target length: {{words}} words.",
+      "model": "gpt-5",
+      "maxTokens": 2000,
+      "temperature": 0.7,
+      "allowedContexts": ["functions"]
+    },
+    "translateText": {
+      "template": "Translate the following text from {{sourceLanguage}} to {{targetLanguage}}. Maintain the original tone and context: {{text}}",
+      "model": "gpt-5-mini",
+      "maxTokens": 1000,
+      "temperature": 0.3,
+      "allowedContexts": ["client", "functions"]
+    },
+    "generateEmailResponse": {
+      "template": "Generate a {{tone}} email response to: {{incomingMessage}}. Key points to address: {{points}}. Maintain professionalism.",
+      "model": "gpt-5-mini",
+      "maxTokens": 400,
+      "temperature": 0.6,
+      "allowedContexts": ["functions"]
+    },
+    "generateHeroImage": {
+      "type": "image",
+      "template": "Create a modern, professional hero image for {{productName}}: {{description}}. Style: {{style}}. Color palette: {{colors}}.",
+      "model": "gpt-image-1",
+      "size": "1536x1024",
+      "quality": "high",
+      "format": "webp",
+      "compression": 85,
+      "allowedContexts": ["functions"]
+    },
+    "generateProductImage": {
+      "type": "image",
+      "template": "Product photography of {{productName}} on {{background}} background. Style: {{style}}. Professional, high-quality, centered composition.",
+      "model": "gpt-image-1",
+      "size": "1024x1024",
+      "quality": "high",
+      "format": "webp",
+      "allowedContexts": ["functions"]
+    },
+    "generateVoiceover": {
+      "type": "speech",
+      "template": "{{scriptText}}",
+      "model": "gpt-4o-mini-tts",
+      "voice": "coral",
+      "format": "mp3",
+      "instructions": "Speak in a {{tone}} tone with clear pronunciation. Pace: {{pace}}.",
+      "allowedContexts": ["functions"]
+    },
+    "generateCustomerSupport": {
+      "template": "You are a helpful customer support agent. Based on this customer inquiry: {{inquiry}}, provide a {{tone}} response that: 1) Acknowledges the issue, 2) Provides a solution, 3) Offers additional help. Company policy: {{policy}}",
+      "model": "gpt-5-mini",
+      "maxTokens": 500,
+      "temperature": 0.5,
+      "systemPrompt": "You are a professional, empathetic customer support agent. Always be helpful, clear, and solution-oriented.",
+      "allowedContexts": ["functions"]
+    },
+    "generateSEOMetadata": {
+      "template": "Generate SEO metadata for a page about {{topic}}. Provide: 1) Meta title (50-60 chars), 2) Meta description (150-160 chars), 3) 5-10 relevant keywords. Focus keyword: {{keyword}}",
+      "model": "gpt-5-mini",
+      "maxTokens": 300,
+      "temperature": 0.4,
+      "allowedContexts": ["functions"]
+    },
+    "generateSocialPost": {
+      "template": "Create a {{platform}} post about {{topic}}. Style: {{tone}}. Include: {{elements}}. Make it engaging and optimized for {{platform}} algorithm.",
+      "model": "gpt-5-mini",
+      "maxTokens": 200,
+      "temperature": 0.8,
+      "allowedContexts": ["client", "functions"]
+    }
+  }
+}

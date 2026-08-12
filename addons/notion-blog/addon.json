@@ -1,0 +1,137 @@
+{
+  "name": "notion-blog",
+  "type": "plugin",
+  "version": "2.1.0",
+  "description": "Complete Notion-powered blog system with grid/list layouts, hover effects, and responsive design",
+  "author": "JasonJS",
+  "tags": ["notion", "blog", "cms", "content", "articles"],
+  "license": "MIT",
+  "credits": 50,
+
+  "dependencies": {
+    "@notionhq/client": "^2.2.0",
+    "lucide-react": "^0.263.0",
+    "react-share": "^4.4.1"
+  },
+
+  "components": [
+    {
+      "name": "List",
+      "description": "Blog post list with grid/list layouts, hover effects, and responsive design",
+      "file": "List.jsx",
+      "props": {
+        "database": {
+          "type": "string",
+          "required": true,
+          "description": "Name of the fetch_data key containing posts"
+        },
+        "postUrl": {
+          "type": "string",
+          "required": true,
+          "description": "Base URL for post links (e.g., '/blog/post')"
+        },
+        "layout": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "default": "list", "enum": ["list", "grid"] },
+            "columns": { "type": "string", "default": "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" },
+            "gap": { "type": "string", "default": "gap-6" }
+          }
+        },
+        "header": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "backLink": { "type": "string" },
+            "backLabel": { "type": "string", "default": "← Back" },
+            "coverImage": { "type": "string" }
+          }
+        },
+        "display": {
+          "type": "object",
+          "properties": {
+            "showDate": { "type": "boolean", "default": true },
+            "showAuthor": { "type": "boolean", "default": true },
+            "showDescription": { "type": "boolean", "default": true },
+            "showImage": { "type": "boolean", "default": true },
+            "showCategory": { "type": "boolean", "default": false },
+            "excerptLength": { "type": "number", "default": null }
+          }
+        },
+        "fields": {
+          "type": "object",
+          "properties": {
+            "titleField": { "type": "string", "default": "Title" },
+            "slugField": { "type": "string", "default": "Slug" },
+            "descriptionField": { "type": "string", "default": "Description" },
+            "authorField": { "type": "string", "default": "Author" },
+            "imageField": { "type": "string", "default": "Image" },
+            "dateField": { "type": "string", "default": "Date" }
+          }
+        },
+        "styles": {
+          "type": "object",
+          "description": "Tailwind CSS classes for styling"
+        }
+      }
+    },
+    {
+      "name": "Article",
+      "description": "Full article renderer with Notion blocks, audio player, and social sharing",
+      "file": "Article.jsx",
+      "props": {
+        "database": {
+          "type": "string",
+          "required": true,
+          "description": "Name of the fetch_data key containing the article"
+        },
+        "navigation": {
+          "type": "object",
+          "properties": {
+            "backLink": { "type": "string" },
+            "backLabel": { "type": "string", "default": "← Back to all posts" }
+          }
+        },
+        "display": {
+          "type": "object",
+          "properties": {
+            "showDescription": { "type": "boolean", "default": true },
+            "showCoverImage": { "type": "boolean", "default": true },
+            "showIcon": { "type": "boolean", "default": true },
+            "showAudio": { "type": "boolean", "default": true }
+          }
+        },
+        "share": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "networks": { "type": "array", "default": ["twitter", "linkedin"] }
+          }
+        },
+        "fields": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string", "default": "Title" },
+            "description": { "type": "string", "default": "Description" },
+            "author": { "type": "string", "default": "Author" },
+            "date": { "type": "string", "default": "Date" },
+            "image": { "type": "string", "default": "Image" }
+          }
+        },
+        "styles": {
+          "type": "object",
+          "description": "Tailwind CSS classes for styling"
+        }
+      }
+    }
+  ],
+
+  "configuration": {
+    "requiresAuth": false,
+    "requiresDatabase": true,
+    "databaseType": "notion",
+    "environmentVariables": ["NOTION_API_KEY"]
+  },
+
+  "ai_prompt": "## Notion Blog Addon - Implementation Guide\n\n### Step 1: Database Configuration\n\nCreate `settings/database.json` with your Notion database:\n\n```json\n{\n  \"blog\": {\n    \"type\": \"notion\",\n    \"config\": {\n      \"api_key\": \"[[env.NOTION_API_KEY]]\",\n      \"database_id\": \"YOUR_NOTION_DATABASE_ID\"\n    },\n    \"schema\": {\n      \"Title\": \"title\",\n      \"Slug\": \"rich_text\",\n      \"Description\": \"rich_text\",\n      \"Author\": \"rich_text\",\n      \"Image\": \"files\",\n      \"Published\": \"checkbox\",\n      \"Created Date\": \"date\",\n      \"Tags\": \"multi_select\"\n    },\n    \"security\": {\n      \"read\": { \"level\": \"public\" },\n      \"create\": { \"level\": \"authenticated\" },\n      \"update\": { \"level\": \"owner\" },\n      \"delete\": { \"level\": \"owner\" }\n    }\n  }\n}\n```\n\n### Step 2: Blog List Page\n\nCreate `pages/blog.json`:\n\n```json\n{\n  \"layout\": \"main\",\n  \"fetch_data\": {\n    \"blog\": {\n      \"database\": \"blog\",\n      \"filters\": {\n        \"Published\": true\n      },\n      \"sort\": {\n        \"property\": \"Created Date\",\n        \"direction\": \"descending\"\n      }\n    }\n  },\n  \"components\": [\n    {\n      \"component\": \"@addons/notion-blog/List\",\n      \"attributes\": {\n        \"database\": \"blog\",\n        \"postUrl\": \"/blog/post\",\n        \"layout\": {\n          \"type\": \"grid\",\n          \"columns\": \"grid-cols-1 md:grid-cols-2 lg:grid-cols-3\",\n          \"gap\": \"gap-8\"\n        },\n        \"header\": {\n          \"title\": \"Blog\"\n        },\n        \"display\": {\n          \"showDate\": true,\n          \"showDescription\": true,\n          \"showImage\": true,\n          \"excerptLength\": 120\n        },\n        \"fields\": {\n          \"titleField\": \"Title\",\n          \"slugField\": \"Slug\",\n          \"descriptionField\": \"Description\",\n          \"imageField\": \"Image\"\n        }\n      }\n    }\n  ]\n}\n```\n\n### Step 3: Article Page\n\nCreate `pages/blog/post/:slug.json`:\n\n```json\n{\n  \"layout\": \"main\",\n  \"fetch_data\": {\n    \"blog\": {\n      \"database\": \"blog\",\n      \"fetchType\": \"page\",\n      \"filters\": {\n        \"Slug\": \"{{params.slug}}\"\n      },\n      \"single\": true\n    }\n  },\n  \"components\": [\n    {\n      \"component\": \"@addons/notion-blog/Article\",\n      \"attributes\": {\n        \"database\": \"blog\",\n        \"navigation\": {\n          \"backLink\": \"/blog\",\n          \"backLabel\": \"← Back to Blog\"\n        },\n        \"display\": {\n          \"showDescription\": true,\n          \"showCoverImage\": true\n        },\n        \"share\": {\n          \"enabled\": true\n        }\n      }\n    }\n  ]\n}\n```\n\n### Key Points\n\n1. **Simplified filters**: Use `{ \"Published\": true }` instead of native Notion format - the framework transforms it automatically using the schema\n2. **fetchType: \"page\"**: Required for article pages to fetch Notion blocks (content)\n3. **single: true**: Returns single object instead of array\n4. **{{params.slug}}**: Template variable replaced with URL parameter\n5. **Schema required**: Define field types in database config for filter transformation\n\n### Styling (Light Theme Example)\n\n```json\n\"styles\": {\n  \"container\": \"max-w-7xl mx-auto px-6 py-12\",\n  \"headerTitle\": \"text-4xl font-bold text-gray-900 mb-12 text-center\",\n  \"gridCard\": \"bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm\",\n  \"gridCardHover\": \"hover:shadow-xl hover:border-primary/30\",\n  \"gridTitle\": \"text-2xl font-bold text-gray-900 group-hover:text-primary transition-colors\",\n  \"gridDescription\": \"text-gray-600 text-base leading-relaxed\"\n}\n```\n\n### Required Notion Properties\n\n- **Title** (title) - Post title\n- **Slug** (rich_text) - URL-friendly slug\n- **Description** (rich_text) - Post excerpt\n- **Image** (files) - Cover image\n- **Published** (checkbox) - Visibility control\n- **Created Date** (date) - Publication date"
+}

@@ -1,0 +1,32 @@
+{
+  "layout": "main",
+  "meta": {
+    "title": "Join Our Waitlist - Revolutionary Platform",
+    "description": "Be the first to experience the future. Join our exclusive waitlist for early access."
+  },
+  
+  "components": [
+    {
+      "component": "@user/waitlist/Hero",
+      "attributes": {
+        "eyebrow": "LAUNCHING MARCH 2024",
+        "headline": "Stop Losing 40% of Your Revenue to Payment Failures",
+        "subheadline": "Smart retry logic that recovers failed payments automatically. No more manual follow-ups.",
+        "ctaLabel": "Claim Your Spot",
+        "ctaSubtext": "Free for first 1,000 users • No credit card required",
+        "modalTitle": "Join the Revenue Revolution",
+        "modalSubtitle": "Get early access and lock in founder pricing forever"
+      }
+    },
+    {
+      "component": "@user/waitlist/WaitlistForm",
+      "attributes": {
+        "fields": ["email", "name", "company"],
+        "ctaLabel": "Join Waitlist",
+        "privacyText": "We respect your privacy. No spam, ever.",
+        "submitEndpoint": "/api/waitlist",
+        "successMessage": "Thanks! We'll be in touch soon."
+      }
+    }
+  ]
+}

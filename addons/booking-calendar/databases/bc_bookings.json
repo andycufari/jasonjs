@@ -1,0 +1,37 @@
+{
+  "id": "bc_bookings",
+  "name": "Booking Calendar — Bookings",
+  "description": "One row per booking. Protected against double-book via partial unique index on confirmed status.",
+  "type": "jason",
+  "schema": {
+    "userId":           { "type": "string", "required": true, "description": "Host user id" },
+    "meetingType":      { "type": "string", "default": "default" },
+    "guestName":        { "type": "string", "required": true },
+    "guestEmail":       { "type": "string", "required": true },
+    "guestNotes":       { "type": "string" },
+    "startUtc":         { "type": "datetime", "required": true },
+    "endUtc":           { "type": "datetime", "required": true },
+    "timezoneGuest":    { "type": "string", "description": "Browser-detected IANA tz of the guest, for display only" },
+    "googleEventId":    { "type": "string", "description": "Google Calendar event id (present after confirmed)" },
+    "googleCalendarId": { "type": "string" },
+    "meetLink":         { "type": "string" },
+    "status":           { "type": "string", "default": "pending_verify", "description": "pending_verify | confirmed | cancelled" },
+    "cancelToken":      { "type": "string", "description": "Random 32-byte hex for guest-initiated cancel" }
+  },
+  "indexes": [
+    { "fields": { "userId": 1, "startUtc": 1 } },
+    { "fields": { "cancelToken": 1 } },
+    {
+      "fields": { "userId": 1, "startUtc": 1 },
+      "unique": true,
+      "partialFilterExpression": { "status": "confirmed" },
+      "description": "Prevents two confirmed bookings at the same start time for the same host"
+    }
+  ],
+  "security": {
+    "read":   { "level": "owner" },
+    "create": { "level": "public", "description": "Guests create pending bookings; server re-verifies before confirming" },
+    "update": { "level": "owner" },
+    "delete": { "level": "owner" }
+  }
+}

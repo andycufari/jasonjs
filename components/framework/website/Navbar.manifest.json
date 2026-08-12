@@ -1,0 +1,158 @@
+{
+  "name": "Navbar",
+  "component": "@framework/website/Navbar",
+  "version": "2.2.0",
+  "description": "Comprehensive navigation bar with logo, nested menus, authentication, responsive design, and theming support",
+  "category": "navigation",
+  "tags": ["navbar", "navigation", "menu", "header", "auth", "responsive"],
+  "author": "JasonJS Framework",
+  "license": "MIT",
+  "parameters": [
+    {
+      "name": "logo",
+      "type": "string | ReactNode",
+      "required": false,
+      "description": "Logo image URL or custom React element",
+      "default": null
+    },
+    {
+      "name": "logoText",
+      "type": "string",
+      "required": false,
+      "description": "Text to display next to or instead of logo",
+      "default": "JasonJS"
+    },
+    {
+      "name": "logoHref",
+      "type": "string",
+      "required": false,
+      "description": "URL for logo link",
+      "default": "/"
+    },
+    {
+      "name": "navigation",
+      "type": "Array<NavItem>",
+      "required": false,
+      "description": "Array of navigation items with optional submenus. NavItem: { name: string, href: string, target?: string, submenu?: Array<{name: string, href: string}> }",
+      "default": []
+    },
+    {
+      "name": "showAuth",
+      "type": "boolean",
+      "required": false,
+      "description": "Show authentication buttons (Sign In/Sign Up or Profile/Sign Out)",
+      "default": true
+    },
+    {
+      "name": "profileMode",
+      "type": "'modal' | 'redirect'",
+      "required": false,
+      "description": "Profile experience mode: modal (default) opens profile in overlay, redirect navigates to profile page",
+      "default": "modal"
+    },
+    {
+      "name": "loginHref",
+      "type": "string",
+      "required": false,
+      "description": "Login page URL",
+      "default": "/auth/signin"
+    },
+    {
+      "name": "signupHref",
+      "type": "string",
+      "required": false,
+      "description": "Signup page URL",
+      "default": "/auth/signup"
+    },
+    {
+      "name": "profileHref",
+      "type": "string",
+      "required": false,
+      "description": "Profile page URL (used when profileMode is 'redirect')",
+      "default": "/profile"
+    },
+    {
+      "name": "afterSignOutUrl",
+      "type": "string",
+      "required": false,
+      "description": "URL to redirect after sign out",
+      "default": "/"
+    },
+    {
+      "name": "variant",
+      "type": "'default' | 'gradient' | 'glass'",
+      "required": false,
+      "description": "Visual style variant: default (solid), gradient (colorful), or glass (glassmorphism)",
+      "default": "default"
+    },
+    {
+      "name": "position",
+      "type": "'sticky' | 'fixed' | 'relative' | 'static'",
+      "required": false,
+      "description": "Navbar positioning style",
+      "default": "sticky"
+    },
+    {
+      "name": "transparent",
+      "type": "boolean",
+      "required": false,
+      "description": "Make background transparent (useful for hero sections)",
+      "default": false
+    },
+    {
+      "name": "className",
+      "type": "string",
+      "required": false,
+      "description": "Additional CSS classes",
+      "default": ""
+    }
+  ],
+  "example": {
+    "component": "@framework/website/Navbar",
+    "attributes": {
+      "logo": "/images/logo.png",
+      "logoText": "My Brand",
+      "variant": "glass",
+      "position": "sticky",
+      "navigation": [
+        { "name": "Home", "href": "/" },
+        {
+          "name": "Products",
+          "href": "/products",
+          "submenu": [
+            { "name": "Category 1", "href": "/products/category-1" },
+            { "name": "Category 2", "href": "/products/category-2" }
+          ]
+        },
+        { "name": "About", "href": "/about" },
+        { "name": "Contact", "href": "/contact" }
+      ],
+      "showAuth": true,
+      "profileMode": "modal"
+    }
+  },
+  "useCases": [
+    "E-commerce store navigation with product categories",
+    "SaaS application header with user profile",
+    "Marketing landing page with transparent header",
+    "Blog or content site with nested menu structure",
+    "Multi-page application with authentication"
+  ],
+  "features": [
+    "Logo support (image or text)",
+    "Multi-level navigation with dropdowns",
+    "Responsive mobile menu with accordion",
+    "Integrated authentication (Sign In/Sign Up/Profile)",
+    "Multiple visual variants (default, gradient, glass)",
+    "Flexible positioning (sticky, fixed, relative, static)",
+    "Dark mode support",
+    "Theme-aware styling",
+    "Accessibility features (ARIA labels, keyboard navigation)"
+  ],
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "next-auth": "^4.0.0"
+  },
+  "documentation": "/docs/components/framework/website/Navbar.md"
+}

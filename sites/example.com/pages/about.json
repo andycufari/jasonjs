@@ -1,0 +1,129 @@
+{
+  "name": "about",
+  "title": "About JasonJS Framework",
+  "path": "/about",
+  "layout": "main",
+  "meta": {
+    "title": "About - JasonJS Framework",
+    "description": "Learn more about JasonJS Framework - the AI-powered JSON-driven web development platform"
+  },
+  "components": [
+    {
+      "component": "./Header",
+      "attributes": {}
+    },
+    {
+      "component": "section",
+      "attributes": {
+        "className": "py-16"
+      },
+      "components": [
+        {
+          "component": "div",
+          "attributes": {
+            "className": "container mx-auto px-4"
+          },
+          "components": [
+            {
+              "component": "div",
+              "attributes": {
+                "className": "max-w-4xl mx-auto"
+              },
+              "components": [
+                {
+                  "component": "h1",
+                  "attributes": {
+                    "className": "text-4xl font-bold text-gray-900 mb-8"
+                  },
+                  "innerHTML": "About JasonJS Framework"
+                },
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "prose prose-lg max-w-none"
+                  },
+                  "components": [
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-xl text-gray-700 mb-6"
+                      },
+                      "innerHTML": "JasonJS Framework is a revolutionary approach to web development that lets you build powerful applications using pure JSON configuration. It's designed from the ground up to be AI-friendly, making it the perfect platform for the next generation of AI-powered development."
+                    },
+                    {
+                      "component": "h2",
+                      "attributes": {
+                        "className": "text-3xl font-semibold text-gray-900 mt-12 mb-6"
+                      },
+                      "innerHTML": "The Vision"
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-gray-700 mb-6"
+                      },
+                      "innerHTML": "We believe web development should be accessible to everyone. By using JSON configuration instead of complex code, we enable both humans and AI to build sophisticated web applications quickly and efficiently."
+                    },
+                    {
+                      "component": "h2",
+                      "attributes": {
+                        "className": "text-3xl font-semibold text-gray-900 mt-12 mb-6"
+                      },
+                      "innerHTML": "Key Features"
+                    },
+                    {
+                      "component": "ul",
+                      "attributes": {
+                        "className": "list-disc pl-6 text-gray-700 space-y-3"
+                      },
+                      "components": [
+                        {
+                          "component": "li",
+                          "innerHTML": "<strong>JSON-Driven Architecture:</strong> Configure pages, components, styles, and data - all with JSON"
+                        },
+                        {
+                          "component": "li", 
+                          "innerHTML": "<strong>Component Marketplace:</strong> WordPress-style ecosystem for sharing and downloading components"
+                        },
+                        {
+                          "component": "li",
+                          "innerHTML": "<strong>Multi-Database Support:</strong> Connect to MongoDB, Notion, PostgreSQL, or any data source"
+                        },
+                        {
+                          "component": "li",
+                          "innerHTML": "<strong>Security First:</strong> Component sandboxing, tenant isolation, and enterprise-grade security"
+                        },
+                        {
+                          "component": "li",
+                          "innerHTML": "<strong>AI-Ready:</strong> Designed for AI agents to understand and generate applications"
+                        },
+                        {
+                          "component": "li",
+                          "innerHTML": "<strong>Flexible Deployment:</strong> Run standalone or connected to Startup Studio SaaS platform"
+                        }
+                      ]
+                    },
+                    {
+                      "component": "h2",
+                      "attributes": {
+                        "className": "text-3xl font-semibold text-gray-900 mt-12 mb-6"
+                      },
+                      "innerHTML": "Open Source"
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-gray-700 mb-6"
+                      },
+                      "innerHTML": "JasonJS Framework is open source and available on GitHub. We welcome contributions from the community and are committed to building a thriving ecosystem of developers, designers, and AI agents working together."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

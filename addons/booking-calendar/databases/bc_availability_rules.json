@@ -1,0 +1,26 @@
+{
+  "id": "bc_availability_rules",
+  "name": "Booking Calendar — Availability Rules",
+  "description": "One doc per (userId, meetingType). Phase 1 uses meetingType='default'.",
+  "type": "jason",
+  "schema": {
+    "userId":             { "type": "string",  "required": true },
+    "meetingType":        { "type": "string",  "required": true, "default": "default" },
+    "durationMinutes":    { "type": "number",  "default": 30 },
+    "bufferBeforeMin":    { "type": "number",  "default": 0 },
+    "bufferAfterMin":     { "type": "number",  "default": 10 },
+    "timezone":           { "type": "string",  "default": "UTC", "description": "IANA timezone — rules are expressed in this zone" },
+    "weeklyHours":        { "type": "object",  "description": "{ mon: [{start:'10:00',end:'13:00'}], tue: [...], ... }" },
+    "minNoticeHours":     { "type": "number",  "default": 12 },
+    "maxAdvanceDays":     { "type": "number",  "default": 60 },
+    "slotGranularityMin": { "type": "number",  "default": 15 },
+    "excludedDates":      { "type": "array",   "description": "Array of YYYY-MM-DD in timezone" },
+    "eventTitleTemplate": { "type": "string",  "default": "{guestName} ↔ Host" }
+  },
+  "security": {
+    "read":   { "level": "public", "description": "Public read is required so getAvailableSlots can compute for anonymous guests" },
+    "create": { "level": "authenticated" },
+    "update": { "level": "owner" },
+    "delete": { "level": "owner" }
+  }
+}

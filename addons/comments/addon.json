@@ -1,0 +1,199 @@
+{
+  "name": "comments",
+  "displayName": "Comments System",
+  "type": "addon",
+  "version": "1.0.0",
+  "description": "Threaded comments system with authentication, AI moderation, and internationalization support",
+  "author": "JasonJS Framework",
+  "tags": ["comments", "social", "engagement", "threading", "moderation"],
+  "license": "MIT",
+  "credits": 50,
+
+  "capabilities": [
+    "provides_components",
+    "provides_api",
+    "provides_database"
+  ],
+
+  "install": {
+    "databases": [
+      {
+        "name": "comments",
+        "description": "Default collection for storing comments. Users can customize via databaseClass prop.",
+        "schema": {
+          "content": {
+            "type": "textarea",
+            "required": true,
+            "maxLength": 1000,
+            "label": "Comment Content"
+          },
+          "relId": {
+            "type": "string",
+            "required": true,
+            "label": "Related Entity ID",
+            "description": "ID of the entity this comment is related to (e.g., post ID, product ID)"
+          },
+          "relType": {
+            "type": "string",
+            "label": "Related Entity Type",
+            "description": "Type of entity (e.g., 'post', 'product', 'article')",
+            "default": "default"
+          },
+          "parentId": {
+            "type": "string",
+            "label": "Parent Comment ID",
+            "description": "For threaded replies — ID of parent comment"
+          },
+          "isModerated": {
+            "type": "boolean",
+            "default": false,
+            "label": "Is Moderated"
+          },
+          "moderationStatus": {
+            "type": "select",
+            "options": ["pending", "approved", "rejected", "flagged"],
+            "default": "approved",
+            "label": "Moderation Status"
+          },
+          "moderationReason": {
+            "type": "string",
+            "label": "Moderation Reason"
+          },
+          "votes": {
+            "type": "object",
+            "label": "Votes",
+            "description": "Object with up[] and down[] arrays of user IDs",
+            "default": { "up": [], "down": [] }
+          },
+          "voteScore": {
+            "type": "number",
+            "default": 0,
+            "label": "Vote Score",
+            "description": "Net vote score (upvotes - downvotes)"
+          },
+          "reports": {
+            "type": "array",
+            "label": "Reports",
+            "description": "Array of user reports for moderation",
+            "default": []
+          },
+          "flagReason": {
+            "type": "string",
+            "label": "Flag Reason"
+          }
+        },
+        "indexes": [
+          { "fields": ["relId", "relType"], "description": "Query comments by related entity" },
+          { "fields": ["parentId"], "description": "Query replies to a comment" },
+          { "fields": ["created_by"], "description": "Query user's comments" },
+          { "fields": ["created_at"], "description": "Sort by creation date" },
+          { "fields": ["voteScore"], "description": "Sort by popularity" },
+          { "fields": ["relId", "moderationStatus"], "description": "Filter approved comments for an entity" }
+        ],
+        "security": {
+          "read": {
+            "level": "public",
+            "fields": [
+              "id",
+              "content",
+              "relId",
+              "relType",
+              "parentId",
+              "moderationStatus",
+              "voteScore",
+              "votes",
+              "created_by",
+              "created_at",
+              "updated_at",
+              "user"
+            ],
+            "filter": { "moderationStatus": "approved" }
+          },
+          "create": { "level": "authenticated" },
+          "update": { "level": "owner" },
+          "delete": { "level": "owner" }
+        },
+        "autoJoinUsers": true
+      }
+    ],
+    "settings": [
+      {
+        "key": "addons.comments.defaultModeration",
+        "defaultValue": false,
+        "description": "Enable AI moderation by default"
+      }
+    ]
+  },
+
+  "components": {
+    "Comments": {
+      "file": "./components/Comments.jsx",
+      "description": "Main comments container with threading support"
+    },
+    "CommentForm": {
+      "file": "./components/CommentForm.jsx",
+      "description": "Form for submitting comments"
+    },
+    "CommentList": {
+      "file": "./components/CommentList.jsx",
+      "description": "Paginated list of comments"
+    },
+    "CommentThread": {
+      "file": "./components/CommentThread.jsx",
+      "description": "Threaded comment display"
+    },
+    "CommentItem": {
+      "file": "./components/CommentItem.jsx",
+      "description": "Individual comment with actions"
+    }
+  },
+
+  "api": {
+    "prefix": "/api/addons/comments",
+    "routes": [
+      { "path": "/submit", "methods": ["POST", "DELETE"], "handler": "./api/submit/route.js" },
+      { "path": "/vote", "methods": ["POST"], "handler": "./api/vote/route.js" },
+      { "path": "/report", "methods": ["POST"], "handler": "./api/report/route.js" },
+      { "path": "/moderate", "methods": ["POST"], "handler": "./api/moderate/route.js" }
+    ]
+  },
+
+  "configuration": {
+    "defaultOptions": {
+      "maxDepth": 3,
+      "enableModeration": false,
+      "enableVoting": false,
+      "enableReporting": true,
+      "commentsPerPage": 10,
+      "allowEditing": true,
+      "editTimeLimit": 300,
+      "sortOrder": "newest"
+    }
+  },
+
+  "usage": {
+    "example": "<Comments databaseClass=\"comments\" relId={post.id} relType=\"post\" />",
+    "props": {
+      "databaseClass": {
+        "type": "string",
+        "default": "comments",
+        "description": "Database collection name (site-scoped via app.db.use())"
+      },
+      "relId": {
+        "type": "string",
+        "required": true,
+        "description": "ID of the related entity (post, product, etc.)"
+      },
+      "relType": {
+        "type": "string",
+        "description": "Type of the related entity"
+      },
+      "options": {
+        "type": "object",
+        "description": "Configuration options (see configuration.defaultOptions)"
+      }
+    }
+  },
+
+  "ai_prompt": "# Comments System Addon\n\n## When to Use\n\nAdd threaded commenting to: blog posts, product pages, documentation, community content, events, portfolios.\n\n## Quick Start\n\n```jsx\n<Comments databaseClass=\"comments\" relId={post.id} relType=\"post\" />\n```\n\n## Database\n\nThe addon auto-creates a `comments` collection with security rules. Framework auto-manages: `created_by`, `created_at`, `updated_at`, `updated_by`. No manual setup needed.\n\n### Security Model\n- **Read**: Public (only approved comments visible)\n- **Create**: Authenticated users only\n- **Update**: Owner only (edit own comments within 5-minute window)\n- **Delete**: Owner or admin\n- **Votes/Reports**: Handled via addon API routes with admin-level DB access (server-side validated)\n\n### Auto-joined Fields\n`autoJoinUsers: true` automatically joins user profile data to each comment via `created_by` field.\n\n## Configuration Options\n\n```jsx\n<Comments\n  databaseClass=\"comments\"\n  relId={item.id}\n  relType=\"product\"\n  options={{\n    maxDepth: 3,              // Max nesting level (default: 3)\n    enableModeration: false,  // AI moderation (default: false)\n    enableVoting: true,       // Upvote/downvote (default: false)\n    enableReporting: true,    // Report abuse (default: true)\n    commentsPerPage: 10,      // Pagination (default: 10)\n    allowEditing: true,       // Can edit own comments (default: true)\n    editTimeLimit: 300,       // Seconds allowed to edit (default: 300)\n    sortOrder: 'newest'       // 'newest' | 'oldest' | 'votes' (default: 'newest')\n  }}\n/>\n```\n\n## Use Cases\n\n### Blog Comments\n```jsx\n<Comments databaseClass=\"comments\" relId={article.id} relType=\"blog-post\" options={{ maxDepth: 2 }} />\n```\n\n### Product Reviews\n```jsx\n<Comments databaseClass=\"product_reviews\" relId={product.id} relType=\"product\" options={{ maxDepth: 1, enableVoting: true, sortOrder: 'votes' }} />\n```\n\n### Q&A\n```jsx\n<Comments databaseClass=\"doc_questions\" relId={doc.id} relType=\"documentation\" options={{ enableVoting: true, sortOrder: 'votes' }} />\n```\n\n## Authentication\n\n- **Guests**: Read approved comments\n- **Authenticated**: Post, edit own, vote, report\n- **Admins**: Delete any comment\n\nUses `app.auth.requireLogin()` for inline auth prompts (no page redirects).\n\n## API Routes\n\n- `POST /api/addons/comments/submit` — Create/edit comment (rate-limited)\n- `DELETE /api/addons/comments/submit?id=xxx` — Delete comment (owner or admin)\n- `POST /api/addons/comments/vote` — Upvote/downvote\n- `POST /api/addons/comments/report` — Report for moderation\n- `POST /api/addons/comments/moderate` — AI moderation (admin)\n\n## i18n\n\nBuilt-in translations: English, Spanish. Auto-adapts to user locale.\n\n## Best Practices\n\n1. Use descriptive `relType` values\n2. Limit `maxDepth` to 2 for mobile readability\n3. Use separate `databaseClass` per content type\n4. Enable moderation for public-facing sites\n5. Enable voting for Q&A use cases"
+}

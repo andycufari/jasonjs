@@ -1,0 +1,77 @@
+{
+  "name": "docs",
+  "title": "Documentation",
+  "path": "/docs",
+  "layout": "main",
+  "meta": {
+    "title": "JasonJS Framework Documentation - Cyberpunk Edition",
+    "description": "Learn how to build web applications with JasonJS Framework using JSON configuration."
+  },
+
+  "theme": {
+    "colors": {
+      "primary": "#00ffff",
+      "secondary": "#ff00ff", 
+      "accent": "#ffff00",
+      "background": "#0a0a0f",
+      "surface": "#1a1a2e",
+      "text": "#ffffff"
+    }
+  },
+  "components": [
+    {
+      "component": "@framework/website/Hero",
+      "attributes": {
+        "headline": "📚 JasonJS Framework Documentation",
+        "subheadline": "The AI-powered MVP factory. Build complete applications instantly through JSON configurations. Perfect for developers and live coders who want to ship fast.",
+        "ctaText": "🚀 Component Packages",
+        "ctaUrl": "/docs/component-packages",
+        "secondaryCta": "💾 Database Guide", 
+        "secondaryUrl": "/docs/database",
+        "sectionClasses": "py-20 bg-gradient-to-br from-gray-900 via-purple-900/50 to-gray-900 text-cyan-300 relative overflow-hidden",
+        "headlineClasses": "text-4xl md:text-6xl font-bold mb-6 leading-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-yellow-400",
+        "subheadlineClasses": "text-xl text-cyan-200 mb-8 leading-relaxed max-w-4xl mx-auto",
+        "ctaClasses": "inline-flex items-center px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 text-black font-semibold rounded-xl hover:from-cyan-400 hover:to-purple-500 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105 shadow-cyan-500/25",
+        "secondaryCtaClasses": "inline-flex items-center px-8 py-4 border-2 border-yellow-400 text-yellow-400 font-semibold rounded-xl hover:bg-yellow-400 hover:text-black transition-all duration-200 backdrop-blur-sm shadow-lg shadow-yellow-500/20"
+      }
+    },
+    {
+      "component": "@framework/website/DocsGrid",
+      "attributes": {
+        "title": "📚 Developer Documentation",
+        "subtitle": "Everything you need to build amazing applications with JasonJS Framework. Updated automatically from markdown files for developers and live coders."
+      }
+    },
+    {
+      "component": "@framework/website/DocSection",
+      "attributes": {
+        "id": "quick-start",
+        "title": "🚀 Quick Start for Developers",
+        "subtitle": "Get productive in minutes with our JSON-driven approach.",
+        "sectionClasses": "py-16 bg-gray-900",
+        "titleClasses": "text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-600 mb-8",
+        "subtitleClasses": "text-xl text-gray-300 mb-12"
+      },
+      "components": [
+        {
+          "component": "@framework/website/QuickStartGuide",
+          "attributes": {}
+        }
+      ]
+    },
+    {
+      "component": "@framework/website/JsonStructureGuide",
+      "attributes": {}
+    },
+    {
+      "component": "@framework/website/ComponentTypesGuide", 
+      "attributes": {}
+    },
+    {
+      "component": "@framework/website/NextStepsGuide",
+      "attributes": {
+        "sectionClasses": "py-16 bg-gradient-to-b from-gray-800 to-gray-900 border-t border-cyan-500/20"
+      }
+    }
+  ]
+}

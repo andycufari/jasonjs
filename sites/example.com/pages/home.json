@@ -1,0 +1,62 @@
+{
+  "name": "home",
+  "title": "Welcome to JasonJS Framework",
+  "path": "/",
+  "layout": "main",
+  "meta": {
+    "title": "JasonJS Framework - JSON-Driven Web Development",
+    "description": "Build powerful web applications using JSON configuration. Open-source framework with component marketplace."
+  },
+  "components": [
+    {
+      "component": "@framework/website/Hero",
+      "attributes": {
+        "headline": "Build with JSON, Deploy Anywhere",
+        "subheadline": "JasonJS Framework transforms web development with JSON-driven configuration. Create powerful applications without complex code.",
+        "ctaText": "Get Started",
+        "ctaUrl": "/docs",
+        "secondaryCta": "View Examples",
+        "secondaryUrl": "/examples"
+      }
+    },
+    {
+      "component": "@framework/website/FeatureGrid",
+      "attributes": {
+        "title": "Everything You Need to Build Modern Web Apps",
+        "subtitle": "JasonJS Framework provides a complete development environment with powerful features and intuitive JSON configuration.",
+        "features": [
+          {
+            "title": "JSON-Driven Architecture",
+            "description": "Configure your entire application using simple JSON files. No complex code required.",
+            "icon": "Code"
+          },
+          {
+            "title": "Component Marketplace",
+            "description": "Download and use pre-built components from our growing marketplace ecosystem.",
+            "icon": "Package"
+          },
+          {
+            "title": "Multi-Database Support",
+            "description": "Connect to MongoDB, Notion, PostgreSQL, or any data source with our connector system.",
+            "icon": "Database"
+          },
+          {
+            "title": "Built-in Security",
+            "description": "Enterprise-grade security with component sandboxing and tenant isolation.",
+            "icon": "Shield"
+          },
+          {
+            "title": "AI-Ready",
+            "description": "Designed for AI-powered development with simple, predictable JSON structures.",
+            "icon": "Cpu"
+          },
+          {
+            "title": "Deploy Anywhere",
+            "description": "Deploy to Vercel, Netlify, or any Node.js hosting platform with one command.",
+            "icon": "Cloud"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,197 @@
+{
+  "name": "landing-pack",
+  "description": "High-converting startup landing page components with database integration and full Tailwind CSS customization",
+  "version": "2.0.0",
+  "author": {
+    "name": "CM64 Studio",
+    "email": "hello@cm64.studio",
+    "url": "https://cm64.studio"
+  },
+  "created": "2024-01-15T10:30:00Z",
+  "updated": "2025-01-11T20:00:00Z",
+  "license": "MIT",
+  "tags": ["landing", "startup", "waitlist", "saas", "conversion", "database", "customizable"],
+  "keywords": ["landing page", "waitlist capture", "saas hero", "conversion optimization", "social proof", "pricing table", "tailwind customization"],
+  "dependencies": {
+    "framer-motion": "^11.0.0",
+    "lucide-react": "^0.263.0",
+    "next": "^14.0.0",
+    "react": "^18.0.0"
+  },
+  "components": [
+    {
+      "name": "WaitlistHero",
+      "description": "Pre-launch hero with email capture, social proof, and full Tailwind CSS customization",
+      "file": "heroes/WaitlistHero.jsx",
+      "features": ["Database integration", "Theme adaptation", "Custom backgrounds", "Typography control", "Form styling"],
+      "props": {
+        "headline": "string",
+        "subheadline": "string",
+        "ctaText": "string",
+        "variant": "'gradient'|'minimal'|'animated'",
+        "showCount": "boolean",
+        "database": "string",
+        "backgroundImage": "string?",
+        "backgroundColor": "string?",
+        "backgroundOpacity": "number?",
+        "headlineClasses": "string?",
+        "subheadlineClasses": "string?",
+        "sectionClasses": "string?",
+        "containerClasses": "string?",
+        "formClasses": "string?",
+        "inputClasses": "string?",
+        "buttonClasses": "string?"
+      }
+    },
+    {
+      "name": "SaaSHero",
+      "description": "Product-focused hero with demos, features, and flexible styling options",
+      "file": "heroes/SaaSHero.jsx",
+      "features": ["Demo integration", "Social proof", "Feature showcase", "Custom layouts", "Button variants"],
+      "props": {
+        "headline": "string",
+        "subheadline": "string",
+        "features": "array",
+        "variant": "'default'|'video'|'product'",
+        "demoUrl": "string",
+        "userCount": "string",
+        "rating": "number",
+        "backgroundImage": "string?",
+        "backgroundColor": "string?",
+        "backgroundOpacity": "number?",
+        "headlineClasses": "string?",
+        "subheadlineClasses": "string?",
+        "sectionClasses": "string?",
+        "containerClasses": "string?",
+        "contentClasses": "string?",
+        "primaryButtonClasses": "string?",
+        "secondaryButtonClasses": "string?"
+      }
+    },
+    {
+      "name": "WaitlistForm",
+      "description": "Smart waitlist form with referral system, UTM tracking, and progress indicators",
+      "file": "forms/WaitlistForm.jsx",
+      "features": ["Referral codes", "UTM tracking", "Progress indicators", "Multi-field support", "Success states"],
+      "props": {
+        "fields": "array",
+        "variant": "'inline'|'card'|'modal'",
+        "enableReferrals": "boolean",
+        "showProgress": "boolean",
+        "database": "string",
+        "submitText": "string",
+        "successMessage": "string"
+      }
+    },
+    {
+      "name": "LogoCloud",
+      "description": "Social proof with company logos, animations, and trust indicators",
+      "file": "social-proof/LogoCloud.jsx",
+      "features": ["Multiple layouts", "Carousel animations", "Auto-generated placeholders", "Company counts"],
+      "props": {
+        "logos": "array",
+        "variant": "'grid'|'carousel'|'minimal'",
+        "showCount": "boolean",
+        "companyCount": "string",
+        "autoplay": "boolean",
+        "speed": "number"
+      }
+    },
+    {
+      "name": "PricingTable",
+      "description": "Conversion-optimized pricing with monthly/yearly toggle and popular plan highlighting",
+      "file": "pricing/PricingTable.jsx",
+      "features": ["Yearly discounts", "Popular plan badges", "Feature comparisons", "CTA variants", "Mobile responsive"],
+      "props": {
+        "plans": "array",
+        "showYearlyToggle": "boolean",
+        "yearlyDiscount": "number",
+        "popularPlanId": "string",
+        "currency": "string",
+        "title": "string",
+        "subtitle": "string"
+      }
+    }
+  ],
+  "defaultConfig": {
+    "component": "@landing/WaitlistHero",
+    "attributes": {
+      "headline": "Revolutionary platform launching soon",
+      "subheadline": "Join the exclusive waitlist and be first to experience the future",
+      "ctaText": "Get Early Access",
+      "variant": "animated",
+      "showCount": true,
+      "database": "waitlist"
+    }
+  },
+  "examples": [
+    {
+      "name": "Startup Waitlist Page",
+      "description": "Complete pre-launch page with hero, social proof, and form",
+      "file": "startup-landing.json"
+    },
+    {
+      "name": "SaaS Product Demo",
+      "description": "Full SaaS landing with features, pricing, and CTAs",
+      "file": "saas-demo.json"
+    },
+    {
+      "name": "Custom Styling Demo",
+      "description": "Advanced customization with backgrounds and typography",
+      "file": "custom-hero-demo.json"
+    }
+  ],
+  "installation": {
+    "command": "npm install framer-motion lucide-react",
+    "postInstall": "Landing pack components are now available with @landing/ prefix",
+    "setup": [
+      "Configure database settings for waitlist capture",
+      "Set theme colors in theme.json for automatic adaptation",
+      "Customize component classes using Tailwind CSS"
+    ]
+  },
+  "configuration": {
+    "requiresAuth": false,
+    "requiresDatabase": true,
+    "supportsSSR": true,
+    "mobileOptimized": true,
+    "customization": {
+      "tailwindCSS": true,
+      "themeIntegration": true,
+      "backgroundImages": true,
+      "typographyControl": true,
+      "layoutFlexibility": true
+    },
+    "integrations": {
+      "database": "JasonJS Database Abstraction",
+      "analytics": "UTM parameter tracking",
+      "referrals": "Built-in referral system"
+    }
+  },
+  "pricing": {
+    "type": "free",
+    "price": 0
+  },
+  "changelog": {
+    "2.0.0": {
+      "date": "2025-01-11",
+      "changes": [
+        "Added comprehensive Tailwind CSS customization support",
+        "Enhanced database integration with proper /api/data usage",
+        "Added background image and color customization",
+        "Implemented flexible typography control",
+        "Added layout and form styling options",
+        "Created advanced customization examples"
+      ]
+    },
+    "1.0.0": {
+      "date": "2024-01-15",
+      "changes": [
+        "Initial release with core landing components",
+        "Database integration for waitlist capture",
+        "Theme-aware styling",
+        "Conversion optimization features"
+      ]
+    }
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "name": "Newsletter",
+  "component": "@framework/website/Newsletter",
+  "version": "1.0.0",
+  "description": "Newsletter subscription component with automatic database integration and toast notifications",
+  "category": "forms",
+  "tags": ["newsletter", "email", "subscription", "database", "forms"],
+  "author": "JasonJS Framework",
+  "license": "MIT",
+  "parameters": [
+    {
+      "name": "title",
+      "type": "string",
+      "required": false,
+      "description": "Newsletter section title",
+      "default": "Subscribe to our newsletter"
+    },
+    {
+      "name": "subtitle",
+      "type": "string",
+      "required": false,
+      "description": "Newsletter section subtitle/description",
+      "default": "Get the latest updates and news delivered to your inbox"
+    },
+    {
+      "name": "placeholder",
+      "type": "string",
+      "required": false,
+      "description": "Email input placeholder text",
+      "default": "Enter your email"
+    },
+    {
+      "name": "buttonText",
+      "type": "string",
+      "required": false,
+      "description": "Subscribe button text",
+      "default": "Subscribe"
+    },
+    {
+      "name": "newsletterDatabase",
+      "type": "string",
+      "required": false,
+      "description": "Database name to store newsletter subscriptions",
+      "default": "newsletter"
+    },
+    {
+      "name": "variant",
+      "type": "'default' | 'gradient' | 'dark' | 'minimal'",
+      "required": false,
+      "description": "Visual style variant",
+      "default": "default"
+    },
+    {
+      "name": "size",
+      "type": "'small' | 'default' | 'large'",
+      "required": false,
+      "description": "Component size",
+      "default": "default"
+    },
+    {
+      "name": "className",
+      "type": "string",
+      "required": false,
+      "description": "Additional CSS classes",
+      "default": ""
+    }
+  ],
+  "example": {
+    "component": "@framework/website/Newsletter",
+    "attributes": {
+      "title": "Stay Updated",
+      "subtitle": "Get weekly updates on new features and releases",
+      "placeholder": "you@example.com",
+      "buttonText": "Subscribe",
+      "newsletterDatabase": "newsletter",
+      "variant": "gradient",
+      "size": "default"
+    }
+  },
+  "useCases": [
+    "Footer newsletter signup",
+    "Landing page email capture",
+    "Blog subscription form",
+    "Product updates signup",
+    "Marketing campaign lead capture"
+  ],
+  "features": [
+    "Automatic database integration using app.db",
+    "Toast notifications for success/error",
+    "Email validation",
+    "Loading states",
+    "Multiple visual variants",
+    "Responsive design",
+    "Dark mode support",
+    "Configurable database name"
+  ],
+  "dependencies": {
+    "react": "^18.0.0"
+  },
+  "databaseSchema": {
+    "collection": "newsletter (or custom)",
+    "fields": {
+      "email": "string (required)",
+      "subscribedAt": "string (ISO date)",
+      "source": "string (e.g., 'newsletter-widget')"
+    }
+  },
+  "documentation": "/docs/components/framework/website/Newsletter.md"
+}

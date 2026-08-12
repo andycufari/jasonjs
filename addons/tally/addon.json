@@ -1,0 +1,66 @@
+{
+  "name": "tally",
+  "displayName": "Tally Forms",
+  "type": "addon",
+  "version": "1.0.0",
+  "description": "Embed Tally.so forms as-is. Auto-loads Tally's embed.js on demand — no page-level scripts config needed. Form design (theme, layout, title) is controlled entirely in the Tally dashboard.",
+  "author": "JasonJS Framework",
+  "tags": ["form", "tally", "embed", "contact", "survey", "lead", "waitlist"],
+  "license": "MIT",
+  "credits": 5,
+
+  "capabilities": [
+    "provides_components"
+  ],
+
+  "components": {
+    "TallyForm": {
+      "file": "./components/TallyForm.jsx",
+      "description": "Embeds a Tally.so form via iframe with optional dynamic height resizing via postMessage"
+    }
+  },
+
+  "usage": {
+    "example": "<TallyForm formId=\"nPvaKV\" title=\"Contact\" />",
+    "props": {
+      "formId": {
+        "type": "string",
+        "required": true,
+        "description": "Tally form ID — found in the form share URL: tally.so/r/{formId}"
+      },
+      "title": {
+        "type": "string",
+        "default": "Form",
+        "description": "iframe title for accessibility"
+      },
+      "height": {
+        "type": "string",
+        "default": "100vh",
+        "description": "Fallback height when dynamicHeight is false"
+      },
+      "customHeight": {
+        "type": "string",
+        "description": "Override height entirely (e.g. '600px'). Disables dynamicHeight."
+      },
+      "dynamicHeight": {
+        "type": "boolean",
+        "default": true,
+        "description": "Auto-resize iframe height based on form content (handled by Tally's embed.js)"
+      }
+    }
+  },
+
+  "page_json_example": {
+    "components": [
+      {
+        "component": "@addons/tally/TallyForm",
+        "attributes": {
+          "formId": "nPvaKV",
+          "title": "Contact Form"
+        }
+      }
+    ]
+  },
+
+  "ai_prompt": "# Tally Forms Addon\n\n## When to Use\n\nUse the Tally addon to embed any Tally.so form into a page:\n- Contact forms\n- Waitlist signups\n- Surveys and feedback\n- Lead capture\n- Registration forms\n- Any form built at tally.so\n\n## How to Get the formId\n\nThe form ID is in the Tally share URL:\n- Share URL: `https://tally.so/r/nPvaKV` → formId = `nPvaKV`\n- Or from the embed code Tally provides\n\n## Basic Usage (page JSON)\n\n```json\n{\n  \"components\": [\n    {\n      \"component\": \"@addons/tally/TallyForm\",\n      \"attributes\": {\n        \"formId\": \"nPvaKV\",\n        \"title\": \"Contact Form\"\n      }\n    }\n  ]\n}\n```\n\n**Do NOT add a `scripts` field** to the page — this addon auto-loads Tally's `embed.js` internally (once per page, cached).\n\n## Form Design Lives in Tally\n\nThe form's theme, colors, layout, title visibility, background, and everything else visual is controlled in the Tally dashboard (Settings → Design). The embed inherits whatever you saved there.\n\nThis addon intentionally does NOT pass any query parameters to the iframe — it just loads `https://tally.so/embed/{formId}` as-is. Previous versions exposed props like `alignLeft`, `hideTitle`, `transparentBackground` that tried to override Tally's design via URL params, but they fight with the form's own styling and cause rendering issues (washed-out colors, clipped content, mismatched backgrounds). The simple, reliable approach is: **design the form in Tally, embed it as-is**.\n\nIf you need a different look, edit the form in Tally — it updates the embed automatically, no redeploy.\n\n## In a User Component\n\n```jsx\nimport TallyForm from '@addons/tally/TallyForm';\n\nconst ContactSection = () => (\n  <section className=\"py-16 bg-background\">\n    <div className=\"max-w-2xl mx-auto px-4\">\n      <h2 className=\"text-3xl font-bold mb-8 text-foreground\">Get in Touch</h2>\n      <TallyForm formId=\"nPvaKV\" />\n    </div>\n  </section>\n);\n\nexport default ContactSection;\n```\n\n## Props Reference\n\n| Prop | Type | Default | Description |\n|------|------|---------|-------------|\n| `formId` | string | required | Tally form ID from the share URL |\n| `title` | string | `'Form'` | iframe title (accessibility) |\n| `height` | string | `'100vh'` | Fallback height when dynamicHeight is false |\n| `customHeight` | string | — | Fixed height override (e.g. `'600px'`) |\n| `dynamicHeight` | boolean | **true** | Auto-resize iframe to fit form (handled by Tally's embed.js via postMessage) |\n\n## How It Works\n\nThe component renders an iframe with `data-tally-src=\"https://tally.so/embed/{formId}\"`, then loads `https://tally.so/widgets/embed.js` on mount and calls `Tally.loadEmbeds()`. Tally's script activates the iframe and handles dynamic height resizing via postMessage events.\n\n## CSP Requirements\n\nFor this to work, `next.config.js` must allow Tally in CSP:\n- `script-src` must include `https://tally.so`\n- `frame-src` must include `https://tally.so`\n\nBoth are configured in the framework's next.config.js.\n\n## Tips\n\n- `dynamicHeight: true` (default) handles multi-step forms that grow as users progress\n- For a fixed-size embed, set `dynamicHeight: false` and provide a `height` (e.g. `'700px'`)\n- The `allow` attribute on the iframe includes camera, microphone, and geolocation for forms that need those\n- **All visual customization happens in Tally** — this addon is a dumb embed wrapper by design\n"
+}

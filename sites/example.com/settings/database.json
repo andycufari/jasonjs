@@ -1,0 +1,70 @@
+{
+  "guestbook": {
+    "id": "guestbook",
+    "config": {
+      "collection": "guestbook",
+      "softDelete": false
+    },
+    "security": {
+      "read": { "level": "public" },
+      "create": { "level": "public" },
+      "update": { "level": "admin" },
+      "delete": { "level": "admin" }
+    }
+  },
+  "todos": {
+    "id": "todos",
+    "config": {
+      "collection": "todos",
+      "softDelete": false
+    },
+    "security": {
+      "read": { "level": "public" },
+      "create": { "level": "user" },
+      "update": { "level": "owner" },
+      "delete": { "level": "owner" }
+    }
+  },
+  "users": {
+    "id": "users",
+    "config": {
+      "collection": "users",
+      "softDelete": true
+    },
+    "security": {
+      "read": {
+        "level": "authenticated",
+        "fields": ["id", "name", "email", "avatar", "createdAt"]
+      },
+      "create": { "level": "public" },
+      "update": { "level": "owner" },
+      "delete": { "level": "admin" }
+    }
+  },
+  "posts": {
+    "id": "posts",
+    "config": {
+      "collection": "posts",
+      "softDelete": true
+    },
+    "security": {
+      "read": { "level": "public" },
+      "create": { "level": "authenticated" },
+      "update": { "level": "owner" },
+      "delete": { "level": "owner" }
+    }
+  },
+  "analytics": {
+    "id": "analytics",
+    "config": {
+      "collection": "analytics",
+      "softDelete": false
+    },
+    "security": {
+      "read": { "level": "admin" },
+      "create": { "level": "system" },
+      "update": { "level": "system" },
+      "delete": { "level": "admin" }
+    }
+  }
+}

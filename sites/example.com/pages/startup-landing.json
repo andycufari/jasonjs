@@ -1,0 +1,370 @@
+{
+  "meta": {
+    "title": "Revolutionary SaaS Platform - Join the Waitlist",
+    "description": "Be among the first to experience the future of productivity. Join thousands on our exclusive waitlist.",
+    "keywords": ["saas", "productivity", "startup", "waitlist"],
+    "ogImage": "/assets/og-image.jpg"
+  },
+  "layout": {
+    "className": "min-h-screen"
+  },
+  "components": [
+    {
+      "component": "@landing/WaitlistHero",
+      "attributes": {
+        "headline": "Revolutionary productivity platform launching soon",
+        "subheadline": "Join the exclusive waitlist and be among the first to transform how your team works",
+        "ctaText": "Get Early Access",
+        "variant": "animated",
+        "showCount": true,
+        "currentCount": 4237,
+        "incentive": "Early members get 6 months free + lifetime 50% discount",
+        "database": "startup_waitlist"
+      }
+    },
+    
+    {
+      "component": "@landing/LogoCloud",
+      "attributes": {
+        "title": "Trusted by innovative teams worldwide",
+        "variant": "minimal",
+        "showCount": true,
+        "companyCount": "500+",
+        "logos": [
+          {
+            "name": "TechFlow",
+            "width": 130,
+            "height": 40
+          },
+          {
+            "name": "StartupHub",
+            "width": 140,
+            "height": 35
+          },
+          {
+            "name": "InnovateCo",
+            "width": 125,
+            "height": 42
+          },
+          {
+            "name": "NextGen",
+            "width": 135,
+            "height": 38
+          },
+          {
+            "name": "CloudFirst",
+            "width": 120,
+            "height": 45
+          }
+        ]
+      }
+    },
+
+    {
+      "component": "section",
+      "attributes": {
+        "className": "py-20 bg-white"
+      },
+      "components": [
+        {
+          "component": "div",
+          "attributes": {
+            "className": "container mx-auto px-4 max-w-4xl text-center"
+          },
+          "components": [
+            {
+              "component": "h2",
+              "attributes": {
+                "className": "text-4xl md:text-5xl font-bold text-gray-900 mb-6"
+              },
+              "components": ["What makes us different?"]
+            },
+            {
+              "component": "p",
+              "attributes": {
+                "className": "text-xl text-gray-600 mb-12"
+              },
+              "components": ["We're building the productivity platform that adapts to your team, not the other way around."]
+            },
+            {
+              "component": "div",
+              "attributes": {
+                "className": "grid md:grid-cols-3 gap-8"
+              },
+              "components": [
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "text-center p-6"
+                  },
+                  "components": [
+                    {
+                      "component": "div",
+                      "attributes": {
+                        "className": "w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-2xl flex items-center justify-center"
+                      },
+                      "components": [
+                        {
+                          "component": "span",
+                          "attributes": {
+                            "className": "text-2xl"
+                          },
+                          "components": ["⚡"]
+                        }
+                      ]
+                    },
+                    {
+                      "component": "h3",
+                      "attributes": {
+                        "className": "text-xl font-semibold text-gray-900 mb-3"
+                      },
+                      "components": ["10x Faster"]
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-gray-600"
+                      },
+                      "components": ["Automate repetitive tasks and focus on what matters most"]
+                    }
+                  ]
+                },
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "text-center p-6"
+                  },
+                  "components": [
+                    {
+                      "component": "div",
+                      "attributes": {
+                        "className": "w-16 h-16 mx-auto mb-4 bg-green-100 rounded-2xl flex items-center justify-center"
+                      },
+                      "components": [
+                        {
+                          "component": "span",
+                          "attributes": {
+                            "className": "text-2xl"
+                          },
+                          "components": ["🛡️"]
+                        }
+                      ]
+                    },
+                    {
+                      "component": "h3",
+                      "attributes": {
+                        "className": "text-xl font-semibold text-gray-900 mb-3"
+                      },
+                      "components": ["Enterprise Security"]
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-gray-600"
+                      },
+                      "components": ["SOC 2 compliant with end-to-end encryption"]
+                    }
+                  ]
+                },
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "text-center p-6"
+                  },
+                  "components": [
+                    {
+                      "component": "div",
+                      "attributes": {
+                        "className": "w-16 h-16 mx-auto mb-4 bg-purple-100 rounded-2xl flex items-center justify-center"
+                      },
+                      "components": [
+                        {
+                          "component": "span",
+                          "attributes": {
+                            "className": "text-2xl"
+                          },
+                          "components": ["🔗"]
+                        }
+                      ]
+                    },
+                    {
+                      "component": "h3",
+                      "attributes": {
+                        "className": "text-xl font-semibold text-gray-900 mb-3"
+                      },
+                      "components": ["Seamless Integration"]
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-gray-600"
+                      },
+                      "components": ["Connect with 100+ tools your team already uses"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "component": "section",
+      "attributes": {
+        "className": "py-20 bg-gray-50"
+      },
+      "components": [
+        {
+          "component": "div",
+          "attributes": {
+            "className": "container mx-auto px-4 max-w-2xl"
+          },
+          "components": [
+            {
+              "component": "div",
+              "attributes": {
+                "className": "text-center mb-12"
+              },
+              "components": [
+                {
+                  "component": "h2",
+                  "attributes": {
+                    "className": "text-4xl font-bold text-gray-900 mb-4"
+                  },
+                  "components": ["Ready to join the revolution?"]
+                },
+                {
+                  "component": "p",
+                  "attributes": {
+                    "className": "text-xl text-gray-600"
+                  },
+                  "components": ["Get notified the moment we launch and secure your spot in the beta."]
+                }
+              ]
+            },
+            {
+              "component": "@landing/WaitlistForm",
+              "attributes": {
+                "fields": ["email", "name", "company"],
+                "submitText": "Join the Waitlist",
+                "successMessage": "Welcome to the future! 🚀",
+                "enableReferrals": true,
+                "showProgress": true,
+                "variant": "card",
+                "size": "lg",
+                "database": "startup_waitlist"
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "component": "section",
+      "attributes": {
+        "className": "py-20 bg-gradient-to-br from-blue-900 to-purple-900 text-white"
+      },
+      "components": [
+        {
+          "component": "div",
+          "attributes": {
+            "className": "container mx-auto px-4 text-center"
+          },
+          "components": [
+            {
+              "component": "h2",
+              "attributes": {
+                "className": "text-4xl md:text-5xl font-bold mb-6"
+              },
+              "components": ["Be part of something bigger"]
+            },
+            {
+              "component": "p",
+              "attributes": {
+                "className": "text-xl text-blue-100 mb-12 max-w-3xl mx-auto"
+              },
+              "components": ["Join a community of forward-thinking professionals who are ready to revolutionize how work gets done."]
+            },
+            {
+              "component": "div",
+              "attributes": {
+                "className": "grid md:grid-cols-3 gap-8 max-w-4xl mx-auto"
+              },
+              "components": [
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "text-center"
+                  },
+                  "components": [
+                    {
+                      "component": "div",
+                      "attributes": {
+                        "className": "text-4xl font-bold text-blue-300 mb-2"
+                      },
+                      "components": ["4,237+"]
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-blue-100"
+                      },
+                      "components": ["Early adopters waiting"]
+                    }
+                  ]
+                },
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "text-center"
+                  },
+                  "components": [
+                    {
+                      "component": "div",
+                      "attributes": {
+                        "className": "text-4xl font-bold text-green-300 mb-2"
+                      },
+                      "components": ["Q2 2025"]
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-blue-100"
+                      },
+                      "components": ["Expected launch"]
+                    }
+                  ]
+                },
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "text-center"
+                  },
+                  "components": [
+                    {
+                      "component": "div",
+                      "attributes": {
+                        "className": "text-4xl font-bold text-purple-300 mb-2"
+                      },
+                      "components": ["50%"]
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-blue-100"
+                      },
+                      "components": ["Lifetime discount"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

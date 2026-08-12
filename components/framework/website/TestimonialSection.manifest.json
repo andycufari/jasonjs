@@ -1,0 +1,38 @@
+{
+  "name": "TestimonialSection",
+  "version": "2.0.0",
+  "description": "Testimonial section with customer quotes and ratings. Works with zero config.",
+  "category": "website",
+  "props": {
+    "title": {
+      "type": "string",
+      "default": "What People Are Saying",
+      "description": "Section title"
+    },
+    "subtitle": {
+      "type": "string",
+      "default": "Don't just take our word for it.",
+      "description": "Section subtitle"
+    },
+    "testimonials": {
+      "type": "array",
+      "default": [],
+      "description": "Array of testimonials with name, role, avatar, content, and rating"
+    },
+    "columns": {
+      "type": "number",
+      "default": 3,
+      "description": "Number of columns (1-3)"
+    },
+    "variant": {
+      "type": "string",
+      "default": "default",
+      "description": "Visual style: default, cards, minimal"
+    },
+    "showRatings": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show star ratings"
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "name": "qr-scanner",
+  "displayName": "QR Code Scanner",
+  "type": "addon",
+  "version": "1.0.0",
+  "description": "High-performance QR code scanner using the native Barcode Detection API with multi-camera support and customizable UI",
+  "author": "JasonJS Framework",
+  "tags": ["qr", "barcode", "scanner", "camera", "mobile", "input"],
+  "license": "MIT",
+  "credits": 10,
+
+  "capabilities": [
+    "provides_components"
+  ],
+
+  "components": {
+    "QRScanner": {
+      "file": "./components/QRScanner.jsx",
+      "description": "QR code scanner modal with camera access, multi-camera switching, and real-time detection"
+    }
+  },
+
+  "usage": {
+    "example": "<QRScanner isOpen={isOpen} onClose={() => setIsOpen(false)} onScan={(value) => handleScan(value)} />",
+    "props": {
+      "isOpen": {
+        "type": "boolean",
+        "required": true,
+        "description": "Controls modal visibility"
+      },
+      "onClose": {
+        "type": "function",
+        "required": true,
+        "description": "Called when modal is closed"
+      },
+      "onScan": {
+        "type": "function",
+        "required": true,
+        "description": "Called with scanned QR code value (string)"
+      },
+      "title": {
+        "type": "string",
+        "default": "Escanear Código QR",
+        "description": "Modal title"
+      },
+      "successMessage": {
+        "type": "string",
+        "default": "¡Código QR detectado!",
+        "description": "Success message shown after successful scan"
+      },
+      "autoCloseDelay": {
+        "type": "number",
+        "default": 1500,
+        "description": "Delay in milliseconds before auto-closing on success (set to 0 to disable)"
+      }
+    }
+  },
+
+  "browser_requirements": {
+    "barcode_detection_api": {
+      "description": "Uses the native Barcode Detection API available in Chrome, Edge, and Samsung Internet",
+      "fallback": "Shows error message if not supported"
+    }
+  },
+
+  "ai_prompt": "# QR Code Scanner Addon\n\n## When to Use This Addon\n\nUse the QR Scanner addon when you need to:\n- Scan product barcodes for inventory management\n- Read QR codes for authentication or verification\n- Check-in attendees at events\n- Track assets with QR labels\n- Link physical items to digital records\n- Enable quick data entry via QR codes\n- Implement contactless information sharing\n\n## Browser Compatibility\n\n**Supported Browsers:**\n- Chrome/Chromium (desktop & mobile)\n- Edge (desktop & mobile)\n- Samsung Internet\n- Opera\n\n**Not Supported:**\n- Safari/iOS (shows error message)\n- Firefox (shows error message)\n\n**Recommendation**: Display a warning or alternative input method for unsupported browsers.\n\n## Basic Implementation\n\n```jsx\nimport { useState } from 'react';\nimport QRScanner from '@addons/qr-scanner/QRScanner';\n\nexport default function MyComponent({ jcontext }) {\n  const [isQROpen, setIsQROpen] = useState(false);\n  const [scannedValue, setScannedValue] = useState('');\n\n  const handleScan = async (value) => {\n    console.log('Scanned:', value);\n    setScannedValue(value);\n    \n    // Query database with scanned value\n    try {\n      const db = jcontext.app.db.use('products');\n      const result = await db.fetch({ qr_code: value });\n      \n      if (result && result.length > 0) {\n        // Product found\n        console.log('Product:', result[0]);\n      }\n    } catch (error) {\n      console.error('Database error:', error);\n    }\n  };\n\n  return (\n    <div>\n      <button onClick={() => setIsQROpen(true)}>\n        Scan QR Code\n      </button>\n\n      <QRScanner\n        isOpen={isQROpen}\n        onClose={() => setIsQROpen(false)}\n        onScan={handleScan}\n      />\n\n      {scannedValue && <p>Last scanned: {scannedValue}</p>}\n    </div>\n  );\n}\n```\n\n## Common Use Cases\n\n### 1. Product Inventory Scanner\n\n```jsx\nconst handleProductScan = async (qrCode) => {\n  const db = jcontext.app.db.use('inventory');\n  \n  // Check if product exists\n  const product = await db.fetch({ qr_code: qrCode });\n  \n  if (product && product.length > 0) {\n    // Update quantity or load product details\n    setCurrentProduct(product[0]);\n    jcontext.app.ui.toast('Product loaded!', 'success');\n  } else {\n    jcontext.app.ui.toast('Product not found', 'error');\n  }\n};\n\n<QRScanner\n  isOpen={isScannerOpen}\n  onClose={() => setIsScannerOpen(false)}\n  onScan={handleProductScan}\n  title=\"Scan Product QR\"\n  successMessage=\"Product found!\"\n/>\n```\n\n### 2. Event Check-In System\n\n```jsx\nconst handleCheckIn = async (ticketCode) => {\n  const db = jcontext.app.db.use('tickets');\n  \n  try {\n    const ticket = await db.fetch({ code: ticketCode });\n    \n    if (!ticket || ticket.length === 0) {\n      jcontext.app.ui.toast('Invalid ticket', 'error');\n      return;\n    }\n    \n    if (ticket[0].checked_in) {\n      jcontext.app.ui.toast('Already checked in!', 'warning');\n      return;\n    }\n    \n    // Mark as checked in\n    await db.update(ticket[0].id, {\n      checked_in: true,\n      checked_in_at: new Date().toISOString()\n    });\n    \n    jcontext.app.ui.toast(`Welcome, ${ticket[0].attendee_name}!`, 'success');\n  } catch (error) {\n    jcontext.app.ui.toast('Check-in failed', 'error');\n  }\n};\n\n<QRScanner\n  isOpen={isCheckInOpen}\n  onClose={() => setIsCheckInOpen(false)}\n  onScan={handleCheckIn}\n  title=\"Scan Ticket\"\n  autoCloseDelay={2000}\n/>\n```\n\n### 3. Asset Tracking\n\n```jsx\nconst handleAssetScan = async (assetCode) => {\n  const db = jcontext.app.db.use('assets');\n  \n  const asset = await db.fetch({ code: assetCode });\n  \n  if (asset && asset.length > 0) {\n    // Log location or status change\n    await db.update(asset[0].id, {\n      last_scanned: new Date().toISOString(),\n      location: currentLocation,\n      scanned_by: jcontext.app.auth.currentUser.id\n    });\n    \n    setCurrentAsset(asset[0]);\n  }\n};\n\n<QRScanner\n  isOpen={isScannerOpen}\n  onClose={() => setIsScannerOpen(false)}\n  onScan={handleAssetScan}\n  title=\"Scan Asset Tag\"\n/>\n```\n\n### 4. Authentication/Verification\n\n```jsx\nconst handleVerificationScan = async (verificationCode) => {\n  try {\n    // Call verification API\n    const response = await jcontext.app.functions.call('verify-code', {\n      code: verificationCode\n    });\n    \n    if (response.valid) {\n      setIsVerified(true);\n      jcontext.app.ui.toast('Verification successful!', 'success');\n    } else {\n      jcontext.app.ui.toast('Invalid verification code', 'error');\n    }\n  } catch (error) {\n    jcontext.app.ui.toast('Verification failed', 'error');\n  }\n};\n\n<QRScanner\n  isOpen={isVerifying}\n  onClose={() => setIsVerifying(false)}\n  onScan={handleVerificationScan}\n  title=\"Scan Verification Code\"\n/>\n```\n\n## Features\n\n### Multi-Camera Support\n- Automatically detects all available cameras\n- Defaults to back/environment camera on mobile devices\n- Camera switching button appears when multiple cameras available\n- Seamless switching without closing modal\n\n### High Performance\n- Uses native Barcode Detection API (hardware accelerated)\n- Configurable camera resolution (up to 1920x1080)\n- Continuous autofocus support\n- 30 FPS frame rate\n- Graceful fallback for unsupported constraints\n\n### User Experience\n- Visual frame overlay for guidance\n- Success/error feedback messages\n- Auto-close on successful scan (configurable)\n- Manual close button\n- Responsive design (mobile & desktop)\n- Dark theme by default\n\n## Customization\n\n```jsx\n<QRScanner\n  isOpen={isOpen}\n  onClose={handleClose}\n  onScan={handleScan}\n  \n  // Customize UI\n  title=\"Custom Title\"\n  successMessage=\"Code scanned successfully!\"\n  \n  // Control behavior\n  autoCloseDelay={0}  // Disable auto-close\n/>\n```\n\n## Integration with Forms\n\nThe QR Scanner works great with form fields:\n\n```jsx\nconst [formData, setFormData] = useState({\n  product_code: '',\n  quantity: 1\n});\n\nconst handleScan = (value) => {\n  setFormData({ ...formData, product_code: value });\n};\n\n<input \n  type=\"text\" \n  value={formData.product_code}\n  onChange={(e) => setFormData({ ...formData, product_code: e.target.value })}\n  placeholder=\"Product code\"\n/>\n<button onClick={() => setIsQROpen(true)}>Scan QR</button>\n\n<QRScanner\n  isOpen={isQROpen}\n  onClose={() => setIsQROpen(false)}\n  onScan={handleScan}\n/>\n```\n\n## Error Handling\n\n```jsx\nconst handleScan = async (value) => {\n  try {\n    const db = jcontext.app.db.use('products');\n    const result = await db.fetch({ code: value });\n    \n    if (!result || result.length === 0) {\n      // No match found\n      jcontext.app.ui.toast('Product not found', 'error');\n      // Option 1: Keep scanner open for retry\n      // Option 2: Close and show alternative input\n      setIsQROpen(false);\n      return;\n    }\n    \n    // Success\n    processProduct(result[0]);\n    \n  } catch (error) {\n    console.error('Scan error:', error);\n    jcontext.app.ui.toast('An error occurred', 'error');\n  }\n};\n```\n\n## Mobile Optimization\n\nThe scanner is optimized for mobile devices:\n- Uses environment-facing camera by default\n- Responsive modal sizing\n- Touch-friendly buttons\n- Handles device orientation\n- Automatic camera permission handling\n\n## Security Considerations\n\n1. **Validate scanned data**: Always validate QR content server-side\n2. **Rate limiting**: Implement rate limits on scan-triggered actions\n3. **Authentication**: Verify user permissions before sensitive operations\n4. **SQL injection**: Use parameterized queries (automatic with app.db)\n5. **XSS prevention**: Sanitize scanned content before display\n\n```jsx\n// Good: Validate and sanitize\nconst handleScan = async (value) => {\n  // Validate format\n  if (!/^[A-Z0-9]{10}$/.test(value)) {\n    jcontext.app.ui.toast('Invalid QR code format', 'error');\n    return;\n  }\n  \n  // Use parameterized query (app.db does this automatically)\n  const result = await db.fetch({ code: value });\n};\n```\n\n## Troubleshooting\n\n**Scanner not opening:**\n- Check browser compatibility (Chrome/Edge required)\n- Verify HTTPS (camera requires secure context)\n- Check camera permissions in browser settings\n\n**Camera not working:**\n- Ensure user granted camera permission\n- Check if another app is using the camera\n- Try switching cameras if multiple available\n- Check browser console for specific errors\n\n**QR codes not detecting:**\n- Ensure good lighting conditions\n- Hold QR code steady in frame\n- Adjust distance (not too close/far)\n- Clean camera lens\n- Try higher contrast QR codes\n\n**Performance issues:**\n- Close other camera-using apps/tabs\n- Reduce camera resolution (modify component if needed)\n- Check device GPU capabilities\n\n## Best Practices\n\n1. **Provide fallback**: Always offer manual input as alternative\n2. **Clear instructions**: Tell users what to scan\n3. **Feedback**: Show what was scanned\n4. **Error recovery**: Allow retry on failed scans\n5. **Accessibility**: Don't make QR scanning the only option\n\n```jsx\n// Example with fallback\n<div>\n  <input \n    type=\"text\" \n    value={code}\n    onChange={(e) => setCode(e.target.value)}\n    placeholder=\"Enter code manually\"\n  />\n  <button onClick={() => setIsQROpen(true)}>Or Scan QR</button>\n</div>\n```\n\n## Performance Notes\n\n- Automatically stops camera when modal closes (no battery drain)\n- Cleans up resources on component unmount\n- Cancels detection loop when QR found\n- Memory efficient (no leaks)\n- Works in background tabs (though camera stops)\n\nThe QR Scanner addon is production-ready and battle-tested for high-volume scanning applications."
+}

@@ -1,0 +1,31 @@
+services:
+  jasonjs:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      # Mount sites/ so pages, functions, settings, assets, and app.db file-store
+      # data live outside the container. Note: adding a *component* still
+      # requires an image rebuild — components are compiled at build time.
+      - ./sites:/app/sites
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # Optional: MongoDB — upgrades app.db and enables auth user storage.
+  # Set MONGODB_URI=mongodb://mongodb:27017/jason in .env to use it.
+  mongodb:
+    image: mongo:7
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:

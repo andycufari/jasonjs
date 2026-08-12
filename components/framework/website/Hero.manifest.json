@@ -1,0 +1,57 @@
+{
+  "name": "Hero",
+  "version": "2.0.0",
+  "description": "Hero section with headline, CTA buttons, and code example. Works with zero config.",
+  "category": "website",
+  "props": {
+    "headline": {
+      "type": "string",
+      "default": "Build Something Amazing",
+      "description": "Main headline text"
+    },
+    "subheadline": {
+      "type": "string",
+      "default": "The fastest way to launch your next project.",
+      "description": "Supporting text below headline"
+    },
+    "ctaText": {
+      "type": "string",
+      "default": "Get Started",
+      "description": "Primary button text"
+    },
+    "ctaUrl": {
+      "type": "string",
+      "default": "/docs",
+      "description": "Primary button link"
+    },
+    "secondaryCta": {
+      "type": "string",
+      "default": "Learn More",
+      "description": "Secondary button text"
+    },
+    "secondaryUrl": {
+      "type": "string",
+      "default": "#features",
+      "description": "Secondary button link"
+    },
+    "features": {
+      "type": "array",
+      "default": [],
+      "description": "List of feature strings to display"
+    },
+    "codeExample": {
+      "type": "object",
+      "description": "Code example with title and code properties"
+    },
+    "showCodeExample": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show code example panel"
+    },
+    "variant": {
+      "type": "string",
+      "default": "default",
+      "description": "Visual style: default, gradient, minimal"
+    }
+  }
+}

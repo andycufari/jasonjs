@@ -1,0 +1,275 @@
+/* Sección principal */
+.manifiestoSection {
+    position: relative;
+    background: linear-gradient(180deg, #1a3a8f 0%, #2563eb 100%);
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1rem;
+    overflow: hidden;
+  }
+  
+  /* Código decorativo arriba a la izquierda */
+  .decorationCode {
+    position: absolute;
+    top: 3rem;
+    left: 3rem;
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.2);
+    font-family: monospace;
+  }
+  
+  /* Contenedor de la terminal */
+  .terminalContainer {
+    max-width: 800px;
+    width: 90%;
+    background-color: rgba(17, 24, 39, 0.95);
+    border-radius: 10px;
+    box-shadow: 0 20px 70px -20px rgba(0, 0, 0, 0.8), 
+                0 0 0 1px rgba(255, 255, 255, 0.1),
+                0 0 30px rgba(39, 99, 221, 0.7);
+    overflow: hidden;
+    backdrop-filter: blur(5px);
+    position: relative;
+    z-index: 10;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  
+  /* Clase para activar la animación de la terminal cuando es visible */
+  .terminalVisible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  /* Header de la terminal */
+  .terminalHeader {
+    background-color: rgba(31, 41, 55, 0.9);
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  /* Botones de la terminal */
+  .terminalButtons {
+    display: flex;
+    gap: 6px;
+  }
+  
+  .closeBtn, .minimizeBtn, .maximizeBtn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  
+  .closeBtn {
+    background-color: #ff5f56;
+  }
+  
+  .minimizeBtn {
+    background-color: #ffbd2e;
+  }
+  
+  .maximizeBtn {
+    background-color: #27c93f;
+  }
+  
+  /* Título de la terminal */
+  .terminalTitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+  }
+  
+  /* Contenido de la terminal */
+  .terminalContent {
+    padding: 2rem;
+    color: #e2e8f0;
+    font-family: 'Courier New', monospace;
+    min-height: 200px;
+  }
+  
+  /* Prompt de la terminal */
+  .prompt {
+    display: flex;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  
+  .promptUser {
+    color: #38bdf8;
+    margin-right: 0;
+  }
+  
+  .promptSeparator {
+    color: #e2e8f0;
+    margin-right: 0;
+  }
+  
+  .promptDir {
+    color: #a5f3fc;
+    margin-right: 0;
+  }
+  
+  .promptSymbol {
+    color: #e2e8f0;
+    margin-right: 0.5rem;
+  }
+  
+  /* Mensaje principal y secundario */
+  .mensaje {
+    margin-bottom: 2rem;
+    min-height: 2rem;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+  }
+  
+  .mensajePrincipal {
+    color: #34d399;
+    font-size: 1.8rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 5px rgba(52, 211, 153, 0.3);
+  }
+  
+  .mensajeSecundario {
+    color: #60a5fa;
+    font-size: 1.3rem;
+    line-height: 1.5;
+    letter-spacing: 0.3px;
+  }
+  
+  /* Animación del cursor */
+  @keyframes blink {
+    0%, 49% {
+      opacity: 1;
+    }
+    50%, 100% {
+      opacity: 0;
+    }
+  }
+  
+  @keyframes blinkSlow {
+    0%, 49% {
+      opacity: 1;
+    }
+    50%, 100% {
+      opacity: 0;
+    }
+  }
+  
+  .cursor {
+    display: inline-block;
+    width: 10px;
+    height: 22px;
+    background-color: #e2e8f0;
+    animation: blink 1s infinite;
+    margin-left: 5px;
+  }
+  
+  .cursorLento {
+    animation: blinkSlow 1.5s infinite;
+  }
+  
+  /* Elementos decorativos */
+  .decorationContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  
+  .decorationFlag, .decorationMate {
+    position: absolute;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 1.2s ease, transform 1.2s ease;
+    transition-delay: 0.4s;
+  }
+  
+  /* Clase para activar los elementos decorativos cuando la sección es visible */
+  .decorVisible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  .decorationFlag {
+    bottom: 2rem;
+    right: 3rem;
+    font-size: 2rem;
+    animation: float 6s infinite ease-in-out;
+    animation-play-state: paused;
+  }
+  
+  .decorationMate {
+    bottom: 2.5rem;
+    left: 3rem;
+    font-size: 2rem;
+    animation: float 7s infinite ease-in-out 1s;
+    animation-play-state: paused;
+  }
+  
+  /* Activar la animación flotante cuando los elementos son visibles */
+  .decorVisible.decorationFlag, .decorVisible.decorationMate {
+    animation-play-state: running;
+  }
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  
+  /* Responsive */
+  @media (max-width: 640px) {
+    .terminalContent {
+      padding: 1.5rem;
+    }
+    
+    .mensajePrincipal {
+      font-size: 1.4rem;
+    }
+    
+    .mensajeSecundario {
+      font-size: 1rem;
+    }
+    
+    .decorationCode {
+      top: 1.5rem;
+      left: 1.5rem;
+      font-size: 1.2rem;
+    }
+    
+    .decorationFlag, .decorationMate {
+      font-size: 1.5rem;
+    }
+  }
+  
+  /* Dispositivos muy pequeños */
+  @media (max-width: 380px) {
+    .terminalContent {
+      padding: 1rem;
+    }
+    
+    .mensajePrincipal {
+      font-size: 1.2rem;
+    }
+    
+    .prompt {
+      font-size: 0.8rem;
+    }
+  }

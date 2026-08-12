@@ -1,0 +1,111 @@
+{
+  "layout": "main",
+  "meta": {
+    "title": "JasonJS Framework - Cyberpunk JSON Web Framework",
+    "description": "Build powerful web applications using pure JSON configuration. Open-source framework with component system, multi-database support, and flexible deployment."
+  },
+  
+  
+  "components": [
+    {
+      "component": "@framework/website/Hero",
+      "attributes": {
+        "headline": "Build Apps with JSON",
+        "subheadline": "JasonJS Framework lets you build complete web applications using pure JSON configuration. No complex code, just intuitive JSON structures.",
+        "ctaText": "📚 Documentation",
+        "ctaUrl": "/docs",
+        "secondaryCta": "⭐ Star on GitHub",
+        "secondaryUrl": "https://github.com/cm64-studio/jasonjs-framework",
+        "sectionClasses": "py-20 bg-gradient-to-br from-purple-900 via-blue-900 to-black text-cyan-300 relative overflow-hidden",
+        "headlineClasses": "text-5xl md:text-7xl font-bold mb-6 leading-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-600",
+        "subheadlineClasses": "text-xl md:text-2xl text-cyan-200 mb-10 leading-relaxed max-w-4xl mx-auto",
+        "ctaClasses": "inline-flex items-center px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 text-black font-semibold rounded-xl hover:from-cyan-400 hover:to-purple-500 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105 shadow-cyan-500/25",
+        "secondaryCtaClasses": "inline-flex items-center px-8 py-4 border-2 border-cyan-400 text-cyan-400 font-semibold rounded-xl hover:bg-cyan-400 hover:text-black transition-all duration-200 backdrop-blur-sm shadow-lg shadow-cyan-500/20",
+        "containerClasses": "container mx-auto px-6 text-center max-w-5xl relative z-10",
+        "codeExample": {
+          "title": "pages/home.json",
+          "code": "{\n  \"component\": \"div\",\n  \"attributes\": {\n    \"className\": \"hero-section\"\n  },\n  \"components\": [\n    {\n      \"component\": \"h1\",\n      \"innerHTML\": \"Hello World\"\n    }\n  ]\n}"
+        }
+      }
+    },
+    {
+      "component": "@framework/website/FeatureGrid",
+      "attributes": {
+        "title": "Why Choose JasonJS?",
+        "subtitle": "A modern, flexible framework designed for rapid development and easy maintenance.",
+        "sectionClasses": "py-20 bg-gray-900",
+        "titleClasses": "text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-600 mb-6",
+        "subtitleClasses": "text-xl text-gray-300 max-w-3xl mx-auto mb-16",
+        "featureClasses": "bg-gray-800/50 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-700 hover:border-cyan-500/50 backdrop-blur-sm",
+        "features": [
+          {
+            "icon": "⚡",
+            "title": "Lightning Fast",
+            "description": "Build applications in minutes, not hours. JSON configuration makes development incredibly fast."
+          },
+          {
+            "icon": "🧩",
+            "title": "Component System",
+            "description": "Rich ecosystem of reusable components. Build once, use everywhere."
+          },
+          {
+            "icon": "🔒",
+            "title": "Security First",
+            "description": "Built-in security with component sandboxing and tenant isolation."
+          },
+          {
+            "icon": "🗄️",
+            "title": "Multi-Database",
+            "description": "Connect to MongoDB, Notion, PostgreSQL, or any data source with ease."
+          },
+          {
+            "icon": "🚀",
+            "title": "Deploy Anywhere",
+            "description": "Vercel, Netlify, AWS, or any Node.js hosting. Your choice."
+          },
+          {
+            "icon": "💡",
+            "title": "Developer Friendly",
+            "description": "Intuitive JSON structure that's easy to learn and master."
+          }
+        ]
+      }
+    },
+    {
+      "component": "@framework/website/FeatureGrid",
+      "attributes": {
+        "title": "Get Started in Minutes",
+        "subtitle": "Follow these simple steps to start building with JasonJS Framework.",
+        "sectionClasses": "py-20 bg-gradient-to-b from-gray-900 to-black",
+        "titleClasses": "text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-pink-600 mb-6",
+        "subtitleClasses": "text-xl text-gray-300 max-w-3xl mx-auto mb-16",
+        "featureClasses": "bg-gray-800/50 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-700 hover:border-cyan-500/50 backdrop-blur-sm",
+        "features": [
+          {
+            "icon": "1️⃣",
+            "title": "Install & Clone", 
+            "description": "Clone the repository and install dependencies"
+          },
+          {
+            "icon": "2️⃣",
+            "title": "Create JSON Pages",
+            "description": "Define your pages using simple JSON structure"
+          },
+          {
+            "icon": "3️⃣",
+            "title": "Run & Deploy",
+            "description": "Start development server and deploy"
+          }
+        ]
+      }
+    },
+    {
+      "component": "@framework/website/StatsSection",
+      "attributes": {}
+    },
+    {
+      "component": "@framework/website/TestimonialSection", 
+      "attributes": {}
+    }
+  ]
+}

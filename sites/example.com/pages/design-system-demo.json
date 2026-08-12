@@ -1,0 +1,410 @@
+{
+  "meta": {
+    "title": "JasonJS Design System - Complete Theme Demo",
+    "description": "Experience the full power of JasonJS Framework's design system with comprehensive theming, typography, and component integration.",
+    "keywords": ["design system", "jasonjs", "theme", "components", "startup"],
+    "ogImage": "/assets/design-system-preview.jpg"
+  },
+  
+  "theme": {
+    "defaultColorScheme": "light",
+    "colors": {
+      "primary": "#6366f1",
+      "secondary": "#8b5cf6", 
+      "accent": "#10b981",
+      "background": "#ffffff",
+      "surface": "#f8fafc",
+      "text": "#1e293b",
+      "textSecondary": "#64748b",
+      "textMuted": "#94a3b8",
+      "border": "#e2e8f0",
+      "success": "#10b981",
+      "warning": "#f59e0b",
+      "error": "#ef4444"
+    },
+    "typography": {
+      "fontFamily": "'Inter', system-ui, sans-serif",
+      "headings": {
+        "fontFamily": "'Cal Sans', 'Inter', system-ui, sans-serif",
+        "fontWeight": "600"
+      }
+    },
+    "spacing": {
+      "containerMaxWidth": "1280px",
+      "sectionPadding": "clamp(3rem, 8vw, 8rem)"
+    },
+    "borders": {
+      "radius": {
+        "base": "0.5rem",
+        "lg": "1rem",
+        "xl": "1.5rem"
+      }
+    },
+    "shadows": {
+      "base": "0 4px 6px rgba(0, 0, 0, 0.07)",
+      "lg": "0 20px 25px rgba(0, 0, 0, 0.1)",
+      "colored": {
+        "primary": "0 10px 25px rgba(99, 102, 241, 0.15)"
+      }
+    }
+  },
+  
+  "fonts": {
+    "primary": {
+      "name": "Inter",
+      "src": "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    },
+    "heading": {
+      "name": "Cal Sans", 
+      "src": "https://fonts.cdnfonts.com/css/cal-sans"
+    }
+  },
+  
+  "layout": {
+    "className": "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100"
+  },
+  
+  "components": [
+    {
+      "component": "@landing/WaitlistHero",
+      "attributes": {
+        "headline": "Revolutionary Design System",
+        "subheadline": "Experience the complete JasonJS Framework design system with comprehensive theming, dark/light modes, and component integration",
+        "ctaText": "Explore Components",
+        "variant": "gradient",
+        "showCount": true,
+        "currentCount": 2847,
+        "incentive": "Full design system with 50+ components",
+        "database": "design_system_demo",
+        
+        "headlineClasses": "text-6xl md:text-7xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-8 leading-tight",
+        "subheadlineClasses": "text-xl md:text-2xl text-gray-600 mb-12 max-w-4xl mx-auto leading-relaxed",
+        "sectionClasses": "min-h-screen flex items-center justify-center px-6 relative overflow-hidden",
+        "containerClasses": "text-center max-w-6xl mx-auto relative z-10",
+        "buttonClasses": "px-10 py-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold text-lg shadow-2xl hover:shadow-indigo-500/25 hover:scale-105 transition-all duration-300"
+      }
+    },
+    
+    {
+      "component": "section",
+      "attributes": {
+        "className": "py-20 bg-white"
+      },
+      "components": [
+        {
+          "component": "div",
+          "attributes": {
+            "className": "container mx-auto px-6 max-w-7xl"
+          },
+          "components": [
+            {
+              "component": "div",
+              "attributes": {
+                "className": "text-center mb-16"
+              },
+              "components": [
+                {
+                  "component": "h2",
+                  "attributes": {
+                    "className": "text-4xl md:text-5xl font-bold text-gray-900 mb-6"
+                  },
+                  "components": ["Complete Design System"]
+                },
+                {
+                  "component": "p",
+                  "attributes": {
+                    "className": "text-xl text-gray-600 max-w-3xl mx-auto"
+                  },
+                  "components": ["JasonJS Framework provides everything you need to build beautiful, consistent user interfaces with themes, components, and design tokens."]
+                }
+              ]
+            },
+            
+            {
+              "component": "div",
+              "attributes": {
+                "className": "grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+              },
+              "components": [
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-8 border border-blue-200 hover:shadow-xl transition-all duration-300"
+                  },
+                  "components": [
+                    {
+                      "component": "div",
+                      "attributes": {
+                        "className": "w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-6"
+                      },
+                      "components": [
+                        {
+                          "component": "span",
+                          "attributes": {
+                            "className": "text-2xl text-white"
+                          },
+                          "components": ["🎨"]
+                        }
+                      ]
+                    },
+                    {
+                      "component": "h3",
+                      "attributes": {
+                        "className": "text-2xl font-bold text-gray-900 mb-4"
+                      },
+                      "components": ["Theme System"]
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-gray-600 mb-6"
+                      },
+                      "components": ["Comprehensive design tokens including colors, typography, spacing, shadows, and more. Supports both light and dark modes."]
+                    },
+                    {
+                      "component": "ul",
+                      "attributes": {
+                        "className": "text-sm text-gray-500 space-y-2"
+                      },
+                      "components": [
+                        {"component": "li", "components": ["• CSS Variable Integration"]},
+                        {"component": "li", "components": ["• Tailwind CSS Support"]},
+                        {"component": "li", "components": ["• Dark/Light Mode Toggle"]},
+                        {"component": "li", "components": ["• Custom Brand Colors"]}
+                      ]
+                    }
+                  ]
+                },
+                
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "bg-gradient-to-br from-purple-50 to-pink-100 rounded-2xl p-8 border border-purple-200 hover:shadow-xl transition-all duration-300"
+                  },
+                  "components": [
+                    {
+                      "component": "div",
+                      "attributes": {
+                        "className": "w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mb-6"
+                      },
+                      "components": [
+                        {
+                          "component": "span",
+                          "attributes": {
+                            "className": "text-2xl text-white"
+                          },
+                          "components": ["🔤"]
+                        }
+                      ]
+                    },
+                    {
+                      "component": "h3",
+                      "attributes": {
+                        "className": "text-2xl font-bold text-gray-900 mb-4"
+                      },
+                      "components": ["Typography"]
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-gray-600 mb-6"
+                      },
+                      "components": ["Complete typography system with font loading, scale definitions, and semantic text styles for every use case."]
+                    },
+                    {
+                      "component": "ul",
+                      "attributes": {
+                        "className": "text-sm text-gray-500 space-y-2"
+                      },
+                      "components": [
+                        {"component": "li", "components": ["• Google Fonts Integration"]},
+                        {"component": "li", "components": ["• Custom Font Loading"]},
+                        {"component": "li", "components": ["• Responsive Typography"]},
+                        {"component": "li", "components": ["• Semantic Text Styles"]}
+                      ]
+                    }
+                  ]
+                },
+                
+                {
+                  "component": "div",
+                  "attributes": {
+                    "className": "bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-8 border border-green-200 hover:shadow-xl transition-all duration-300"
+                  },
+                  "components": [
+                    {
+                      "component": "div",
+                      "attributes": {
+                        "className": "w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mb-6"
+                      },
+                      "components": [
+                        {
+                          "component": "span",
+                          "attributes": {
+                            "className": "text-2xl text-white"
+                          },
+                          "components": ["🧩"]
+                        }
+                      ]
+                    },
+                    {
+                      "component": "h3",
+                      "attributes": {
+                        "className": "text-2xl font-bold text-gray-900 mb-4"
+                      },
+                      "components": ["Components"]
+                    },
+                    {
+                      "component": "p",
+                      "attributes": {
+                        "className": "text-gray-600 mb-6"
+                      },
+                      "components": ["50+ pre-built components that automatically adapt to your theme. From landing pages to complex UI patterns."]
+                    },
+                    {
+                      "component": "ul",
+                      "attributes": {
+                        "className": "text-sm text-gray-500 space-y-2"
+                      },
+                      "components": [
+                        {"component": "li", "components": ["• Landing Page Components"]},
+                        {"component": "li", "components": ["• Form Components"]},
+                        {"component": "li", "components": ["• UI Components"]},
+                        {"component": "li", "components": ["• Custom Components"]}
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    
+    {
+      "component": "@landing/SaaSHero",
+      "attributes": {
+        "headline": "Built for Modern Development",
+        "subheadline": "JasonJS Framework combines the power of JSON configuration with enterprise-grade theming and component systems",
+        "ctaText": "Get Started",
+        "secondaryCta": "View Documentation",
+        "features": [
+          "JSON-driven configuration",
+          "Complete design system",
+          "Dark/light mode support",
+          "50+ components included",
+          "Tailwind CSS integration",
+          "TypeScript support"
+        ],
+        "userCount": "1,000+",
+        "rating": 4.9,
+        "variant": "default",
+        
+        "backgroundColor": "#f8fafc",
+        "headlineClasses": "text-5xl lg:text-6xl font-bold text-gray-900 mb-6",
+        "subheadlineClasses": "text-xl text-gray-600 mb-8 max-w-2xl",
+        "sectionClasses": "py-32 px-8",
+        "containerClasses": "container mx-auto max-w-6xl",
+        "contentClasses": "grid lg:grid-cols-2 gap-16 items-center",
+        "primaryButtonClasses": "inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-200 mr-4"
+      }
+    },
+    
+    {
+      "component": "@landing/LogoCloud",
+      "attributes": {
+        "title": "Trusted by developers worldwide",
+        "variant": "carousel",
+        "showCount": true,
+        "companyCount": "500+",
+        "autoplay": true,
+        "speed": 25,
+        "logos": [
+          {"name": "TechFlow", "width": 130, "height": 40},
+          {"name": "StartupHub", "width": 140, "height": 35},
+          {"name": "InnovateCo", "width": 125, "height": 42},
+          {"name": "NextGen", "width": 135, "height": 38},
+          {"name": "CloudFirst", "width": 120, "height": 45},
+          {"name": "DevTools", "width": 145, "height": 36}
+        ]
+      }
+    },
+    
+    {
+      "component": "section",
+      "attributes": {
+        "className": "py-20 bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
+      },
+      "components": [
+        {
+          "component": "div",
+          "attributes": {
+            "className": "container mx-auto px-6 text-center max-w-4xl"
+          },
+          "components": [
+            {
+              "component": "h2",
+              "attributes": {
+                "className": "text-4xl md:text-5xl font-bold mb-6"
+              },
+              "components": ["Ready to build something amazing?"]
+            },
+            {
+              "component": "p",
+              "attributes": {
+                "className": "text-xl text-indigo-100 mb-8 leading-relaxed"
+              },
+              "components": ["Join thousands of developers using JasonJS Framework to build beautiful, scalable web applications with our comprehensive design system."]
+            },
+            {
+              "component": "div",
+              "attributes": {
+                "className": "flex flex-col sm:flex-row gap-4 justify-center items-center"
+              },
+              "components": [
+                {
+                  "component": "a",
+                  "attributes": {
+                    "href": "/docs",
+                    "className": "inline-flex items-center px-8 py-4 bg-white text-indigo-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors shadow-lg"
+                  },
+                  "components": [
+                    "Documentation",
+                    {
+                      "component": "span",
+                      "attributes": {"className": "ml-2"},
+                      "components": ["→"]
+                    }
+                  ]
+                },
+                {
+                  "component": "a",
+                  "attributes": {
+                    "href": "https://github.com/jasonjs-framework",
+                    "className": "inline-flex items-center px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-indigo-600 transition-colors"
+                  },
+                  "components": [
+                    "GitHub",
+                    {
+                      "component": "span", 
+                      "attributes": {"className": "ml-2"},
+                      "components": ["⭐"]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "component": "p",
+              "attributes": {
+                "className": "text-sm text-indigo-200 mt-6"
+              },
+              "components": ["Open source • Free forever • MIT License"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

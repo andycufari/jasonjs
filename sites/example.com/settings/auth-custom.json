@@ -1,0 +1,56 @@
+{
+  "providers": {
+    "credentials": {
+      "enabled": true
+    },
+    "google": {
+      "enabled": true,
+      "clientId": "your-google-client-id",
+      "clientSecret": "your-google-client-secret"
+    }
+  },
+  "registration": {
+    "enabled": true,
+    "customFields": [
+      {
+        "name": "company",
+        "type": "text",
+        "required": true,
+        "label": "Company Name",
+        "placeholder": "Your company name"
+      },
+      {
+        "name": "jobTitle",
+        "type": "text",
+        "required": false,
+        "label": "Job Title",
+        "placeholder": "e.g. Software Engineer"
+      },
+      {
+        "name": "phone",
+        "type": "tel",
+        "required": false,
+        "label": "Phone Number",
+        "placeholder": "+1 (555) 123-4567"
+      }
+    ],
+    "passwordPolicy": {
+      "minLength": 12,
+      "requireNumbers": true,
+      "requireSymbols": true,
+      "requireUppercase": true
+    }
+  },
+  "ui": {
+    "labels": {
+      "signIn": "Welcome to our platform",
+      "signUp": "Join our community"
+    },
+    "brandColor": "#FF6B35",
+    "showSocialProviders": true
+  },
+  "redirects": {
+    "afterSignIn": "/dashboard",
+    "afterSignUp": "/onboarding"
+  }
+}
