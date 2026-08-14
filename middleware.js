@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import securityMiddleware from './core/security/securityMiddleware.js';
 import { getFunctionRewrite } from './core/routes/functionRewrites.js';
+import { defaultDomain } from './core/sites/resolve.js';
 
 // Private IP ranges that should be handled as health checks
 const PRIVATE_IP_PATTERNS = [
@@ -118,7 +119,7 @@ export async function middleware(request) {
     // Resolve host for route lookup (strip port, handle localhost/tunnels)
     let resolvedHost = host.split(':')[0];
     if (resolvedHost === 'localhost' || resolvedHost === '127.0.0.1') {
-      resolvedHost = process.env.DEFAULT_DOMAIN || resolvedHost;
+      resolvedHost = defaultDomain() || resolvedHost;
     }
 
     const rewrite = await getFunctionRewrite(request, resolvedHost);

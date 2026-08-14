@@ -9,10 +9,14 @@
 // - x-forwarded-host (first value) wins over host, matching the proxy
 //   behavior of middleware.js and the page renderer
 // - localhost and dev tunnels (ngrok, localtunnel, ...) resolve to
-//   DEFAULT_DOMAIN
+//   DEFAULT_DOMAIN, falling back to jason.config.js defaultDomain —
+//   that's what makes `git clone && npm run dev` serve the demo site
+//   with no .env at all
 // - the port suffix is stripped
 //
 // siteId is the domain (siteId := domain everywhere in JasonJS).
+
+import jasonConfig from '../../jason.config.js';
 
 const DEV_TUNNEL_PATTERNS = [
   /\.ngrok-free\.app$/,
@@ -25,6 +29,17 @@ const DEV_TUNNEL_PATTERNS = [
 function isDevTunnel(host) {
   if (!host) return false;
   return DEV_TUNNEL_PATTERNS.some((pattern) => pattern.test(host));
+}
+
+/**
+ * The site served when the host doesn't name one (localhost, tunnels,
+ * unmatched domains). Env wins over jason.config.js; null when neither
+ * is set so call sites can chain their own last resort.
+ *
+ * @returns {string|null}
+ */
+export function defaultDomain() {
+  return process.env.DEFAULT_DOMAIN || jasonConfig.defaultDomain || null;
 }
 
 async function readHostHeader(request) {
@@ -54,7 +69,7 @@ export async function resolveSite(request = null) {
   let host = (await readHostHeader(request)).split(',')[0].trim();
 
   if (!host || host === 'localhost' || host.startsWith('localhost:') || isDevTunnel(host)) {
-    host = process.env.DEFAULT_DOMAIN || 'localhost';
+    host = defaultDomain() || 'localhost';
   }
 
   host = host.split(':')[0];

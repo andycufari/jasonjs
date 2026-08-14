@@ -219,7 +219,7 @@ async function handleRequest(request, paramsPromise, method) {
 
             if (!apiAccess.allowed) {
                 const response = NextResponse.json(
-                    { error: apiAccess.error },
+                    { error: apiAccess.error, ...(apiAccess.hint ? { hint: apiAccess.hint } : {}) },
                     { status: apiAccess.status || 403 }
                 );
 

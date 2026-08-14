@@ -6,6 +6,7 @@
 import { readFile, access, stat } from 'fs/promises';
 import { join } from 'path';
 import { pathToFileURL } from 'url';
+import { defaultDomain } from './resolve.js';
 import { createCache, CacheStrategy, CacheTTL } from '../utils/cache.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -1239,7 +1240,7 @@ export async function getEnv(domain, varName, defaultValue = null) {
   // Normalize domain: handle localhost and dev tunnels
   let resolvedDomain = domain;
   if (domain === 'localhost' || domain?.startsWith('localhost:')) {
-    resolvedDomain = process.env.DEFAULT_DOMAIN || domain;
+    resolvedDomain = defaultDomain() || domain;
   }
   // Remove port suffix for consistency
   if (resolvedDomain?.includes(':')) {

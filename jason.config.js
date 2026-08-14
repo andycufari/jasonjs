@@ -5,6 +5,10 @@
 // Edit freely — this file is yours, not the framework's.
 
 const jasonConfig = {
+  // Site served for localhost / unmatched hosts (must exist in sites/).
+  // DEFAULT_DOMAIN in .env overrides this.
+  defaultDomain: 'example.com',
+
   // Used when a page/site defines no title or description of its own
   defaultTitle: 'JasonJS',
   defaultDescription: 'A JSON-driven web framework',

@@ -13,7 +13,7 @@ import { processFonts } from './metadata';
 import { extractSEOFromJSON, generateSEOHTML, generateStructuredData } from './seo';
 import { headers } from 'next/headers';
 import { createLogger } from '../utils/logger';
-import { resolveSite } from '../sites/resolve';
+import { resolveSite, defaultDomain } from '../sites/resolve';
 import { getClientIp } from '../utils/getClientIp';
 import { runWithRequestContext } from '../utils/requestContext.js';
 import { trackVisit } from '../services/tracking/auto-track-visit';
@@ -553,7 +553,7 @@ async function _renderPageImpl({ params, searchParams }) {
     // Check if SEO is explicitly disabled
     if (page.seo !== false) {
       // Prepare page data for SEO
-      const domain = page.domain || page.site?.primary_domain || process.env.DEFAULT_DOMAIN || 'localhost:3000';
+      const domain = page.domain || page.site?.primary_domain || defaultDomain() || 'localhost:3000';
       const siteName = page.site?.name || page.site?.title || domain.split('.')[0] || 'Website';
       
       const pageDataForSEO = {

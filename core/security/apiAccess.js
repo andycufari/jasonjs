@@ -16,6 +16,7 @@
 import crypto from 'crypto';
 import { getApiConfig, matchRoute } from './apiConfig.js';
 import { getEnv } from '@/core/sites/files.js';
+import { defaultDomain } from '@/core/sites/resolve.js';
 
 /**
  * Check if the request is from the same origin
@@ -104,7 +105,7 @@ function isHostMatching(hostname, host) {
         hostname === '127.0.0.1' ||
         hostname.endsWith('.local');
 
-    if (isLocalhostHostname && host === process.env.DEFAULT_DOMAIN) {
+    if (isLocalhostHostname && host === defaultDomain()) {
         return true;
     }
 
@@ -262,6 +263,7 @@ export async function validateApiAccess(headersList, host, functionName, isDev =
         return {
             allowed: false,
             error: 'External API access not configured',
+            hint: 'Requests without browser origin headers (curl, Postman, server-to-server) are external. To allow them, declare this route in settings/api.json — see docs/settings/api.md.',
             status: 403
         };
     }

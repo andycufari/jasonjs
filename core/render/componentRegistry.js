@@ -1,5 +1,6 @@
 import React from 'react';
 import { getComponent } from '../sites/files.js';
+import { defaultDomain } from '../sites/resolve.js';
 import { createLogger } from '../utils/logger.js';
 import { logBundlingError } from '../services/componentErrorLogger.js';
 
@@ -92,7 +93,7 @@ export const getComponents = async function(page, isDev = false) {
   // Get domain, using DEFAULT_DOMAIN for localhost development
   let domain = page.domain || page.site_domain;
   if (!domain || page.host?.includes('localhost')) {
-    domain = process.env.DEFAULT_DOMAIN || page.host;
+    domain = defaultDomain() || page.host;
   }
   // Use isDev parameter passed from renderPage (detected from URL/Redis cache)
   const componentRegistry = {};
