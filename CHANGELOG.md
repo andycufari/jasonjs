@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`git clone && npm run dev` now actually serves the demo site with no
+  `.env`.** The README promised zero-config, but `resolveSite()` fell back to
+  the literal host `localhost` when `DEFAULT_DOMAIN` was unset, and no
+  `sites/localhost/` exists — a fresh clone rendered "Site Not Found" until
+  you copied `.env.example`. `jason.config.js` now carries
+  `defaultDomain: 'example.com'` and `core/sites/resolve.js` exports a
+  `defaultDomain()` helper (`DEFAULT_DOMAIN` env → `jason.config.js` →
+  null) used by every consumer: the six ad-hoc `process.env.DEFAULT_DOMAIN`
+  reads in `apiAccess.js`, `componentRegistry.js`, `page.js`, `files.js` and
+  `middleware.js` all route through it, so env and config can't disagree.
+- **Docs showed a database method that doesn't exist.** README, quickstart
+  and the components guide all called `app.db.use(...).find({...})` — the
+  API is `.query({...})` (as `docs/databases.md` and the skills correctly
+  say). Every `.find()` occurrence fixed; caught by following the README
+  verbatim on a fresh clone.
+
+### Changed
+- **`npm test` now exists and runs everything** (`test:unit` + `smoke`), and
+  `test:unit` includes the database-security regression tests
+  (`tests/unit/security-fieldFilter.test.js`), not just `deepMerge`. Removed
+  two Jest-era test files (`tests/unit/database.test.js`,
+  `client-database.test.js`) that could never run — Jest isn't a dependency —
+  and a Startup-Studio-framed manual test doc left in `tests/`.
+- **`npm run dev` / `npm run start` respect `PORT`** — the scripts hardcoded
+  `--port 3000`, so anyone with something already on 3000 (very common) got
+  `EADDRINUSE` with no way to override except editing package.json.
+- **The external-API 403 tells you how to fix it.** Non-browser calls to
+  `/api/<fn>` (curl, Postman) answered only "External API access not
+  configured"; the response now includes a hint pointing at
+  `settings/api.json` / `docs/settings/api.md`, and `docs/functions.md` +
+  README explain the same-origin-by-default rule up front.
+- **Dependency refresh via `npm audit fix`** — 48 advisories down to 6, all
+  criticals cleared (next-auth 4.24.15, @auth/core 0.41.3, form-data 4.0.6,
+  protobufjs 7.6.5, …). `next` stays pinned; remaining 6 are the
+  `mercadopago` v3 major bump, deferred deliberately.
+
+### Docs
+- **Multi-site local testing recipe** in `docs/site-anatomy.md`: hit any
+  site folder with `curl -H "Host: …"` or an `/etc/hosts` entry — new site
+  folders are picked up live in dev, no restart.
+
 ### Security
 - **`DEFAULT_AUTH_CONFIG` is now deeply frozen** — hardening follow-up to the
   deepMerge purity fix. The shared auth defaults singleton can no longer be
