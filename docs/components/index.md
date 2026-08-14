@@ -90,7 +90,7 @@ The `app` object is your Swiss Army knife. Import it from `@jasonjs` to access d
 import app from '@jasonjs';
 
 // Database
-await app.db.use('products').find({ active: true });
+await app.db.use('products').query({ active: true });
 await app.db.use('orders').add({ userId, items });
 
 // Server functions
@@ -302,7 +302,7 @@ export default ParentComponent;
 |------|------|
 | Toast | `app.ui.toast('Message')` |
 | Confirm | `await app.ui.confirm('Delete?')` |
-| Database query | `await app.db.use('items').find({})` |
+| Database query | `await app.db.use('items').query({})` |
 | Call function | `await app.functions.call('name', data)` |
 | Require login | `await app.auth.requireLogin()` |
 | Track event | `app.analytics.track('event', data)` |

@@ -90,7 +90,7 @@ Use `app.db` anywhere — components, functions, or page-level `fetch_data`:
 await app.db.use('todos').add({ task: 'Ship it', done: false });
 
 // Read
-const open = await app.db.use('todos').find({ done: false });
+const open = await app.db.use('todos').query({ done: false });
 ```
 
 Pages can fetch declaratively and interpolate:
@@ -152,7 +152,7 @@ export default function TodoList() {
   const [todos, setTodos] = useState([]);
   const [task, setTask] = useState('');
 
-  const load = () => app.db.use('todos').find({}).then(setTodos);
+  const load = () => app.db.use('todos').query({}).then(setTodos);
   useEffect(() => { load(); }, []);
 
   const add = async () => {

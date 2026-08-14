@@ -48,6 +48,22 @@ So multi-site deployment is: point DNS for each domain at the same instance, one
 
 `SITES_PATH` (default `./sites`) relocates the whole tree if you want site folders outside the repo.
 
+### Trying other sites locally
+
+Local dev serves the site named by `DEFAULT_DOMAIN` (or `defaultDomain` in `jason.config.js`). To hit any other site folder without touching DNS, send its Host header:
+
+```bash
+curl -H "Host: shop.example.com" http://localhost:3000/
+```
+
+For the browser, map the domain to loopback in `/etc/hosts`:
+
+```
+127.0.0.1 shop.example.com
+```
+
+…then open `http://shop.example.com:3000`. New site folders are picked up live in dev — no restart needed.
+
 ---
 
 ## pages/

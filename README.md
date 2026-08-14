@@ -53,7 +53,9 @@ export default async function ({ params, query }) {
 }
 ```
 
-Call it at `/api/greet?name=Ada`. Functions are real ES modules — real stack traces, real debugger, `import` anything.
+Open `/api/greet?name=Ada` in the browser. Functions are real ES modules — real stack traces, real debugger, `import` anything.
+
+> Non-browser clients (curl, Postman, server-to-server) are treated as external and blocked by default. To expose a function externally, declare it in `sites/example.com/settings/api.json` — see [docs/settings/api.md](docs/settings/api.md).
 
 **3. Add a component** — create `sites/example.com/components/Counter.jsx`:
 
@@ -77,7 +79,7 @@ Mount it from any page:
 
 ```javascript
 await app.db.use('todos').add({ task: 'Ship it', done: false });
-const open = await app.db.use('todos').find({ done: false });
+const open = await app.db.use('todos').query({ done: false });
 ```
 
 Same call client-side (goes through the REST API) and server-side (hits the store directly). Full guide: [docs/quickstart.md](docs/quickstart.md).

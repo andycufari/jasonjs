@@ -28,6 +28,8 @@ fetch('/api/hello', {
 
 > 💡 **Tip:** Functions receive an `app` object with all the tools you need - database, auth, external APIs, and more.
 
+> ⚠️ **Same-origin by default.** Browser calls from your own site just work, but non-browser clients (curl, Postman, webhooks, server-to-server) are treated as external and get a 403 until you declare the route in `settings/api.json`. See [Settings → API Access](settings/api.md).
+
 ---
 
 ## The `app` Object
