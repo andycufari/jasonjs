@@ -49,11 +49,15 @@ const logger = createLogger('FileSystem');
  * All other parts of the framework should use this instead of direct file
  * operations.
  */
+// The adapter slot lives on globalThis, not on the instance: Next.js bundles
+// instrumentation.js (where the addon registers) separately from route code,
+// so each bundle gets its OWN module instance of this file. Instance state
+// would strand the registration in the instrumentation bundle while routes
+// still see null. globalThis is per-process and crosses bundle boundaries.
+const ADAPTER_SLOT = Symbol.for('jasonjs.siteFiles.adapter');
+
 class SiteFiles {
   constructor() {
-    /** @type {FileSystemAdapter|null} */
-    this.adapter = null;
-
     // Create filesystem cache to eliminate duplicate reads
     this.cache = createCache('FileSystem', {
       // strategy auto-detects Redis if REDIS_URL is set
@@ -69,6 +73,11 @@ class SiteFiles {
     this.fileTimestampCache = new Map();
   }
 
+  /** @type {FileSystemAdapter|null} */
+  get adapter() {
+    return globalThis[ADAPTER_SLOT] || null;
+  }
+
   /**
    * Register a remote file source adapter.
    * Called once at boot by a private addon; there is no other mode switch.
@@ -76,7 +85,7 @@ class SiteFiles {
    * @param {FileSystemAdapter} adapter - Adapter implementation
    */
   registerAdapter(adapter) {
-    this.adapter = adapter;
+    globalThis[ADAPTER_SLOT] = adapter;
     logger.info('File system adapter registered');
   }
 

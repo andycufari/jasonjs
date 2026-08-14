@@ -24,6 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   say). Every `.find()` occurrence fixed; caught by following the README
   verbatim on a fresh clone.
 
+### Fixed (addon seam)
+- **File-source adapter registration now actually reaches route code.** The
+  `.cm64/` overlay registers its adapter from `instrumentation.js`, but
+  Next.js bundles instrumentation separately from routes — each bundle gets
+  its own module instance of `core/sites/files.js`, so the registration was
+  stranded in the instrumentation bundle and every route still ran in local
+  mode ("Site not found" for database-mode tenants). The adapter slot now
+  lives on `globalThis` (`Symbol.for('jasonjs.siteFiles.adapter')`), which
+  is per-process and crosses bundle boundaries. First verified database-mode
+  render end-to-end (pages, settings, api.json and sandboxed functions
+  served from MongoDB) rode on this fix.
+
 ### Changed
 - **`npm test` now exists and runs everything** (`test:unit` + `smoke`), and
   `test:unit` includes the database-security regression tests
