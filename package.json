@@ -20,12 +20,13 @@
     "ai-agents"
   ],
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev",
     "build": "next build",
-    "start": "next start --port 3000",
+    "start": "next start",
     "lint": "next lint",
+    "test": "npm run test:unit && npm run smoke",
     "smoke": "node --test tests/smoke/*.test.mjs",
-    "test:unit": "node core/utils/deepMerge.test.js"
+    "test:unit": "node --test tests/unit/security-fieldFilter.test.js core/utils/deepMerge.test.js"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.4.2",
