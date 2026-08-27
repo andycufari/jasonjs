@@ -164,9 +164,17 @@ function addSecurityHeaders(response) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   // Permissions policy (limit browser features)
+  // camera=(self): pages served by the site itself may request the camera;
+  // third-party iframes still cannot. This used to be `camera=()` — an EMPTY
+  // allowlist, which blocks the camera for everyone including the site's own
+  // pages. Chrome then does not expose `navigator.mediaDevices` at all, so any
+  // QR / barcode scanner dies with:
+  //   TypeError: can't access property "getUserMedia",
+  //   navigator.mediaDevices is undefined
+  // Microphone and geolocation remain blocked.
   response.headers.set(
     'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=()'
+    'camera=(self), microphone=(), geolocation=()'
   );
 
   // Content Security Policy is set in next.config.js - don't override here
