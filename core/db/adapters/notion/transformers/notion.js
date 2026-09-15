@@ -352,6 +352,17 @@ const transformBlock = (block) => {
         text: processRichText(block.toggle?.rich_text),
         children: block.has_children ? block.children?.map(child => transformBlock(child)) : []
       };
+
+    // Notion's multi-column layout arrives as column_list > column > blocks.
+    // Without these cases both fell through to `default`, which drops
+    // `children` — so anything laid out in columns (a row of videos, for
+    // instance) rendered as nothing at all.
+    case 'column_list':
+    case 'column':
+      return {
+        ...base,
+        children: block.has_children ? block.children?.map(child => transformBlock(child)) : []
+      };
       
     case 'table': {
       // Notion's API does NOT return rows inline on the table block. Each row
