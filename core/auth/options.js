@@ -101,7 +101,11 @@ const createAuthOptionsInternal = cache(async (cacheKey, pageData) => {
 
   const authOptions = {
     secret: process.env.NEXTAUTH_SECRET || process.env.WEBAPP_AUTH_SECRET,
-    trustHost: true, // Trust the host header for multi-tenant/dynamic domains
+    // NOTE: `trustHost` is a NextAuth **v5** option and is IGNORED by the v4 runtime
+    // we pin. Host trust in v4 comes from the AUTH_TRUST_HOST env var (defaulted in
+    // instrumentation.js); the `redirect` callback below is what actually keeps
+    // multi-site redirects on the caller's domain. Kept for the eventual v5 upgrade.
+    trustHost: true,
     session: {
       strategy: 'jwt',  // Use JWT for sessions (required for credentials provider)
       maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -316,6 +320,36 @@ const createAuthOptionsInternal = cache(async (cacheKey, pageData) => {
     ];
 
   authOptions.callbacks = {
+      /**
+       * Keep post-auth redirects on the domain the request actually came from.
+       *
+       * NextAuth's default redirect callback compares against `baseUrl`, which is
+       * derived from the detected origin - and that detection falls back to a
+       * hardcoded http://localhost:3000 when the host is not trusted. On a server
+       * hosting several sites that silently sent every user to localhost.
+       * We resolve against the site's own domain instead, and still refuse any
+       * cross-origin target so this cannot become an open redirect.
+       */
+      async redirect({ url, baseUrl }) {
+        // Local dev runs over plain http; anything else is https behind the proxy.
+        const isLocal = /^(localhost|127\.0\.0\.1)(:|$)/.test(domain || '');
+        const origin = domain
+          ? `${isLocal ? 'http' : 'https'}://${domain}`
+          : baseUrl;
+
+        // Relative targets ("/dashboard") are always same-origin.
+        if (url?.startsWith('/')) return `${origin}${url}`;
+
+        try {
+          const target = new URL(url);
+          if (target.origin === origin || target.origin === baseUrl) return url;
+        } catch (error) {
+          // Malformed URL - fall through to the safe default.
+        }
+
+        return origin;
+      },
+
       async signIn({ user, account, profile, email }) {
         // For credentials and verification-code providers, user is already authenticated
         if (account?.provider === 'credentials' || account?.provider === 'verification-code') {
