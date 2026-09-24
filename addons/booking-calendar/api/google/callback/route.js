@@ -106,7 +106,12 @@ export async function GET(request) {
 const SETTINGS_PATH = '/booking/settings';
 
 function redirectBack(request, params) {
-  const url = new URL(SETTINGS_PATH, request.url);
+  // request.url carries the INTERNAL origin behind the proxy (https://localhost:3000),
+  // so build the public one from the tenant domain — same rule as core/auth/options.js.
+  const domain = request.addonContext?.domain || '';
+  const isLocal = /^(localhost|127\.0\.0\.1)(:|$)/.test(domain);
+  const origin = !domain || isLocal ? new URL(request.url).origin : `https://${domain}`;
+  const url = new URL(SETTINGS_PATH, origin);
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
   }
