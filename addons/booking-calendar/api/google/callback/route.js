@@ -101,8 +101,12 @@ export async function GET(request) {
   }
 }
 
+// NOT under /admin: core/security/threatDetection.js blocks any /admin* path as a
+// vulnerability scan (403 + ban-tracker strike against the host's IP).
+const SETTINGS_PATH = '/booking/settings';
+
 function redirectBack(request, params) {
-  const url = new URL('/admin/booking', request.url);
+  const url = new URL(SETTINGS_PATH, request.url);
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
   }
