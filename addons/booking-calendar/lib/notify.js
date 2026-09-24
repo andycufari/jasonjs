@@ -1,14 +1,14 @@
 // Host-notification email for new bookings.
 // Uses the framework's emailService directly (not available on route context).
 
-import { emailService } from '../../../core/services/email.js';
+import { getEmailService } from '../../../core/services/email.js';
 
 export async function notifyHostOfBooking({ domain, hostEmail, booking }) {
   if (!hostEmail) return { success: false, error: 'hostEmail missing' };
   const subject = `New booking: ${booking.guestName} — ${formatWhen(booking.startUtc, booking.timezoneGuest)}`;
   const html = renderHtml(booking);
   try {
-    const result = await emailService.send(domain, {
+    const result = await getEmailService().send(domain, {
       to: hostEmail,
       subject,
       html,
