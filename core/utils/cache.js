@@ -623,13 +623,20 @@ class RedisCache extends CacheManager {
       });
 
       this.redis.on('error', (err) => {
-        // Only log Redis errors if explicitly configured (not auto-detected)
-        // This prevents noise when REDIS_URL is set but Redis isn't actually running
-        const isExplicitlyConfigured = config.strategy === CacheStrategy.REDIS;
-        if (isExplicitlyConfigured) {
-          logger.error(`[${this.name}] Redis error:`, err);
-        } else {
-          logger.debug(`[${this.name}] Redis error (auto-detected, falling back to memory):`, err?.message);
+        // Anything thrown in here escapes as an uncaughtException: an 'error'
+        // listener runs on a later tick, outside the try/catch below. Keep the
+        // body defensive so a Redis blip can never take the process down.
+        try {
+          // Only log Redis errors if explicitly configured (not auto-detected)
+          // This prevents noise when REDIS_URL is set but Redis isn't actually running
+          const isExplicitlyConfigured = this.config?.strategy === CacheStrategy.REDIS;
+          if (isExplicitlyConfigured) {
+            logger.error(`[${this.name}] Redis error:`, err);
+          } else {
+            logger.debug(`[${this.name}] Redis error (auto-detected, falling back to memory):`, err?.message);
+          }
+        } catch {
+          // Never let logging failures propagate out of an 'error' handler.
         }
         this.isConnected = false;
       });
