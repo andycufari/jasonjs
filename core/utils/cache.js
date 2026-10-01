@@ -737,10 +737,31 @@ class RedisCache extends CacheManager {
     }
 
     try {
-      // Use SCAN to find matching keys and batch delete them
+      // Use SCAN to find matching keys, then delete them ONE KEY PER COMMAND.
+      // A multi-key DEL fails on a Redis CLUSTER (ElastiCache/Valkey) with
+      // "CROSSSLOT Keys in request don't hash to the same slot" unless every key
+      // lands in the same slot — and cache keys almost never do. That error was
+      // swallowed below, so nothing got invalidated and reads stayed stale until
+      // the TTL expired. Single-key DELs are valid on any topology, and
+      // node-redis pipelines the concurrent commands.
       let count = 0;
+      let failed = 0;
+      let firstError = null;
       const matchPattern = `*${pattern}*`;
       let keysToDelete = [];
+
+      const flush = async () => {
+        const results = await Promise.allSettled(keysToDelete.map(k => this.redis.del(k)));
+        for (const r of results) {
+          if (r.status === 'fulfilled') {
+            count += Number(r.value) || 0;
+          } else {
+            failed++;
+            if (!firstError) firstError = r.reason;
+          }
+        }
+        keysToDelete = [];
+      };
 
       // node-redis v4 scanIterator may yield individual strings OR arrays of strings
       // depending on version. Normalize both into keysToDelete.
@@ -752,18 +773,16 @@ class RedisCache extends CacheManager {
           keysToDelete.push(chunk);
         }
 
-        // Delete in batches to avoid command length issues
-        if (keysToDelete.length >= 1000) {
-          await this.redis.del(keysToDelete);
-          count += keysToDelete.length;
-          keysToDelete = [];
-        }
+        // Bound the number of in-flight commands
+        if (keysToDelete.length >= 100) await flush();
       }
 
-      // Delete remaining keys — guard against empty array
-      if (keysToDelete.length > 0) {
-        await this.redis.del(keysToDelete);
-        count += keysToDelete.length;
+      if (keysToDelete.length > 0) await flush();
+
+      if (failed > 0) {
+        logger.warn(`[${this.name}] Redis invalidate: ${failed} key(s) could not be deleted`, {
+          pattern, deleted: count, error: firstError?.message || String(firstError)
+        });
       }
 
       this.stats.invalidations += count;
