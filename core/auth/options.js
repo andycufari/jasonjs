@@ -397,6 +397,11 @@ const createAuthOptionsInternal = cache(async (cacheKey, pageData) => {
         // console.log('Session callback - session:', session);
         // console.log('Session callback - user:', user);
 
+        // Account deleted after this token was issued (see jwt callback): no user.
+        if (token?.revoked) {
+          return { ...session, user: null };
+        }
+
         // For JWT strategy (credentials provider), use token data
         if (token) {
           session.user = {
@@ -456,6 +461,14 @@ const createAuthOptionsInternal = cache(async (cacheKey, pageData) => {
               token.role = freshUser.role;
               token.roles = freshUser.roles || [freshUser.role || 'user'];
               token.customFields = freshUser.customFields || {};
+            } else {
+              // The lookup worked but the account no longer exists (e.g. removed
+              // from the site's users panel). Without this the JWT kept its old
+              // roles for up to 30 days (maxAge): deleting someone did not cut
+              // their access. A DB error throws instead and keeps the cached token.
+              token.revoked = true;
+              token.role = null;
+              token.roles = [];
             }
           } catch (error) {
             // Silently fail - use cached token data

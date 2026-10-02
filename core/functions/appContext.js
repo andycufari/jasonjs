@@ -331,6 +331,19 @@ export function createSiteCache(siteId) {
 // ============================================
 
 /**
+ * True if the caller may manage this site's users: a verified Studio request,
+ * or a signed-in user with the 'admin' role who belongs to THIS site.
+ */
+export function isSiteAdmin(session, siteId, isStudioRequest) {
+  if (isStudioRequest) return true;
+  const user = session?.user;
+  if (!user) return false;
+  if (user.siteId && siteId && String(user.siteId) !== String(siteId)) return false;
+  const roles = user.roles || [user.role].filter(Boolean);
+  return roles.includes('admin');
+}
+
+/**
  * Create the app object for function execution
  *
  * @param {Object} options
@@ -514,8 +527,52 @@ export async function createAppContext({
       getUsers: async (options = {}) => {
         const { getUsers } = await import('@/core/auth/lib');
         return await getUsers(siteId, options);
+      },
+
+      // Update a user OF THIS SITE: name, roles (or role), status.
+      // 🔒 Admin-only, enforced HERE: site functions can be called from the same
+      //    origin without a session, so a function that forgets its own check
+      //    must not become a privilege-escalation endpoint.
+      // 🔒 Site-scoped: core/auth/lib updateUser() matches by _id alone; the
+      //    getUserById(userId, siteId) lookup is what keeps one site's admin
+      //    away from another site's users. Returns null if not on this site.
+      updateUser: async (userId, data = {}) => {
+        if (!isSiteAdmin(session, siteId, isStudioRequest)) {
+          throw new Error('Forbidden: admin role required');
+        }
+        const { getUserById, updateUser } = await import('@/core/auth/lib');
+        const existing = await getUserById(userId, siteId);
+        if (!existing) return null;
+
+        const changes = {};
+        if (data.name !== undefined) changes.name = String(data.name).trim();
+        if (Array.isArray(data.roles)) {
+          changes.roles = [...new Set(data.roles.map(r => String(r).trim()).filter(Boolean))];
+          changes.role = changes.roles[0] || 'user';
+        } else if (data.role !== undefined) {
+          changes.role = String(data.role).trim() || 'user';
+          changes.roles = [changes.role];
+        }
+        if (data.status !== undefined) changes.status = String(data.status);
+        if (Object.keys(changes).length === 0) return existing;
+
+        await updateUser(userId, changes);
+        return await getUserById(userId, siteId);
+      },
+
+      // Delete a user OF THIS SITE. Same admin + site guards as updateUser.
+      // Their open session dies on the next request (see the jwt callback).
+      deleteUser: async (userId) => {
+        if (!isSiteAdmin(session, siteId, isStudioRequest)) {
+          throw new Error('Forbidden: admin role required');
+        }
+        const { getUserById, deleteUser } = await import('@/core/auth/lib');
+        const existing = await getUserById(userId, siteId);
+        if (!existing) return false;
+        return await deleteUser(userId);
       }
     },
+
 
     sanitizeData,
     CURL: (url, curlParams = {}, curlMethod = 'GET', auth = null) => {
