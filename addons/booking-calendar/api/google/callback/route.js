@@ -6,6 +6,7 @@ import { createCache, CacheTTL } from '../../../../../core/utils/cache.js';
 import { exchangeCodeForTokens } from '../../../lib/googleClient.js';
 import { verifyState, cacheKeyFor, STATE_TTL_SECONDS } from '../../../lib/oauthState.js';
 import { loadBookingEnv } from '../../../lib/env.js';
+import { publicOrigin } from '../../../lib/publicOrigin.js';
 
 const stateCache = createCache('BookingOAuthState', {
   ttl: STATE_TTL_SECONDS * 1000,
@@ -106,12 +107,7 @@ export async function GET(request) {
 const SETTINGS_PATH = '/booking/settings';
 
 function redirectBack(request, params) {
-  // request.url carries the INTERNAL origin behind the proxy (https://localhost:3000),
-  // so build the public one from the tenant domain — same rule as core/auth/options.js.
-  const domain = request.addonContext?.domain || '';
-  const isLocal = /^(localhost|127\.0\.0\.1)(:|$)/.test(domain);
-  const origin = !domain || isLocal ? new URL(request.url).origin : `https://${domain}`;
-  const url = new URL(SETTINGS_PATH, origin);
+  const url = new URL(SETTINGS_PATH, publicOrigin(request));
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
   }

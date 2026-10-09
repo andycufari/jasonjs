@@ -23,6 +23,7 @@ import {
 } from '../../../lib/googleClient.js';
 import { isSlotStillAvailable } from '../../../lib/slotEngine.js';
 import { notifyHostOfBooking } from '../../../lib/notify.js';
+import { publicOrigin } from '../../../lib/publicOrigin.js';
 
 export async function POST(request) {
   try {
@@ -219,7 +220,7 @@ function buildEventDescription({ guestName, guestEmail, guestNotes, cancelUrl })
 }
 
 function cancelUrlFor(request, token) {
-  return new URL(`/api/addons/booking-calendar/bookings/cancel?token=${token}`, request.url).toString();
+  return new URL(`/api/addons/booking-calendar/bookings/cancel?token=${token}`, publicOrigin(request)).toString();
 }
 
 function isEmail(s) { return typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
