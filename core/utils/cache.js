@@ -98,6 +98,9 @@ class CacheManager {
       maxSize: config.maxSize || 1000,
       keyPrefix: config.keyPrefix || name.toLowerCase()
     };
+    // True when createCache() picked the strategy from the environment (REDIS_URL)
+    // rather than the caller asking for one.
+    this.autoDetected = !!config.autoDetected;
 
     this.stats = {
       hits: 0,
@@ -579,7 +582,17 @@ class RedisCache extends CacheManager {
     super(name, config);
     this.redis = null;
     this.isConnected = false;
-    this._initRedis();
+    this._warnedDisconnected = false;
+    // The connection is async, but get/set are usually called right after the cache is
+    // created (module load → first request). Without waiting, that first set was
+    // dropped silently. _initRedis never rejects, and its connect is capped at 5s.
+    this._ready = this._initRedis();
+  }
+
+  _warnDisconnectedOnce(op, key) {
+    if (this._warnedDisconnected) return;
+    this._warnedDisconnected = true;
+    logger.warn(`[${this.name}] Redis not connected — ${op} skipped (nothing is cached)`, { key });
   }
 
   /**
@@ -629,7 +642,7 @@ class RedisCache extends CacheManager {
         try {
           // Only log Redis errors if explicitly configured (not auto-detected)
           // This prevents noise when REDIS_URL is set but Redis isn't actually running
-          const isExplicitlyConfigured = this.config?.strategy === CacheStrategy.REDIS;
+          const isExplicitlyConfigured = !this.autoDetected;
           if (isExplicitlyConfigured) {
             logger.error(`[${this.name}] Redis error:`, err);
           } else {
@@ -675,6 +688,7 @@ class RedisCache extends CacheManager {
       return null;
     }
 
+    await this._ready;
     if (!this.isConnected || !this.redis) {
       this.stats.misses++;
       return null;
@@ -710,7 +724,9 @@ class RedisCache extends CacheManager {
       return;
     }
 
+    await this._ready;
     if (!this.isConnected || !this.redis) {
+      this._warnDisconnectedOnce('set', key);
       return;
     }
 
@@ -732,6 +748,7 @@ class RedisCache extends CacheManager {
    * Invalidate cache entries by pattern
    */
   async invalidate(pattern) {
+    await this._ready;
     if (!this.isConnected || !this.redis) {
       return 0;
     }
@@ -799,6 +816,7 @@ class RedisCache extends CacheManager {
    * Clear all cache entries (WARNING: Flushes entire Redis DB)
    */
   async clear() {
+    await this._ready;
     if (!this.isConnected || !this.redis) {
       return 0;
     }
@@ -874,18 +892,25 @@ export function createCache(name, config = {}) {
 
   logger.info(`Creating NEW cache: ${name}`, { strategy });
 
+  // Hand the constructors the RESOLVED strategy. Passing the raw config stored 'memory'
+  // on every auto-detected Redis cache, so the next createCache() with the same name —
+  // from another route module — saw a "mismatch", disconnected the live client and built
+  // a new one. Each module ended up holding its own instance, one of them dead: a value
+  // set in one route was never readable from another (booking OAuth → state_expired).
+  const resolved = { ...config, strategy, autoDetected: !config.strategy };
+
   switch (strategy) {
     case CacheStrategy.MEMORY:
-      return new MemoryCache(name, config);
+      return new MemoryCache(name, resolved);
     case CacheStrategy.REACT:
-      return new ReactCacheImpl(name, config);
+      return new ReactCacheImpl(name, resolved);
     case CacheStrategy.REDIS:
-      return new RedisCache(name, config);
+      return new RedisCache(name, resolved);
     case CacheStrategy.NONE:
-      return new NoOpCache(name, config);
+      return new NoOpCache(name, resolved);
     default:
       logger.warn(`Unknown cache strategy: ${strategy}, using MEMORY`);
-      return new MemoryCache(name, config);
+      return new MemoryCache(name, { ...resolved, strategy: CacheStrategy.MEMORY });
   }
 }
 
