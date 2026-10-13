@@ -4,6 +4,7 @@
 // cancelled): they carry their own times and Google event.
 
 import { NextResponse } from 'next/server';
+import { idOf } from '../../../lib/db.js';
 
 export async function POST(request) {
   try {
@@ -21,12 +22,12 @@ export async function POST(request) {
     const coll = database.use('bc_availability_rules');
     const result = await coll.fetch({ filters: { userId } });
     const row = (Array.isArray(result) ? result : (result?.data || []))
-      .find(r => String(r._id || r.id) === id);
+      .find(r => idOf(r) === id);
     if (!row) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    await coll.delete(row._id || row.id);
+    await coll.delete(idOf(row));
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[booking-calendar] types/delete error:', err);

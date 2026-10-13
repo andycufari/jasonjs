@@ -4,6 +4,7 @@
 
 import { NextResponse } from 'next/server';
 import { SLUG_RE, normalizeName, normalizeDescription } from '../../../lib/meetingTypes.js';
+import { idOf, updateOrThrow } from '../../../lib/db.js';
 
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -61,7 +62,7 @@ export async function POST(request) {
     const rows = Array.isArray(result) ? result : (result?.data || []);
     const editId = typeof body.id === 'string' ? body.id : null;
 
-    const clash = rows.find(r => r.meetingType === meetingType && String(r._id || r.id) !== editId);
+    const clash = rows.find(r => r.meetingType === meetingType && idOf(r) !== editId);
     if (clash) {
       return NextResponse.json(
         { error: `The code "${meetingType}" is already used by another meeting type` },
@@ -71,13 +72,13 @@ export async function POST(request) {
 
     let id;
     if (editId) {
-      const row = rows.find(r => String(r._id || r.id) === editId);
+      const row = rows.find(r => idOf(r) === editId);
       if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-      await coll.update(row._id || row.id, rules);
+      await updateOrThrow(coll, idOf(row), rules);
       id = editId;
     } else {
       const added = await coll.add(rules);
-      id = String(added?._id || added?.id || '');
+      id = idOf(added);
     }
 
     return NextResponse.json({ rules: { ...rules, id } });

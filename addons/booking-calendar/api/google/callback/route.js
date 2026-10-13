@@ -7,6 +7,7 @@ import { exchangeCodeForTokens } from '../../../lib/googleClient.js';
 import { verifyState, cacheKeyFor, STATE_TTL_SECONDS } from '../../../lib/oauthState.js';
 import { loadBookingEnv } from '../../../lib/env.js';
 import { publicOrigin } from '../../../lib/publicOrigin.js';
+import { idOf, updateOrThrow } from '../../../lib/db.js';
 
 const stateCache = createCache('BookingOAuthState', {
   ttl: STATE_TTL_SECONDS * 1000,
@@ -79,7 +80,7 @@ export async function GET(request) {
     };
 
     if (existingRow) {
-      await connections.update(existingRow._id || existingRow.id, patch);
+      await updateOrThrow(connections, idOf(existingRow), patch);
     } else {
       // First connection becomes primary.
       const existingPrimary = await connections.fetch({

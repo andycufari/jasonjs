@@ -4,6 +4,7 @@
 // Every connection keeps feeding freebusy; only the write target changes.
 
 import { NextResponse } from 'next/server';
+import { idOf, updateOrThrow } from '../../../lib/db.js';
 
 export async function POST(request) {
   try {
@@ -21,7 +22,7 @@ export async function POST(request) {
     const connections = database.use('bc_connections');
     const result = await connections.fetch({ filters: { userId } });
     const rows = Array.isArray(result) ? result : (result?.data || []);
-    const target = rows.find(r => String(r._id || r.id) === id);
+    const target = rows.find(r => idOf(r) === id);
     if (!target) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
@@ -30,11 +31,11 @@ export async function POST(request) {
     // (bookings/create falls back to the first connection), never with two.
     for (const r of rows) {
       if (r !== target && r.isPrimary) {
-        await connections.update(r._id || r.id, { isPrimary: false });
+        await updateOrThrow(connections, idOf(r), { isPrimary: false });
       }
     }
     if (!target.isPrimary) {
-      await connections.update(target._id || target.id, { isPrimary: true });
+      await updateOrThrow(connections, idOf(target), { isPrimary: true });
     }
 
     return NextResponse.json({ ok: true });

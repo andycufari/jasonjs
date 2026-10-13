@@ -2,6 +2,7 @@
 // Host: every meeting type of the current user, active or not, full rows.
 
 import { NextResponse } from 'next/server';
+import { idOf } from '../../../lib/db.js';
 
 export async function GET(request) {
   try {
@@ -13,7 +14,7 @@ export async function GET(request) {
 
     const result = await database.use('bc_availability_rules').fetch({ filters: { userId } });
     const rows = (Array.isArray(result) ? result : (result?.data || []))
-      .map(r => ({ ...r, id: r._id || r.id }))
+      .map(r => ({ ...r, id: idOf(r) }))
       .sort((a, b) => (a.order || 0) - (b.order || 0));
 
     return NextResponse.json({ types: rows });

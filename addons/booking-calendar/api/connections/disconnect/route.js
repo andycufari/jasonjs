@@ -3,6 +3,7 @@
 
 import { NextResponse } from 'next/server';
 import { revokeRefreshToken } from '../../../lib/googleClient.js';
+import { idOf, updateOrThrow } from '../../../lib/db.js';
 
 export async function POST(request) {
   try {
@@ -27,14 +28,14 @@ export async function POST(request) {
     // Best-effort revoke on Google's side (ignore failure).
     await revokeRefreshToken(row.refreshToken);
 
-    await connections.delete(row._id || row.id);
+    await connections.delete(idOf(row));
 
     // If we just deleted the primary, promote another connection if any.
     if (row.isPrimary) {
       const remaining = await connections.fetch({ filters: { userId }, sort: { createdAt: 'asc' }, limit: 1 });
       const next = Array.isArray(remaining) ? remaining[0] : (remaining?.data?.[0] || null);
       if (next) {
-        await connections.update(next._id || next.id, { isPrimary: true });
+        await updateOrThrow(connections, idOf(next), { isPrimary: true });
       }
     }
 

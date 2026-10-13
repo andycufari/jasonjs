@@ -3,6 +3,7 @@
 // directly on the connection record, writes go through update() which re-encrypts.
 
 import { google } from 'googleapis';
+import { idOf } from './db.js';
 
 export function makeOAuth2Client({ clientId, clientSecret, redirectUri }) {
   return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
@@ -38,7 +39,7 @@ export function makeCalendarForConnection({ database, connection, clientId, clie
       if (tokens.refresh_token) patch.refreshToken = tokens.refresh_token;
       if (tokens.expiry_date) patch.expiryAt = new Date(tokens.expiry_date);
       if (Object.keys(patch).length === 0) return;
-      await database.use('bc_connections').update(connection._id || connection.id, patch);
+      await database.use('bc_connections').update(idOf(connection), patch);
     } catch (err) {
       console.error('[booking-calendar] Failed to persist refreshed token:', err.message);
     }
