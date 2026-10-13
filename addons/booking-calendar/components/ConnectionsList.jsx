@@ -62,6 +62,21 @@ export default function ConnectionsList() {
     }
   }
 
+  async function makePrimary(id) {
+    try {
+      const res = await fetch(`${ADDON}/connections/set-primary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      await refresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   return (
     <div>
       <div className="flex items-end gap-2 mb-4">
@@ -105,16 +120,33 @@ export default function ConnectionsList() {
                 {c.isPrimary && <span className="ml-2 px-1.5 py-0.5 rounded bg-foreground/10">primary</span>}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => disconnect(c.id)}
-              className="text-xs text-red-600 hover:underline"
-            >
-              Disconnect
-            </button>
+            <div className="flex items-center gap-4">
+              {!c.isPrimary && (
+                <button
+                  type="button"
+                  onClick={() => makePrimary(c.id)}
+                  className="text-xs hover:underline"
+                >
+                  Make primary
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => disconnect(c.id)}
+                className="text-xs text-red-600 hover:underline"
+              >
+                Disconnect
+              </button>
+            </div>
           </div>
         ))}
       </div>
+
+      {connections.length > 1 && (
+        <p className="text-xs text-muted-foreground mt-3">
+          Every account blocks busy times. New bookings are created in the primary one.
+        </p>
+      )}
     </div>
   );
 }

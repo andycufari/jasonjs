@@ -28,27 +28,34 @@ async function handle(request, params) {
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (row.status === 'cancelled') return NextResponse.json({ ok: true, alreadyCancelled: true });
 
-    // Best-effort Google event delete — fetch the host's primary connection.
+    // Best-effort Google event delete. The event lives in whichever account was primary
+    // when it was booked, and the primary can be changed in Settings since — so try the
+    // current primary first, then the other connections, until one deletes it.
     if (row.googleEventId) {
       try {
         const env = await loadBookingEnv(domain);
         const connResult = await database.use('bc_connections').fetch({
-          filters: { userId: row.userId, isPrimary: true },
-          limit: 1,
+          filters: { userId: row.userId },
         });
-        const primary = Array.isArray(connResult) ? connResult[0] : (connResult?.data?.[0] || null);
-        if (primary) {
+        const conns = (Array.isArray(connResult) ? connResult : (connResult?.data || []))
+          .sort((a, b) => Number(!!b.isPrimary) - Number(!!a.isPrimary));
+        let deleted = false;
+        for (const conn of conns) {
           const { calendar } = makeCalendarForConnection({
-            database, connection: primary,
+            database, connection: conn,
             clientId: env.GOOGLE_CLIENT_ID,
             clientSecret: env.GOOGLE_CLIENT_SECRET,
             redirectUri: env.GOOGLE_REDIRECT_URI,
           });
-          await deleteEvent({
+          deleted = await deleteEvent({
             calendar,
-            calendarId: row.googleCalendarId || primary.writeCalendarId || 'primary',
+            calendarId: row.googleCalendarId || conn.writeCalendarId || 'primary',
             eventId: row.googleEventId,
           });
+          if (deleted) break;
+        }
+        if (!deleted) {
+          console.warn(`[booking-calendar] cancel: event ${row.googleEventId} not deleted in any connection (continuing)`);
         }
       } catch (err) {
         console.warn('[booking-calendar] cancel: google delete failed (continuing):', err.message);

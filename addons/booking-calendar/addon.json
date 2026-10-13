@@ -46,6 +46,7 @@
       { "path": "google/callback",       "methods": ["GET"],  "auth": false, "description": "OAuth callback: exchange code for tokens, persist encrypted" },
       { "path": "connections/list",      "methods": ["GET"],  "auth": true,  "description": "List the current user's connected Google accounts (no tokens)" },
       { "path": "connections/disconnect","methods": ["POST"], "auth": true,  "description": "Revoke + delete a connection" },
+      { "path": "connections/set-primary","methods": ["POST"], "auth": true,  "description": "Make a connection the write target for new bookings" },
       { "path": "availability/get",      "methods": ["GET"],  "auth": true,  "description": "Read the current user's availability rules" },
       { "path": "availability/save",     "methods": ["POST"], "auth": true,  "description": "Upsert availability rules" },
       { "path": "slots",                 "methods": ["GET"],  "auth": false, "description": "Public: intersect freebusy across all connections, return free slots" },
