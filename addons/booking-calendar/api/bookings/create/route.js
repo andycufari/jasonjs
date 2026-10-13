@@ -1,5 +1,8 @@
 // POST /api/addons/booking-calendar/bookings/create
-// Body: { userId, meetingType?, startUtc, guestName, guestEmail, guestNotes?, timezoneGuest?, returnPath? }
+// Body: { userId?, meetingType?, startUtc, guestName, guestEmail, subject, whatsapp?, answers?,
+//         guestNotes?, timezoneGuest?, returnPath? }
+// userId may be omitted on a single-host site. answers = { questionKey: value } for the
+// type's questions (select → option index).
 //
 // Flow:
 //   1. Validate inputs; the meeting type must exist and be active.
@@ -21,7 +24,7 @@ import { createBookingCheckout } from '../../../lib/payments.js';
 import { idOf, updateOrThrow } from '../../../lib/db.js';
 import {
   fetchRules, isBookable, fetchActiveBookings, slotLockFor, isDuplicateKeyError,
-  releaseStaleHold, HOLD_MS,
+  releaseStaleHold, HOLD_MS, resolveHostUserId, validateAnswers,
 } from '../../../lib/meetingTypes.js';
 
 export async function POST(request) {
@@ -30,12 +33,14 @@ export async function POST(request) {
     const body = await request.json().catch(() => ({}));
 
     const {
-      userId, meetingType = 'default', startUtc,
+      meetingType = 'default', startUtc,
       guestName, guestEmail, guestNotes = '', timezoneGuest = 'UTC', returnPath = '/',
     } = body;
+    const subject = typeof body.subject === 'string' ? body.subject.trim() : '';
+    const whatsapp = typeof body.whatsapp === 'string' ? body.whatsapp.trim() : '';
 
-    if (!userId || !startUtc || !guestName || !guestEmail) {
-      return NextResponse.json({ error: 'userId, startUtc, guestName, guestEmail required' }, { status: 400 });
+    if (!startUtc || !guestName || !guestEmail || !subject) {
+      return NextResponse.json({ error: 'startUtc, guestName, guestEmail, subject required' }, { status: 400 });
     }
     if (!isEmail(guestEmail)) {
       return NextResponse.json({ error: 'guestEmail invalid' }, { status: 400 });
@@ -43,13 +48,22 @@ export async function POST(request) {
     if (!isIsoDate(startUtc)) {
       return NextResponse.json({ error: 'startUtc must be ISO 8601' }, { status: 400 });
     }
-    if (guestName.length > 120 || guestNotes.length > 2000) {
-      return NextResponse.json({ error: 'Name or notes too long' }, { status: 400 });
+    if (guestName.length > 120 || guestNotes.length > 2000 || subject.length > 200) {
+      return NextResponse.json({ error: 'Name, subject or notes too long' }, { status: 400 });
+    }
+    if (whatsapp && !/^\+?[\d\s().-]{6,30}$/.test(whatsapp)) {
+      return NextResponse.json({ error: 'whatsapp_invalid' }, { status: 400 });
     }
 
-    const rules = await fetchRules(database, userId, meetingType);
+    const userId = await resolveHostUserId(database, body.userId);
+    const rules = userId ? await fetchRules(database, userId, meetingType) : null;
     if (!isBookable(rules)) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
+    }
+
+    const checked = validateAnswers(rules.questions, body.answers);
+    if (checked.error) {
+      return NextResponse.json({ error: checked.error }, { status: 400 });
     }
     const isPaid = (rules.priceCents || 0) > 0;
 
@@ -95,6 +109,9 @@ export async function POST(request) {
       guestName,
       guestEmail,
       guestNotes,
+      subject,
+      whatsapp,
+      answers: checked.answers,
       startUtc: startDt,
       endUtc: endDt,
       timezoneGuest,

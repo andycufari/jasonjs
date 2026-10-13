@@ -51,6 +51,36 @@ export default function AvailabilityEditor({ initialRules, onSaved, onDeleted })
     });
   }
 
+  // Questions (asked when booking, besides name / email / subject / WhatsApp).
+  const questions = rules.questions || [];
+  function setQuestions(next) {
+    setRules(r => ({ ...r, questions: next }));
+    setMessage(null);
+  }
+  function updateQuestion(idx, patch) {
+    setQuestions(questions.map((q, i) => (i === idx ? { ...q, ...patch } : q)));
+  }
+  function addQuestion() {
+    const key = `q${Math.random().toString(36).slice(2, 8)}`;
+    setQuestions([...questions, { key, label: { es: '', en: '' }, type: 'text', options: [], required: false }]);
+  }
+  function moveQuestion(idx, delta) {
+    const next = [...questions];
+    const [q] = next.splice(idx, 1);
+    next.splice(Math.max(0, Math.min(next.length, idx + delta)), 0, q);
+    setQuestions(next);
+  }
+  // Options are edited as text, one per line: "Español | English".
+  function optionsToText(options) {
+    return (options || []).map(o => (o.en ? `${o.es} | ${o.en}` : o.es)).join('\n');
+  }
+  function textToOptions(text) {
+    return text.split('\n').map(line => {
+      const [es, en] = line.split('|').map(s => (s || '').trim());
+      return { es: es || '', en: en || '' };
+    }).filter(o => o.es || o.en);
+  }
+
   async function save() {
     setSaving(true);
     setError(null);
@@ -158,6 +188,58 @@ export default function AvailabilityEditor({ initialRules, onSaved, onDeleted })
             onChange={(e) => updateField('order', parseInt(e.target.value, 10) || 0)}
             className="w-20 p-1 rounded border" />
         </label>
+      </div>
+
+      <div>
+        <h3 className="font-medium mb-1">Questions</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          Asked when booking, besides name, email, subject and WhatsApp. They show up in the
+          calendar event and in the booking email.
+        </p>
+        <div className="space-y-3">
+          {questions.map((q, idx) => (
+            <div key={q.key} className="border rounded p-3 space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <input type="text" value={q.label?.es || ''} maxLength={200} placeholder="Pregunta (ES)"
+                  onChange={(e) => updateQuestion(idx, { label: { ...q.label, es: e.target.value } })}
+                  className="w-full p-2 rounded border" />
+                <input type="text" value={q.label?.en || ''} maxLength={200} placeholder="Question (EN)"
+                  onChange={(e) => updateQuestion(idx, { label: { ...q.label, en: e.target.value } })}
+                  className="w-full p-2 rounded border" />
+              </div>
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                <select value={q.type} onChange={(e) => updateQuestion(idx, { type: e.target.value })}
+                  className="p-1 rounded border">
+                  <option value="text">Short text</option>
+                  <option value="textarea">Long text</option>
+                  <option value="select">Choice</option>
+                  <option value="url">Link</option>
+                </select>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={!!q.required}
+                    onChange={(e) => updateQuestion(idx, { required: e.target.checked })} />
+                  Required
+                </label>
+                <span className="flex-1" />
+                <button type="button" onClick={() => moveQuestion(idx, -1)} disabled={idx === 0}
+                  className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">↑</button>
+                <button type="button" onClick={() => moveQuestion(idx, 1)} disabled={idx === questions.length - 1}
+                  className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">↓</button>
+                <button type="button" onClick={() => setQuestions(questions.filter((_, i) => i !== idx))}
+                  className="text-xs text-red-600 hover:underline">remove</button>
+              </div>
+              {q.type === 'select' && (
+                <textarea rows={4}
+                  value={q._optionsText ?? optionsToText(q.options)}
+                  onChange={(e) => updateQuestion(idx, { _optionsText: e.target.value, options: textToOptions(e.target.value) })}
+                  placeholder={'One option per line: Español | English\nLinkedIn | LinkedIn\nUna recomendación | A referral'}
+                  className="w-full p-2 rounded border text-sm font-mono" />
+              )}
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={addQuestion}
+          className="mt-2 text-xs text-muted-foreground hover:text-foreground">+ add question</button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

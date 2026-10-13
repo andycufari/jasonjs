@@ -3,7 +3,7 @@
 // With `id` it edits that type; without, it creates a new one.
 
 import { NextResponse } from 'next/server';
-import { SLUG_RE, normalizeName, normalizeDescription } from '../../../lib/meetingTypes.js';
+import { SLUG_RE, normalizeName, normalizeDescription, normalizeQuestions } from '../../../lib/meetingTypes.js';
 import { idOf, updateOrThrow } from '../../../lib/db.js';
 
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
@@ -42,6 +42,7 @@ export async function POST(request) {
       active: body.active !== false,
       order: clampInt(body.order, -1000, 1000, 0),
       showDuration: body.showDuration !== false,
+      questions: normalizeQuestions(body.questions),
       durationMinutes: clampInt(body.durationMinutes, 5, 480, 30),
       bufferBeforeMin: clampInt(body.bufferBeforeMin, 0, 240, 0),
       bufferAfterMin: clampInt(body.bufferAfterMin, 0, 240, 10),

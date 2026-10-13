@@ -30,6 +30,8 @@ export default function Book({
   const locale = localeFor(lang);
   const primary = brand.primaryColor || '#111';
   const tz = useMemo(detectTimezone, []);
+  // userId is optional: on a single-host site the API resolves the host.
+  const hostParam = userId ? `userId=${encodeURIComponent(userId)}&` : '';
 
   // Window: today → +14 days (widget shows a 7-day strip, slides by one page).
   const [pageStart, setPageStart] = useState(() => startOfTomorrowUtc());
@@ -47,7 +49,9 @@ export default function Book({
 
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
-  const [guestNotes, setGuestNotes] = useState('');
+  const [subject, setSubject] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [answers, setAnswers] = useState({}); // questionKey → value (select: option index)
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [notice, setNotice] = useState(null); // outcome of a checkout we came back from
@@ -99,8 +103,7 @@ export default function Book({
 
   // The meeting type itself: what the visitor is booking.
   useEffect(() => {
-    if (!userId) return;
-    fetch(`${ADDON}/types/public?userId=${encodeURIComponent(userId)}&meetingType=${encodeURIComponent(meetingType)}`)
+    fetch(`${ADDON}/types/public?${hostParam}meetingType=${encodeURIComponent(meetingType)}`)
       .then(r => r.json().then(data => ({ ok: r.ok, status: r.status, data })))
       .then(({ ok, status, data }) => {
         if (status === 404) { setNotFound(true); return; }
@@ -111,12 +114,11 @@ export default function Book({
 
   // Fetch slots whenever the page window changes.
   useEffect(() => {
-    if (!userId) return;
     const fromUtc = new Date(pageStart).toISOString();
     const toUtc = new Date(pageStart.getTime() + windowDays * 24 * 60 * 60 * 1000).toISOString();
     setLoadingSlots(true);
     setError(null);
-    fetch(`${ADDON}/slots?userId=${encodeURIComponent(userId)}&meetingType=${encodeURIComponent(meetingType)}&fromUtc=${encodeURIComponent(fromUtc)}&toUtc=${encodeURIComponent(toUtc)}`)
+    fetch(`${ADDON}/slots?${hostParam}meetingType=${encodeURIComponent(meetingType)}&fromUtc=${encodeURIComponent(fromUtc)}&toUtc=${encodeURIComponent(toUtc)}`)
       .then(r => r.json().then(data => ({ ok: r.ok, status: r.status, data })))
       .then(({ ok, status, data }) => {
         if (status === 404) { setNotFound(true); return; }
@@ -151,8 +153,13 @@ export default function Book({
   const handleSubmit = async (e) => {
     e?.preventDefault();
     if (!selectedSlot) return;
-    if (!guestName.trim() || !guestEmail.trim()) {
+    if (!guestName.trim() || !guestEmail.trim() || !subject.trim()) {
       setError(t.nameEmailRequired);
+      return;
+    }
+    const missing = questions.find(q => q.required && (answers[q.key] === undefined || answers[q.key] === ''));
+    if (missing) {
+      setError(t.required(pickLang(missing.label, lang)));
       return;
     }
     setSubmitting(true);
@@ -162,18 +169,20 @@ export default function Book({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
+          ...(userId ? { userId } : {}),
           meetingType,
           startUtc: selectedSlot.startUtc,
           guestName: guestName.trim(),
           guestEmail: guestEmail.trim(),
-          guestNotes: guestNotes.trim(),
+          subject: subject.trim(),
+          whatsapp: whatsapp.trim(),
+          answers,
           timezoneGuest: tz,
           returnPath: window.location.pathname,
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(errorMessage(res.status, data, t)); setSubmitting(false); return; }
+      if (!res.ok) { setError(errorMessage(res.status, data, t, questions, lang)); setSubmitting(false); return; }
       if (data.checkoutUrl) {
         // Paid type: the slot is held while the guest pays; keep the button busy.
         window.location.href = data.checkoutUrl;
@@ -187,6 +196,7 @@ export default function Book({
     }
   };
 
+  const questions = type?.questions || [];
   const isPaid = (type?.priceCents || 0) > 0;
   const submitLabel = submitting
     ? (isPaid ? t.redirecting : t.confirming)
@@ -330,13 +340,54 @@ export default function Book({
             onChange={(e) => setGuestEmail(e.target.value)}
             className="w-full p-2 rounded border"
           />
-          <textarea
-            placeholder={t.notes}
-            value={guestNotes}
-            onChange={(e) => setGuestNotes(e.target.value)}
-            rows={3}
+          <input
+            type="text"
+            required
+            maxLength={200}
+            placeholder={t.subject}
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
             className="w-full p-2 rounded border"
           />
+          <input
+            type="tel"
+            placeholder={t.whatsapp}
+            value={whatsapp}
+            onChange={(e) => setWhatsapp(e.target.value)}
+            className="w-full p-2 rounded border"
+          />
+
+          {/* The meeting type's own questions */}
+          {questions.map(q => {
+            const label = pickLang(q.label, lang);
+            const value = answers[q.key] ?? '';
+            const set = (v) => setAnswers(a => ({ ...a, [q.key]: v }));
+            return (
+              <label key={q.key} className="block">
+                <span className="block text-sm mb-1">
+                  {label}
+                  {!q.required && <span className="text-muted-foreground"> ({t.optional})</span>}
+                </span>
+                {q.type === 'textarea' && (
+                  <textarea rows={3} maxLength={2000} value={value}
+                    onChange={(e) => set(e.target.value)} className="w-full p-2 rounded border" />
+                )}
+                {q.type === 'select' && (
+                  <select value={value} onChange={(e) => set(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full p-2 rounded border">
+                    <option value="">{t.choose}</option>
+                    {q.options.map((o, i) => <option key={i} value={i}>{pickLang(o, lang)}</option>)}
+                  </select>
+                )}
+                {(q.type === 'text' || q.type === 'url') && (
+                  <input type={q.type === 'url' ? 'url' : 'text'} maxLength={q.type === 'url' ? 500 : 200}
+                    placeholder={q.type === 'url' ? 'https://' : ''} value={value}
+                    onChange={(e) => set(e.target.value)} className="w-full p-2 rounded border" />
+                )}
+              </label>
+            );
+          })}
+
           <button
             type="submit"
             disabled={submitting}
@@ -351,8 +402,14 @@ export default function Book({
   );
 }
 
-function errorMessage(status, data, t) {
-  if (data?.error === 'payment_unavailable') return t.paymentUnavailable;
+function errorMessage(status, data, t, questions = [], lang = 'es') {
+  const err = data?.error || '';
+  if (err === 'payment_unavailable') return t.paymentUnavailable;
+  if (err === 'whatsapp_invalid') return t.whatsappInvalid;
+  const [kind, key] = err.split(':');
+  const q = questions.find(x => x.key === key);
+  if (q && kind === 'required') return t.required(pickLang(q.label, lang));
+  if (q && kind === 'invalid_url') return t.invalidUrl(pickLang(q.label, lang));
   if (status === 503 && data?.error !== 'Addon not configured') return t.calendarUnavailable;
   if (status === 409) return t.slotTaken;
   return t.genericError;

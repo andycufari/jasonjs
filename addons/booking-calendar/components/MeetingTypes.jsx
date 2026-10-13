@@ -10,8 +10,9 @@ const ADDON = '/api/addons/booking-calendar';
  * where a page renders <Book meetingType="{{params.slug}}" />.
  *
  *   { "component": "@addons/booking-calendar/MeetingTypes",
- *     "attributes": { "userId": "<host id>", "basePath": "/meet",
- *                     "lang": { "en": "en", "es": "es" } } }
+ *     "attributes": { "basePath": "/meet", "lang": { "en": "en", "es": "es" } } }
+ *
+ * userId only when the site has more than one host.
  */
 export default function MeetingTypes({
   userId,
@@ -26,8 +27,8 @@ export default function MeetingTypes({
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!userId) return;
-    fetch(`${ADDON}/types/public?userId=${encodeURIComponent(userId)}`)
+    // userId is optional: on a single-host site the API resolves the host.
+    fetch(`${ADDON}/types/public${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`)
       .then(r => r.json().then(data => ({ ok: r.ok, data })))
       .then(({ ok, data }) => {
         if (!ok) throw new Error(data.error || 'error');

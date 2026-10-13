@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {
   SLUG_RE, normalizeName, isBookable, publicType, slotLockFor, isDuplicateKeyError, holdsSlot,
+  normalizeQuestions,
 } from './meetingTypes.js';
 
 let passed = 0;
@@ -63,4 +64,21 @@ test('which bookings keep their slot taken', () => {
   }
 });
 
-console.log(`\nmeetingTypes: ${passed}/7 PASS`);
+test('questions from the panel are cleaned before saving', () => {
+  const qs = normalizeQuestions([
+    { key: 'canal', label: { es: '¿Cómo llegaste?' }, type: 'select', options: [{ es: 'LinkedIn' }, { es: '' }], required: true, _optionsText: 'x' },
+    { key: 'canal', label: { es: 'duplicada' }, type: 'text' },          // same key → dropped
+    { key: 'vacia', label: { es: '', en: '' }, type: 'text' },           // no label → dropped
+    { key: 'sinopc', label: { es: 'Elegí' }, type: 'select', options: [] }, // choice without options → dropped
+    { key: 'Raro Key!', label: { es: 'x' } },                             // invalid key → dropped
+    { key: 'ctx', label: 'Contexto', type: 'nope' },                      // unknown type → text
+  ]);
+  assert.deepEqual(qs.map(q => q.key), ['canal', 'ctx']);
+  assert.deepEqual(qs[0].options, [{ es: 'LinkedIn', en: '' }]);
+  assert.equal(qs[0].required, true);
+  assert.ok(!('_optionsText' in qs[0]), 'editor-only fields are not stored');
+  assert.equal(qs[1].type, 'text');
+  assert.equal(qs[1].required, false);
+});
+
+console.log(`\nmeetingTypes: ${passed}/8 PASS`);

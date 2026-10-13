@@ -1,4 +1,5 @@
-// GET /api/addons/booking-calendar/slots?userId=<host>&fromUtc=<iso>&toUtc=<iso>&meetingType=default
+// GET /api/addons/booking-calendar/slots?[userId=<host>]&fromUtc=<iso>&toUtc=<iso>&meetingType=default
+// Without userId: the site's only host (see resolveHostUserId).
 // Public. Rate-limited per IP and per target host.
 
 import { NextResponse } from 'next/server';
@@ -7,7 +8,7 @@ import { getClientIp } from '../../../../core/utils/getClientIp.js';
 import { loadBookingEnv } from '../../lib/env.js';
 import { fetchAllBusy } from '../../lib/googleClient.js';
 import { computeAvailableSlots } from '../../lib/slotEngine.js';
-import { fetchRules, isBookable, fetchActiveBookings } from '../../lib/meetingTypes.js';
+import { fetchRules, isBookable, fetchActiveBookings, resolveHostUserId } from '../../lib/meetingTypes.js';
 
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 const MAX_PER_MINUTE_PER_IP = 30;
@@ -25,16 +26,20 @@ export async function GET(request) {
     const { database, domain } = request.addonContext;
     const { searchParams } = new URL(request.url);
 
-    const userId = searchParams.get('userId');
     const fromUtc = searchParams.get('fromUtc');
     const toUtc = searchParams.get('toUtc');
     const meetingType = searchParams.get('meetingType') || 'default';
 
-    if (!userId || !fromUtc || !toUtc) {
-      return NextResponse.json({ error: 'userId, fromUtc, toUtc required' }, { status: 400 });
+    if (!fromUtc || !toUtc) {
+      return NextResponse.json({ error: 'fromUtc, toUtc required' }, { status: 400 });
     }
     if (new Date(fromUtc) >= new Date(toUtc)) {
       return NextResponse.json({ error: 'fromUtc must be before toUtc' }, { status: 400 });
+    }
+
+    const userId = await resolveHostUserId(database, searchParams.get('userId'));
+    if (!userId) {
+      return NextResponse.json({ slots: [], reason: 'not_found' }, { status: 404 });
     }
 
     // Rate limiting (IP + host target).

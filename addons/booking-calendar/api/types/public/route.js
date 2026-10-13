@@ -1,18 +1,21 @@
-// GET /api/addons/booking-calendar/types/public?userId=<host>[&meetingType=<code>]
+// GET /api/addons/booking-calendar/types/public?[userId=<host>][&meetingType=<code>]
 // Public: the host's active meeting types, only the fields a visitor may see.
 // With meetingType, returns that one type (404 if missing or switched off).
+// Without userId: the site's only host (see resolveHostUserId).
 
 import { NextResponse } from 'next/server';
-import { isBookable, publicType } from '../../../lib/meetingTypes.js';
+import { isBookable, publicType, resolveHostUserId } from '../../../lib/meetingTypes.js';
 
 export async function GET(request) {
   try {
     const { database } = request.addonContext;
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const meetingType = searchParams.get('meetingType');
+    const userId = await resolveHostUserId(database, searchParams.get('userId'));
     if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 });
+      // No host yet (nothing configured) or several (the page must pick one).
+      if (meetingType) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+      return NextResponse.json({ types: [] });
     }
 
     const filters = meetingType ? { userId, meetingType } : { userId };

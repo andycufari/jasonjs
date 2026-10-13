@@ -108,12 +108,22 @@ function BookingsPane() {
   return (
     <div className="space-y-2">
       {bookings.map(b => (
-        <div key={b.id} className="border rounded p-3 text-sm">
-          <div className="font-medium">{b.guestName}</div>
-          <div className="text-muted-foreground">{b.guestEmail}</div>
-          <div className="mt-1">
-            {new Date(b.startUtc).toLocaleString()}
+        <div key={b.id} className="border rounded p-3 text-sm space-y-1">
+          <div className="flex items-baseline justify-between gap-4">
+            <div className="font-medium">{b.subject || b.guestName}</div>
+            <div className="text-xs text-muted-foreground whitespace-nowrap">
+              /{b.meetingType}{b.amountCents ? ` · ${b.currency} ${b.amountCents / 100}` : ''}
+            </div>
           </div>
+          <div className="text-muted-foreground">
+            {b.guestName} · {b.guestEmail}{b.whatsapp ? ` · WhatsApp ${b.whatsapp}` : ''}
+          </div>
+          <div>{new Date(b.startUtc).toLocaleString()}</div>
+          {(b.answers || []).map(a => (
+            <div key={a.key} className="text-xs">
+              <span className="text-muted-foreground">{a.label}:</span> {a.value}
+            </div>
+          ))}
           {b.meetLink && (
             <a href={b.meetLink} target="_blank" rel="noopener noreferrer" className="text-xs underline">
               Meet link

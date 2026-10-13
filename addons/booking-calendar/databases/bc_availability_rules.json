@@ -13,6 +13,7 @@
     "active":             { "type": "boolean", "default": true, "description": "Off = hidden from the public list and not bookable" },
     "order":              { "type": "number",  "default": 0 },
     "showDuration":       { "type": "boolean", "default": true, "description": "Show the duration on the public page" },
+    "questions":          { "type": "array",   "description": "Asked when booking, besides name/email/subject/WhatsApp: [{ key, label: {es,en}, type: text|textarea|select|url, options: [{es,en}], required }]" },
     "durationMinutes":    { "type": "number",  "default": 30 },
     "bufferBeforeMin":    { "type": "number",  "default": 0 },
     "bufferAfterMin":     { "type": "number",  "default": 10 },

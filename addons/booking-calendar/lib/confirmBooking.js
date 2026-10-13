@@ -18,6 +18,8 @@ export async function confirmBooking({ database, domain, origin, booking, rules,
   const primary = connections.find(c => c.isPrimary) || connections[0];
   const cancelUrl = cancelUrlFor(origin, booking.cancelToken);
 
+  const typeName = rules.name?.es || rules.name?.en || booking.meetingType;
+
   let eventResult;
   try {
     const { calendar } = makeCalendarForConnection({
@@ -26,7 +28,6 @@ export async function confirmBooking({ database, domain, origin, booking, rules,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
       redirectUri: env.GOOGLE_REDIRECT_URI,
     });
-    const typeName = rules.name?.es || rules.name?.en || booking.meetingType;
     const title = (rules.eventTitleTemplate || '{guestName} · {type}')
       .replace('{guestName}', booking.guestName)
       .replace('{type}', typeName);
@@ -64,6 +65,12 @@ export async function confirmBooking({ database, domain, origin, booking, rules,
         guestName: booking.guestName,
         guestEmail: booking.guestEmail,
         guestNotes: booking.guestNotes,
+        subject: booking.subject,
+        whatsapp: booking.whatsapp,
+        answers: booking.answers,
+        typeName,
+        amountCents: booking.amountCents,
+        currency: booking.currency,
         startUtc: new Date(booking.startUtc).toISOString(),
         timezoneGuest: booking.timezoneGuest,
         meetLink,
@@ -74,9 +81,14 @@ export async function confirmBooking({ database, domain, origin, booking, rules,
   return { meetLink, cancelUrl };
 }
 
-function buildEventDescription({ guestName, guestEmail, guestNotes, cancelUrl, amountCents, currency }) {
-  const lines = [`Guest: ${guestName} <${guestEmail}>`];
+// What the host reads when the meeting starts: who, what about, and their answers.
+function buildEventDescription({ guestName, guestEmail, subject, whatsapp, answers, guestNotes, cancelUrl, amountCents, currency }) {
+  const lines = [];
+  if (subject) lines.push(subject, '');
+  lines.push(`${guestName} <${guestEmail}>`);
+  if (whatsapp) lines.push(`WhatsApp: ${whatsapp}`);
   if (amountCents) lines.push(`Paid: ${currency} ${amountCents / 100}`);
+  for (const a of answers || []) lines.push('', `${a.label}`, a.value);
   if (guestNotes) lines.push('', 'Notes:', guestNotes);
   lines.push('', `Cancel: ${cancelUrl}`);
   return lines.join('\n');

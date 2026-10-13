@@ -14,17 +14,23 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'confirmed';
     const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 500);
+    // Upcoming by default (from a few hours ago, so a meeting in progress still shows).
+    const from = new Date(searchParams.get('from') || Date.now() - 6 * 60 * 60 * 1000);
 
     const filters = { userId, status };
+    // Newest first, so a long history never pushes upcoming bookings out of the limit.
     const result = await database.use('bc_bookings').fetch({
       filters,
-      sort: { startUtc: 'asc' },
-      limit,
+      sort: { startUtc: 'desc' },
+      limit: 500,
     });
-    const rows = Array.isArray(result) ? result : (result?.data || []);
+    const rows = (Array.isArray(result) ? result : (result?.data || []))
+      .filter(b => new Date(b.startUtc) >= from)
+      .reverse()
+      .slice(0, limit);
     // Strip cancelToken on list (only return to the owner on direct access).
-    const sanitized = rows.map(({ cancelToken, ...rest }) => ({
-      id: rest._id || rest.id,
+    const sanitized = rows.map(({ cancelToken, slotLock, ...rest }) => ({
+      id: String(rest._id || rest.id),
       ...rest,
     }));
 
