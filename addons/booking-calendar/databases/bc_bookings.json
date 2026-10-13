@@ -1,7 +1,7 @@
 {
   "id": "bc_bookings",
   "name": "Booking Calendar — Bookings",
-  "description": "One row per booking. Protected against double-book via partial unique index on confirmed status.",
+  "description": "One row per booking. slotLock + its unique index stop two bookings from taking the same host + start.",
   "type": "jason",
   "schema": {
     "userId":           { "type": "string", "required": true, "description": "Host user id" },
@@ -16,16 +16,17 @@
     "googleCalendarId": { "type": "string" },
     "meetLink":         { "type": "string" },
     "status":           { "type": "string", "default": "pending_verify", "description": "pending_verify | confirmed | cancelled" },
-    "cancelToken":      { "type": "string", "description": "Random 32-byte hex for guest-initiated cancel" }
+    "cancelToken":      { "type": "string", "description": "Random 32-byte hex for guest-initiated cancel" },
+    "slotLock":         { "type": "string", "description": "userId|startUtc while the booking holds its slot; null once it doesn't" }
   },
   "indexes": [
-    { "fields": { "userId": 1, "startUtc": 1 } },
-    { "fields": { "cancelToken": 1 } },
+    { "name": "user_start",   "fields": { "userId": 1, "startUtc": 1 } },
+    { "name": "cancel_token", "fields": { "cancelToken": 1 } },
     {
-      "fields": { "userId": 1, "startUtc": 1 },
-      "unique": true,
-      "partialFilterExpression": { "status": "confirmed" },
-      "description": "Prevents two confirmed bookings at the same start time for the same host"
+      "name": "slot_lock_unique",
+      "fields": { "slotLock": 1 },
+      "settings": { "unique": true, "partialFilterExpression": { "slotLock": { "$type": "string" } } },
+      "description": "Two bookings can't hold the same host + start. Options MUST live under `settings` (core/databases/jason/index.js only reads them there); partial on strings so released rows (slotLock null) don't block. Created by GET /api/data/bc_bookings/init — ensureIndexes never runs on its own."
     }
   ],
   "security": {

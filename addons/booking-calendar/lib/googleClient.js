@@ -73,8 +73,8 @@ export async function fetchConnectionBusy({ calendar, connection, fromUtc, toUtc
     for (const id of Object.keys(data.calendars)) {
       const cal = data.calendars[id];
       if (cal.errors && cal.errors.length > 0) {
-        console.warn(`[booking-calendar] freebusy error for calendar ${id}:`, cal.errors);
-        continue;
+        // A calendar we can't read is not a free calendar.
+        throw new Error(`freebusy error for calendar ${id}: ${JSON.stringify(cal.errors)}`);
       }
       for (const b of cal.busy || []) {
         busy.push({ start: b.start, end: b.end });
@@ -82,6 +82,35 @@ export async function fetchConnectionBusy({ calendar, connection, fromUtc, toUtc
     }
   }
   return busy;
+}
+
+/**
+ * Busy intervals across ALL of a host's connections. Fails closed: if any connection
+ * can't be read (expired token, Google error), throws CALENDAR_UNAVAILABLE instead of
+ * treating that account as free — offering slots the host is actually busy in is
+ * worse than offering none.
+ */
+export async function fetchAllBusy({ database, connections, env, fromUtc, toUtc }) {
+  const busyArrays = await Promise.all(
+    connections.map(async (conn) => {
+      try {
+        const { calendar } = makeCalendarForConnection({
+          database,
+          connection: conn,
+          clientId: env.GOOGLE_CLIENT_ID,
+          clientSecret: env.GOOGLE_CLIENT_SECRET,
+          redirectUri: env.GOOGLE_REDIRECT_URI,
+        });
+        return await fetchConnectionBusy({ calendar, connection: conn, fromUtc, toUtc });
+      } catch (err) {
+        console.warn(`[booking-calendar] freebusy failed for ${conn.googleAccountEmail || conn._id || conn.id}:`, err.message);
+        const unavailable = new Error('Calendar unavailable');
+        unavailable.code = 'CALENDAR_UNAVAILABLE';
+        throw unavailable;
+      }
+    })
+  );
+  return busyArrays.flat();
 }
 
 /**

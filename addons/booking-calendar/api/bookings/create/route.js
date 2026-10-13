@@ -2,28 +2,24 @@
 // Body: { userId, meetingType?, startUtc, guestName, guestEmail, guestNotes?, timezoneGuest? }
 //
 // Flow:
-//   1. Validate inputs.
-//   2. Re-verify slot via slotEngine (fresh freebusy) — prevents stale-client bookings.
-//   3. Insert pending_verify row (partial unique index will catch concurrent duplicates).
-//   4. Insert Google event on primary connection.
-//   5. Update row to confirmed (fills in googleEventId, meetLink).
-//   6. Notify host by email (best-effort).
-//
-// If step 4 succeeds but step 5's unique-index check fires (concurrent booking),
-// we delete the Google event to compensate.
+//   1. Validate inputs; the meeting type must exist and be active.
+//   2. Paid types need checkout — not wired yet, so refuse (never book a paid slot for free).
+//   3. Re-verify the slot against live freebusy of EVERY connection (fails closed).
+//   4. Insert a pending_verify row carrying slotLock — the unique index on slotLock
+//      rejects a concurrent booking of the same host + start right here, at the DB.
+//   5. Insert the Google event on the primary connection; on failure, delete the row.
+//   6. Flip the row to confirmed (googleEventId, meetLink) and notify the host (best-effort).
 
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { loadBookingEnv } from '../../../lib/env.js';
-import {
-  makeCalendarForConnection,
-  fetchConnectionBusy,
-  insertEvent,
-  deleteEvent,
-} from '../../../lib/googleClient.js';
+import { makeCalendarForConnection, fetchAllBusy, insertEvent } from '../../../lib/googleClient.js';
 import { isSlotStillAvailable } from '../../../lib/slotEngine.js';
 import { notifyHostOfBooking } from '../../../lib/notify.js';
 import { publicOrigin } from '../../../lib/publicOrigin.js';
+import {
+  fetchRules, isBookable, fetchActiveBookings, slotLockFor, isDuplicateKeyError,
+} from '../../../lib/meetingTypes.js';
 
 export async function POST(request) {
   try {
@@ -48,13 +44,12 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Name or notes too long' }, { status: 400 });
     }
 
-    const rulesResult = await database.use('bc_availability_rules').fetch({
-      filters: { userId, meetingType },
-      limit: 1,
-    });
-    const rules = Array.isArray(rulesResult) ? rulesResult[0] : (rulesResult?.data?.[0] || null);
-    if (!rules) {
-      return NextResponse.json({ error: 'No availability configured for host' }, { status: 404 });
+    const rules = await fetchRules(database, userId, meetingType);
+    if (!isBookable(rules)) {
+      return NextResponse.json({ error: 'not_found' }, { status: 404 });
+    }
+    if ((rules.priceCents || 0) > 0) {
+      return NextResponse.json({ error: 'payment_required' }, { status: 402 });
     }
 
     const startDt = new Date(startUtc);
@@ -71,36 +66,13 @@ export async function POST(request) {
 
     const env = await loadBookingEnv(domain);
 
-    // Re-verify slot freshness: pull live freebusy across every connection and ask the engine.
-    const busyArrays = await Promise.all(
-      connections.map(async (conn) => {
-        try {
-          const { calendar } = makeCalendarForConnection({
-            database, connection: conn,
-            clientId: env.GOOGLE_CLIENT_ID,
-            clientSecret: env.GOOGLE_CLIENT_SECRET,
-            redirectUri: env.GOOGLE_REDIRECT_URI,
-          });
-          return await fetchConnectionBusy({
-            calendar, connection: conn,
-            fromUtc: new Date(startDt.getTime() - 60 * 60 * 1000).toISOString(),
-            toUtc: new Date(endDt.getTime() + 60 * 60 * 1000).toISOString(),
-          });
-        } catch {
-          return [];
-        }
-      })
-    );
-    const busy = busyArrays.flat();
-
-    // Defense-in-depth: local confirmed bookings around this time.
-    const bookingsResult = await database.use('bc_bookings').fetch({
-      filters: { userId, status: 'confirmed' },
-      limit: 50,
+    // Re-verify slot freshness against live freebusy across every connection.
+    const busy = await fetchAllBusy({
+      database, connections, env,
+      fromUtc: new Date(startDt.getTime() - 60 * 60 * 1000).toISOString(),
+      toUtc: new Date(endDt.getTime() + 60 * 60 * 1000).toISOString(),
     });
-    const existingBookings = (Array.isArray(bookingsResult) ? bookingsResult : (bookingsResult?.data || []))
-      .filter(b => b.startUtc && b.endUtc)
-      .map(b => ({ startUtc: new Date(b.startUtc).toISOString(), endUtc: new Date(b.endUtc).toISOString() }));
+    const existingBookings = await fetchActiveBookings(database, userId);
 
     const stillAvailable = isSlotStillAvailable({
       rules,
@@ -113,21 +85,32 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Slot no longer available' }, { status: 409 });
     }
 
-    // Insert pending booking row.
+    // Insert pending booking row. slotLock makes a concurrent booking of the same start
+    // fail here. (Overlapping bookings with DIFFERENT starts are caught by the check
+    // above, not by the index — the window for that race is the few ms in between.)
     const bookings = database.use('bc_bookings');
     const cancelToken = crypto.randomBytes(16).toString('hex');
-    const pending = await bookings.add({
-      userId,
-      meetingType,
-      guestName,
-      guestEmail,
-      guestNotes,
-      startUtc: startDt,
-      endUtc: endDt,
-      timezoneGuest,
-      status: 'pending_verify',
-      cancelToken,
-    });
+    let pending;
+    try {
+      pending = await bookings.add({
+        userId,
+        meetingType,
+        guestName,
+        guestEmail,
+        guestNotes,
+        startUtc: startDt,
+        endUtc: endDt,
+        timezoneGuest,
+        status: 'pending_verify',
+        cancelToken,
+        slotLock: slotLockFor(userId, startDt),
+      });
+    } catch (err) {
+      if (isDuplicateKeyError(err)) {
+        return NextResponse.json({ error: 'Slot no longer available' }, { status: 409 });
+      }
+      throw err;
+    }
     const bookingId = pending._id || pending.id;
 
     // Insert Google event on primary.
@@ -139,8 +122,10 @@ export async function POST(request) {
         clientSecret: env.GOOGLE_CLIENT_SECRET,
         redirectUri: env.GOOGLE_REDIRECT_URI,
       });
-      const title = (rules.eventTitleTemplate || '{guestName} ↔ Host')
-        .replace('{guestName}', guestName);
+      const typeName = rules.name?.es || rules.name?.en || meetingType;
+      const title = (rules.eventTitleTemplate || '{guestName} · {type}')
+        .replace('{guestName}', guestName)
+        .replace('{type}', typeName);
       eventResult = await insertEvent({
         calendar,
         calendarId: primary.writeCalendarId || 'primary',
@@ -152,36 +137,18 @@ export async function POST(request) {
         guestTimezone: timezoneGuest,
       });
     } catch (err) {
-      // Could not create event — roll back pending row.
+      // Could not create event — roll back pending row (releases the slot).
       await bookings.delete(bookingId).catch(() => {});
       console.error('[booking-calendar] insertEvent failed:', err);
       return NextResponse.json({ error: 'Failed to create calendar event' }, { status: 502 });
     }
 
-    // Flip to confirmed. A partial unique index on (userId, startUtc) where status=confirmed
-    // means if another booking raced us, this update will reject.
-    try {
-      await bookings.update(bookingId, {
-        status: 'confirmed',
-        googleEventId: eventResult.eventId,
-        googleCalendarId: primary.writeCalendarId || 'primary',
-        meetLink: eventResult.meetLink || eventResult.hangoutLink || null,
-      });
-    } catch (err) {
-      // Compensate: someone else got the slot first.
-      try {
-        const { calendar } = makeCalendarForConnection({
-          database, connection: primary,
-          clientId: env.GOOGLE_CLIENT_ID,
-          clientSecret: env.GOOGLE_CLIENT_SECRET,
-          redirectUri: env.GOOGLE_REDIRECT_URI,
-        });
-        await deleteEvent({ calendar, calendarId: primary.writeCalendarId || 'primary', eventId: eventResult.eventId });
-      } catch {}
-      await bookings.delete(bookingId).catch(() => {});
-      console.warn('[booking-calendar] race compensation: slot taken concurrently');
-      return NextResponse.json({ error: 'Slot no longer available' }, { status: 409 });
-    }
+    await bookings.update(bookingId, {
+      status: 'confirmed',
+      googleEventId: eventResult.eventId,
+      googleCalendarId: primary.writeCalendarId || 'primary',
+      meetLink: eventResult.meetLink || eventResult.hangoutLink || null,
+    });
 
     // Host notification (best-effort).
     if (primary.googleAccountEmail) {
@@ -202,6 +169,9 @@ export async function POST(request) {
       cancelUrl: cancelUrlFor(request, cancelToken),
     });
   } catch (err) {
+    if (err.code === 'CALENDAR_UNAVAILABLE') {
+      return NextResponse.json({ error: 'calendar_unavailable' }, { status: 503 });
+    }
     if (err.code === 'ADDON_ENV_MISSING') {
       return NextResponse.json({ error: 'Addon not configured', missing: err.missing }, { status: 503 });
     }

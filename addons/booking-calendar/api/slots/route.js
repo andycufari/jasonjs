@@ -5,8 +5,9 @@ import { NextResponse } from 'next/server';
 import { createCache } from '../../../../core/utils/cache.js';
 import { getClientIp } from '../../../../core/utils/getClientIp.js';
 import { loadBookingEnv } from '../../lib/env.js';
-import { makeCalendarForConnection, fetchConnectionBusy } from '../../lib/googleClient.js';
+import { fetchAllBusy } from '../../lib/googleClient.js';
 import { computeAvailableSlots } from '../../lib/slotEngine.js';
+import { fetchRules, isBookable, fetchActiveBookings } from '../../lib/meetingTypes.js';
 
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 const MAX_PER_MINUTE_PER_IP = 30;
@@ -48,14 +49,9 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
     }
 
-    // Fetch rules (may not exist — return empty slots if so).
-    const rulesResult = await database.use('bc_availability_rules').fetch({
-      filters: { userId, meetingType },
-      limit: 1,
-    });
-    const rules = Array.isArray(rulesResult) ? rulesResult[0] : (rulesResult?.data?.[0] || null);
-    if (!rules) {
-      return NextResponse.json({ slots: [], reason: 'no_availability' });
+    const rules = await fetchRules(database, userId, meetingType);
+    if (!isBookable(rules)) {
+      return NextResponse.json({ slots: [], reason: 'not_found' }, { status: 404 });
     }
 
     // Fetch all host connections.
@@ -65,37 +61,12 @@ export async function GET(request) {
       return NextResponse.json({ slots: [], reason: 'no_connections' });
     }
 
-    // Fan-out freebusy queries across all connections.
     const env = await loadBookingEnv(domain);
-    const busyArrays = await Promise.all(
-      connections.map(async (conn) => {
-        try {
-          const { calendar } = makeCalendarForConnection({
-            database,
-            connection: conn,
-            clientId: env.GOOGLE_CLIENT_ID,
-            clientSecret: env.GOOGLE_CLIENT_SECRET,
-            redirectUri: env.GOOGLE_REDIRECT_URI,
-          });
-          return await fetchConnectionBusy({ calendar, connection: conn, fromUtc, toUtc });
-        } catch (err) {
-          console.warn(`[booking-calendar] freebusy failed for connection ${conn._id || conn.id}:`, err.message);
-          return [];
-        }
-      })
-    );
-    const busy = busyArrays.flat();
+    const busy = await fetchAllBusy({ database, connections, env, fromUtc, toUtc });
 
-    // Pull confirmed bookings in the window for defense-in-depth.
-    const bookingsResult = await database.use('bc_bookings').fetch({
-      filters: { userId, status: 'confirmed' },
-      limit: 500,
-    });
-    const bookingsRaw = Array.isArray(bookingsResult) ? bookingsResult : (bookingsResult?.data || []);
-    const existingBookings = bookingsRaw
-      .filter(b => b.startUtc && b.endUtc)
-      .filter(b => new Date(b.startUtc) < new Date(toUtc) && new Date(b.endUtc) > new Date(fromUtc))
-      .map(b => ({ startUtc: new Date(b.startUtc).toISOString(), endUtc: new Date(b.endUtc).toISOString() }));
+    // Bookings of ANY meeting type hold their time — defense-in-depth on top of freebusy.
+    const existingBookings = (await fetchActiveBookings(database, userId))
+      .filter(b => new Date(b.startUtc) < new Date(toUtc) && new Date(b.endUtc) > new Date(fromUtc));
 
     const slots = computeAvailableSlots({
       rules,
@@ -108,6 +79,9 @@ export async function GET(request) {
 
     return NextResponse.json({ slots, timezone: rules.timezone, duration: rules.durationMinutes });
   } catch (err) {
+    if (err.code === 'CALENDAR_UNAVAILABLE') {
+      return NextResponse.json({ slots: [], reason: 'calendar_unavailable' }, { status: 503 });
+    }
     if (err.code === 'ADDON_ENV_MISSING') {
       return NextResponse.json({ error: 'Addon not configured', missing: err.missing }, { status: 503 });
     }

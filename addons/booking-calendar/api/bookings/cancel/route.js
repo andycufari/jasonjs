@@ -62,7 +62,8 @@ async function handle(request, params) {
       }
     }
 
-    await bookings.update(row._id || row.id, { status: 'cancelled' });
+    // slotLock null frees the slot in the unique index.
+    await bookings.update(row._id || row.id, { status: 'cancelled', slotLock: null });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[booking-calendar] bookings/cancel error:', err);

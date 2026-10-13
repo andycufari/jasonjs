@@ -5,6 +5,13 @@ import { NextResponse } from 'next/server';
 
 const DEFAULT_RULES = {
   meetingType: 'default',
+  name: { es: '', en: '' },
+  description: { es: '', en: '' },
+  priceCents: 0,
+  currency: 'USD',
+  active: true,
+  order: 0,
+  showDuration: true,
   durationMinutes: 30,
   bufferBeforeMin: 0,
   bufferAfterMin: 10,
@@ -22,7 +29,7 @@ const DEFAULT_RULES = {
   maxAdvanceDays: 60,
   slotGranularityMin: 15,
   excludedDates: [],
-  eventTitleTemplate: '{guestName} ↔ Host',
+  eventTitleTemplate: '{guestName} · {type}',
 };
 
 export async function GET(request) {
@@ -34,7 +41,9 @@ export async function GET(request) {
     const userId = session.user.id || session.user.email;
 
     const { searchParams } = new URL(request.url);
-    const meetingType = searchParams.get('meetingType') || 'default';
+    // Missing param → 'default' (single-type sites). An empty one returns blank defaults
+    // for a new type, which Settings fills in.
+    const meetingType = searchParams.get('meetingType') ?? 'default';
 
     const result = await database.use('bc_availability_rules').fetch({
       filters: { userId, meetingType },

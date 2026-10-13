@@ -1,6 +1,8 @@
-export function formatSlotLabel(startUtc, tz) {
+// `locale` is optional: without it the browser's default is used.
+
+export function formatSlotLabel(startUtc, tz, locale) {
   try {
-    return new Date(startUtc).toLocaleTimeString([], {
+    return new Date(startUtc).toLocaleTimeString(locale || [], {
       hour: '2-digit', minute: '2-digit', timeZone: tz || undefined,
     });
   } catch {
@@ -8,9 +10,9 @@ export function formatSlotLabel(startUtc, tz) {
   }
 }
 
-export function formatDayLabel(dateIso, tz) {
+export function formatDayLabel(dateIso, tz, locale) {
   try {
-    return new Date(dateIso).toLocaleDateString([], {
+    return new Date(dateIso).toLocaleDateString(locale || [], {
       weekday: 'short', month: 'short', day: 'numeric', timeZone: tz || undefined,
     });
   } catch {

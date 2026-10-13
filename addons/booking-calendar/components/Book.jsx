@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { detectTimezone } from '../utils/tzDetect.js';
 import { formatSlotLabel, formatDayLabel, ymdInTz } from '../utils/formatSlot.js';
+import { getStrings, localeFor, pickLang, priceLabel } from '../utils/i18n.js';
 
 const ADDON = '/api/addons/booking-calendar';
 
@@ -10,17 +11,23 @@ const ADDON = '/api/addons/booking-calendar';
  * Public guest booking widget. Drop into any page:
  *
  *   { "component": "@addons/booking-calendar/Book",
- *     "attributes": { "userId": "{{host.id}}", "meetingType": "default" } }
+ *     "attributes": { "userId": "<host id>", "meetingType": "{{params.slug}}",
+ *                     "lang": { "en": "en", "es": "es" } } }
  *
- * No auth required for guests. Fetches slots for a 14-day window, lets guest pick a
- * day + slot, collects name/email, submits.
+ * No auth required for guests. Shows the meeting type (name, description, price),
+ * fetches slots for a 14-day window, lets guest pick a day + slot, collects
+ * name/email, submits.
  */
 export default function Book({
   userId,
   meetingType = 'default',
+  lang = 'es',
+  showHeader = true,
   brand = {},
   styles = {},
 }) {
+  const t = getStrings(lang);
+  const locale = localeFor(lang);
   const primary = brand.primaryColor || '#111';
   const tz = useMemo(detectTimezone, []);
 
@@ -29,8 +36,9 @@ export default function Book({
   const windowDays = 14;
   const stripDays = 7;
 
+  const [type, setType] = useState(null);
+  const [notFound, setNotFound] = useState(false);
   const [slots, setSlots] = useState([]);
-  const [meta, setMeta] = useState({ duration: 30, timezone: 'UTC' });
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [error, setError] = useState(null);
 
@@ -43,6 +51,18 @@ export default function Book({
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
 
+  // The meeting type itself: what the visitor is booking.
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${ADDON}/types/public?userId=${encodeURIComponent(userId)}&meetingType=${encodeURIComponent(meetingType)}`)
+      .then(r => r.json().then(data => ({ ok: r.ok, status: r.status, data })))
+      .then(({ ok, status, data }) => {
+        if (status === 404) { setNotFound(true); return; }
+        if (ok) setType(data.type);
+      })
+      .catch(() => {});
+  }, [userId, meetingType]);
+
   // Fetch slots whenever the page window changes.
   useEffect(() => {
     if (!userId) return;
@@ -51,13 +71,13 @@ export default function Book({
     setLoadingSlots(true);
     setError(null);
     fetch(`${ADDON}/slots?userId=${encodeURIComponent(userId)}&meetingType=${encodeURIComponent(meetingType)}&fromUtc=${encodeURIComponent(fromUtc)}&toUtc=${encodeURIComponent(toUtc)}`)
-      .then(r => r.json().then(data => ({ ok: r.ok, data })))
-      .then(({ ok, data }) => {
-        if (!ok) { setError(data.error || 'Failed to load availability'); return; }
+      .then(r => r.json().then(data => ({ ok: r.ok, status: r.status, data })))
+      .then(({ ok, status, data }) => {
+        if (status === 404) { setNotFound(true); return; }
+        if (!ok) { setError(errorMessage(status, data, t)); return; }
         setSlots(data.slots || []);
-        setMeta({ duration: data.duration || 30, timezone: data.timezone || 'UTC' });
       })
-      .catch(err => setError(err.message))
+      .catch(() => setError(t.genericError))
       .finally(() => setLoadingSlots(false));
   }, [userId, meetingType, pageStart]);
 
@@ -86,7 +106,7 @@ export default function Book({
     e?.preventDefault();
     if (!selectedSlot) return;
     if (!guestName.trim() || !guestEmail.trim()) {
-      setError('Name and email required');
+      setError(t.nameEmailRequired);
       return;
     }
     setSubmitting(true);
@@ -106,38 +126,58 @@ export default function Book({
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Booking failed'); return; }
+      if (!res.ok) { setError(errorMessage(res.status, data, t)); return; }
       setResult(data);
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      setError(t.genericError);
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (notFound) {
+    return <p className="text-sm text-muted-foreground">{t.notFound}</p>;
+  }
+
+  const header = showHeader && type && (
+    <div className="mb-6">
+      <h2 className="text-2xl font-bold">{pickLang(type.name, lang)}</h2>
+      <p className="text-sm font-medium mt-1" style={{ color: primary }}>
+        {[priceLabel(type.priceCents, type.currency, lang), type.durationMinutes ? t.minutes(type.durationMinutes) : null]
+          .filter(Boolean).join(' · ')}
+      </p>
+      {pickLang(type.description, lang) && (
+        <p className="text-muted-foreground mt-2">{pickLang(type.description, lang)}</p>
+      )}
+    </div>
+  );
+
   if (result) {
     return (
-      <div className={styles.confirmed || 'border rounded-lg p-6 bg-green-50 dark:bg-green-900/10'}>
-        <h3 className="text-xl font-semibold mb-2">You&rsquo;re booked ✓</h3>
-        <p className="text-sm mb-4">
-          A calendar invite has been sent to <strong>{guestEmail}</strong>.
-        </p>
-        {result.meetLink && (
-          <p className="text-sm mb-2">
-            Google Meet link: <a href={result.meetLink} target="_blank" rel="noopener noreferrer" className="underline">{result.meetLink}</a>
-          </p>
-        )}
-        {result.cancelUrl && (
-          <p className="text-xs text-muted-foreground">
-            Need to cancel? <a href={result.cancelUrl} className="underline">Use this link</a>.
-          </p>
-        )}
+      <div>
+        {header}
+        <div className={styles.confirmed || 'border rounded-lg p-6 bg-green-50 dark:bg-green-900/10'}>
+          <h3 className="text-xl font-semibold mb-2">{t.booked}</h3>
+          <p className="text-sm mb-4">{t.inviteSent(guestEmail)}</p>
+          {result.meetLink && (
+            <p className="text-sm mb-2">
+              {t.meetLink} <a href={result.meetLink} target="_blank" rel="noopener noreferrer" className="underline">{result.meetLink}</a>
+            </p>
+          )}
+          {result.cancelUrl && (
+            <p className="text-xs text-muted-foreground">
+              {t.needCancel} <a href={result.cancelUrl} className="underline">{t.useLink}</a>.
+            </p>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className={styles.container || ''}>
+      {header}
+
       {/* Day strip */}
       <div className="flex items-center gap-2 mb-4">
         <button
@@ -163,8 +203,8 @@ export default function Book({
                 } ${styles.day || ''}`}
                 style={isSelected ? { borderColor: primary } : {}}
               >
-                <div className="font-medium">{formatDayLabel(date.toISOString(), tz)}</div>
-                <div className="text-muted-foreground mt-1">{count > 0 ? `${count} slots` : '—'}</div>
+                <div className="font-medium">{formatDayLabel(date.toISOString(), tz, locale)}</div>
+                <div className="text-muted-foreground mt-1">{count > 0 ? t.slots(count) : '—'}</div>
               </button>
             );
           })}
@@ -176,8 +216,11 @@ export default function Book({
         >→</button>
       </div>
 
-      {loadingSlots && <p className="text-sm text-muted-foreground">Loading availability…</p>}
+      {loadingSlots && <p className="text-sm text-muted-foreground">{t.loading}</p>}
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+      {!loadingSlots && !error && slots.length === 0 && (
+        <p className="text-sm text-muted-foreground">{t.noSlots}</p>
+      )}
 
       {/* Slots for selected day */}
       {selectedDay && !loadingSlots && (
@@ -194,7 +237,7 @@ export default function Book({
                 } ${styles.slot || ''}`}
                 style={isSelected ? { borderColor: primary } : {}}
               >
-                {formatSlotLabel(slot.startUtc, tz)}
+                {formatSlotLabel(slot.startUtc, tz, locale)}
               </button>
             );
           })}
@@ -205,16 +248,18 @@ export default function Book({
       {selectedSlot && (
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="text-sm text-muted-foreground">
-            Booking {meta.duration} min on{' '}
             <strong>
-              {formatDayLabel(selectedSlot.startUtc, tz)} at {formatSlotLabel(selectedSlot.startUtc, tz)}
-            </strong>{' '}
-            ({tz}).
+              {t.booking(
+                formatDayLabel(selectedSlot.startUtc, tz, locale),
+                formatSlotLabel(selectedSlot.startUtc, tz, locale),
+                tz
+              )}
+            </strong>
           </div>
           <input
             type="text"
             required
-            placeholder="Your name"
+            placeholder={t.yourName}
             value={guestName}
             onChange={(e) => setGuestName(e.target.value)}
             className="w-full p-2 rounded border"
@@ -222,13 +267,13 @@ export default function Book({
           <input
             type="email"
             required
-            placeholder="your@email.com"
+            placeholder={t.yourEmail}
             value={guestEmail}
             onChange={(e) => setGuestEmail(e.target.value)}
             className="w-full p-2 rounded border"
           />
           <textarea
-            placeholder="Anything you want the host to know? (optional)"
+            placeholder={t.notes}
             value={guestNotes}
             onChange={(e) => setGuestNotes(e.target.value)}
             rows={3}
@@ -240,12 +285,19 @@ export default function Book({
             className="w-full p-2 rounded text-white font-medium disabled:opacity-50"
             style={{ backgroundColor: primary }}
           >
-            {submitting ? 'Booking…' : 'Confirm booking'}
+            {submitting ? t.confirming : t.confirm}
           </button>
         </form>
       )}
     </div>
   );
+}
+
+function errorMessage(status, data, t) {
+  if (status === 503 && data?.error !== 'Addon not configured') return t.calendarUnavailable;
+  if (status === 402) return t.paymentSoon;
+  if (status === 409) return t.slotTaken;
+  return t.genericError;
 }
 
 function startOfTomorrowUtc() {

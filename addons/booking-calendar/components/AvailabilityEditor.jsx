@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const ADDON = '/api/addons/booking-calendar';
 const DAYS = [
@@ -8,26 +8,24 @@ const DAYS = [
   { key: 'thu', label: 'Thu' }, { key: 'fri', label: 'Fri' }, { key: 'sat', label: 'Sat' }, { key: 'sun', label: 'Sun' },
 ];
 
-export default function AvailabilityEditor() {
-  const [rules, setRules] = useState(null);
-  const [loading, setLoading] = useState(true);
+/**
+ * Edits ONE meeting type: what people see (code, name, description, price) and when
+ * it can be booked (duration, buffers, weekly hours). `initialRules.id` present = edit,
+ * absent = create.
+ */
+export default function AvailabilityEditor({ initialRules, onSaved, onDeleted }) {
+  const [rules, setRules] = useState(initialRules);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
 
-  useEffect(() => {
-    fetch(`${ADDON}/availability/get?meetingType=default`)
-      .then(r => r.json().then(data => ({ ok: r.ok, data })))
-      .then(({ ok, data }) => {
-        if (!ok) throw new Error(data.error || 'Failed to load');
-        setRules(data.rules);
-      })
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
-
   function updateField(field, value) {
     setRules(r => ({ ...r, [field]: value }));
+    setMessage(null);
+  }
+
+  function updateLang(field, lang, value) {
+    setRules(r => ({ ...r, [field]: { ...(r[field] || {}), [lang]: value } }));
     setMessage(null);
   }
 
@@ -67,6 +65,7 @@ export default function AvailabilityEditor() {
       if (!res.ok) throw new Error(data.error || 'Save failed');
       setRules(data.rules);
       setMessage('Saved.');
+      onSaved?.(data.rules);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -74,13 +73,92 @@ export default function AvailabilityEditor() {
     }
   }
 
-  if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
-  if (!rules) return <p className="text-sm text-red-600">{error || 'Unable to load'}</p>;
+  async function remove() {
+    if (!rules.id) return;
+    if (!window.confirm('Delete this meeting type? Bookings already made stay.')) return;
+    try {
+      const res = await fetch(`${ADDON}/types/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: rules.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Delete failed');
+      onDeleted?.(rules.id);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  const price = (rules.priceCents || 0) / 100;
 
   return (
     <div className="space-y-6">
       {error && <p className="text-sm text-red-600">{error}</p>}
       {message && <p className="text-sm text-green-700">{message}</p>}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <Field label="Code (URL: /meet/code)">
+          <input type="text" value={rules.meetingType}
+            onChange={(e) => updateField('meetingType', e.target.value.toLowerCase())}
+            placeholder="intro"
+            className="w-full p-2 rounded border" />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Price (0 = free)">
+            <input type="number" min={0} step="1" value={price}
+              onChange={(e) => updateField('priceCents', Math.round((parseFloat(e.target.value) || 0) * 100))}
+              className="w-full p-2 rounded border" />
+          </Field>
+          <Field label="Currency">
+            <select value={rules.currency || 'USD'}
+              onChange={(e) => updateField('currency', e.target.value)}
+              className="w-full p-2 rounded border">
+              <option value="USD">USD</option>
+              <option value="ARS">ARS</option>
+            </select>
+          </Field>
+        </div>
+        <Field label="Name — ES">
+          <input type="text" value={rules.name?.es || ''} maxLength={80}
+            onChange={(e) => updateLang('name', 'es', e.target.value)}
+            className="w-full p-2 rounded border" />
+        </Field>
+        <Field label="Name — EN">
+          <input type="text" value={rules.name?.en || ''} maxLength={80}
+            onChange={(e) => updateLang('name', 'en', e.target.value)}
+            className="w-full p-2 rounded border" />
+        </Field>
+        <Field label="Description — ES">
+          <textarea rows={3} value={rules.description?.es || ''} maxLength={600}
+            onChange={(e) => updateLang('description', 'es', e.target.value)}
+            className="w-full p-2 rounded border" />
+        </Field>
+        <Field label="Description — EN">
+          <textarea rows={3} value={rules.description?.en || ''} maxLength={600}
+            onChange={(e) => updateLang('description', 'en', e.target.value)}
+            className="w-full p-2 rounded border" />
+        </Field>
+      </div>
+
+      <div className="flex flex-wrap gap-6 text-sm">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={rules.active !== false}
+            onChange={(e) => updateField('active', e.target.checked)} />
+          Active (listed and bookable)
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={rules.showDuration !== false}
+            onChange={(e) => updateField('showDuration', e.target.checked)} />
+          Show duration publicly
+        </label>
+        <label className="flex items-center gap-2">
+          Order
+          <input type="number" value={rules.order || 0}
+            onChange={(e) => updateField('order', parseInt(e.target.value, 10) || 0)}
+            className="w-20 p-1 rounded border" />
+        </label>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Field label="Duration (min)">
@@ -137,10 +215,17 @@ export default function AvailabilityEditor() {
         </div>
       </div>
 
-      <button type="button" onClick={save} disabled={saving}
-        className="px-4 py-2 rounded bg-foreground text-background font-medium disabled:opacity-50">
-        {saving ? 'Saving…' : 'Save availability'}
-      </button>
+      <div className="flex items-center gap-4">
+        <button type="button" onClick={save} disabled={saving}
+          className="px-4 py-2 rounded bg-foreground text-background font-medium disabled:opacity-50">
+          {saving ? 'Saving…' : 'Save meeting type'}
+        </button>
+        {rules.id && (
+          <button type="button" onClick={remove} className="text-xs text-red-600 hover:underline">
+            Delete
+          </button>
+        )}
+      </div>
     </div>
   );
 }

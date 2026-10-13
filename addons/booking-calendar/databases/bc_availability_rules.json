@@ -1,11 +1,18 @@
 {
   "id": "bc_availability_rules",
   "name": "Booking Calendar — Availability Rules",
-  "description": "One doc per (userId, meetingType). Phase 1 uses meetingType='default'.",
+  "description": "One doc per (userId, meetingType) — each one is a meeting type, booked at /meet/<meetingType>.",
   "type": "jason",
   "schema": {
     "userId":             { "type": "string",  "required": true },
-    "meetingType":        { "type": "string",  "required": true, "default": "default" },
+    "meetingType":        { "type": "string",  "required": true, "default": "default", "description": "URL code: [a-z0-9-]" },
+    "name":               { "type": "object",  "description": "{ es, en } — what people see, emojis allowed" },
+    "description":        { "type": "object",  "description": "{ es, en }" },
+    "priceCents":         { "type": "number",  "default": 0, "description": "0 = free. Server-side price, never taken from the client" },
+    "currency":           { "type": "string",  "default": "USD" },
+    "active":             { "type": "boolean", "default": true, "description": "Off = hidden from the public list and not bookable" },
+    "order":              { "type": "number",  "default": 0 },
+    "showDuration":       { "type": "boolean", "default": true, "description": "Show the duration on the public page" },
     "durationMinutes":    { "type": "number",  "default": 30 },
     "bufferBeforeMin":    { "type": "number",  "default": 0 },
     "bufferAfterMin":     { "type": "number",  "default": 10 },
@@ -15,7 +22,7 @@
     "maxAdvanceDays":     { "type": "number",  "default": 60 },
     "slotGranularityMin": { "type": "number",  "default": 15 },
     "excludedDates":      { "type": "array",   "description": "Array of YYYY-MM-DD in timezone" },
-    "eventTitleTemplate": { "type": "string",  "default": "{guestName} ↔ Host" }
+    "eventTitleTemplate": { "type": "string",  "default": "{guestName} · {type}", "description": "{guestName} and {type} (the type's name) are replaced" }
   },
   "security": {
     "read":   { "level": "public", "description": "Public read is required so getAvailableSlots can compute for anonymous guests" },

@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import ConnectionsList from './ConnectionsList.jsx';
-import AvailabilityEditor from './AvailabilityEditor.jsx';
+import MeetingTypesEditor from './MeetingTypesEditor.jsx';
 
 /**
  * Host-only settings shell. Gated on session; optional allow-list.
  *
  * Tabs:
  *   - Connections — connect/disconnect Google accounts
- *   - Availability — weekly hours + buffers
+ *   - Meeting types — each with its page, price, duration and weekly hours
  *   - Bookings — upcoming bookings list
  */
 export default function Settings({ allowedEmails = null }) {
@@ -49,7 +49,7 @@ export default function Settings({ allowedEmails = null }) {
 
   const tabs = [
     { id: 'connections', label: 'Connections' },
-    { id: 'availability', label: 'Availability' },
+    { id: 'availability', label: 'Meeting types' },
     { id: 'bookings', label: 'Bookings' },
   ];
 
@@ -79,7 +79,7 @@ export default function Settings({ allowedEmails = null }) {
       </div>
 
       {tab === 'connections' && <ConnectionsList />}
-      {tab === 'availability' && <AvailabilityEditor />}
+      {tab === 'availability' && <MeetingTypesEditor />}
       {tab === 'bookings' && <BookingsPane />}
     </div>
   );

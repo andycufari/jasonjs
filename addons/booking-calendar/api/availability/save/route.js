@@ -1,7 +1,9 @@
 // POST /api/addons/booking-calendar/availability/save
-// Body: full rules object (meetingType, weeklyHours, etc.)
+// Body: full rules object (meetingType, weeklyHours, etc.) — one meeting type.
+// With `id` it edits that type; without, it creates a new one.
 
 import { NextResponse } from 'next/server';
+import { SLUG_RE, normalizeName, normalizeDescription } from '../../../lib/meetingTypes.js';
 
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -19,9 +21,26 @@ export async function POST(request) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
+    const meetingType = typeof body.meetingType === 'string'
+      ? body.meetingType.trim().toLowerCase()
+      : 'default';
+    if (!SLUG_RE.test(meetingType)) {
+      return NextResponse.json(
+        { error: 'The code must be lowercase letters, digits and dashes (it goes in the URL)' },
+        { status: 400 }
+      );
+    }
+
     const rules = {
       userId,
-      meetingType: body.meetingType || 'default',
+      meetingType,
+      name: normalizeName(body.name),
+      description: normalizeDescription(body.description),
+      priceCents: clampInt(body.priceCents, 0, 10_000_000, 0),
+      currency: typeof body.currency === 'string' && /^[A-Z]{3}$/.test(body.currency) ? body.currency : 'USD',
+      active: body.active !== false,
+      order: clampInt(body.order, -1000, 1000, 0),
+      showDuration: body.showDuration !== false,
       durationMinutes: clampInt(body.durationMinutes, 5, 480, 30),
       bufferBeforeMin: clampInt(body.bufferBeforeMin, 0, 240, 0),
       bufferAfterMin: clampInt(body.bufferAfterMin, 0, 240, 10),
@@ -33,24 +52,35 @@ export async function POST(request) {
       excludedDates: Array.isArray(body.excludedDates) ? body.excludedDates.filter(isYmd) : [],
       eventTitleTemplate: typeof body.eventTitleTemplate === 'string' && body.eventTitleTemplate.length <= 120
         ? body.eventTitleTemplate
-        : '{guestName} ↔ Host',
+        : '{guestName} · {type}',
     };
 
+    // `id` = editing an existing type (its code may change); no id = a new type.
     const coll = database.use('bc_availability_rules');
-    const existing = await coll.fetch({
-      filters: { userId, meetingType: rules.meetingType },
-      limit: 1,
-    });
-    const row = Array.isArray(existing) ? existing[0] : (existing?.data?.[0] || null);
+    const result = await coll.fetch({ filters: { userId } });
+    const rows = Array.isArray(result) ? result : (result?.data || []);
+    const editId = typeof body.id === 'string' ? body.id : null;
 
-    let saved;
-    if (row) {
-      saved = await coll.update(row._id || row.id, rules);
-    } else {
-      saved = await coll.add(rules);
+    const clash = rows.find(r => r.meetingType === meetingType && String(r._id || r.id) !== editId);
+    if (clash) {
+      return NextResponse.json(
+        { error: `The code "${meetingType}" is already used by another meeting type` },
+        { status: 409 }
+      );
     }
 
-    return NextResponse.json({ rules: saved });
+    let id;
+    if (editId) {
+      const row = rows.find(r => String(r._id || r.id) === editId);
+      if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      await coll.update(row._id || row.id, rules);
+      id = editId;
+    } else {
+      const added = await coll.add(rules);
+      id = String(added?._id || added?.id || '');
+    }
+
+    return NextResponse.json({ rules: { ...rules, id } });
   } catch (err) {
     console.error('[booking-calendar] availability/save error:', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
