@@ -1,7 +1,7 @@
 // Standalone: node addons/booking-calendar/lib/meetingTypes.test.js
 import assert from 'node:assert/strict';
 import {
-  SLUG_RE, normalizeName, isBookable, publicType, slotLockFor, isDuplicateKeyError,
+  SLUG_RE, normalizeName, isBookable, publicType, slotLockFor, isDuplicateKeyError, holdsSlot,
 } from './meetingTypes.js';
 
 let passed = 0;
@@ -45,7 +45,22 @@ test('slotLock is the same for the same host + instant, whatever the input forma
 test('duplicate-key errors are recognised by code or message', () => {
   assert.ok(isDuplicateKeyError({ code: 11000 }));
   assert.ok(isDuplicateKeyError(new Error('E11000 duplicate key error collection: x index: slot_lock_unique')));
+  // updateOrThrow wraps the message — must still be recognised
+  assert.ok(isDuplicateKeyError(new Error('update abc failed: E11000 duplicate key error')));
   assert.ok(!isDuplicateKeyError(new Error('timeout')));
 });
 
-console.log(`\nmeetingTypes: ${passed}/6 PASS`);
+test('which bookings keep their slot taken', () => {
+  const now = new Date('2026-10-14T12:00:00Z');
+  const later = '2026-10-14T12:20:00Z';
+  const earlier = '2026-10-14T11:40:00Z';
+  assert.equal(holdsSlot({ status: 'confirmed' }, now), true);
+  assert.equal(holdsSlot({ status: 'pending_payment', holdExpiresAt: later }, now), true, 'checkout in progress');
+  assert.equal(holdsSlot({ status: 'pending_payment', holdExpiresAt: earlier }, now), false, 'abandoned checkout');
+  assert.equal(holdsSlot({ status: 'pending_payment', holdExpiresAt: earlier, paymentId: 'pi_1' }, now), true, 'paid, confirmation pending');
+  for (const s of ['cancelled', 'expired', 'refunded', 'payment_failed']) {
+    assert.equal(holdsSlot({ status: s, paymentId: 'pi_1' }, now), false, s);
+  }
+});
+
+console.log(`\nmeetingTypes: ${passed}/7 PASS`);

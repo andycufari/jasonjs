@@ -82,7 +82,24 @@ Create `settings/billing.json`:
 
 **Stripe:**
 - URL: `https://yoursite.com/api/billing/webhook/stripe`
-- Events: `customer.subscription.*`, `invoice.*`, `checkout.session.completed`
+- Events: `customer.subscription.*`, `invoice.*`, `checkout.session.completed`,
+  `checkout.session.expired`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`
+
+**Several sites, one Stripe account → ONE webhook.** Stripe sends every event of an account
+to every endpoint registered on it, so one endpoint per site means every site receives every
+other site's events. Register a single endpoint on any of those sites (the "hub"; its .env
+holds `STRIPE_WEBHOOK_SECRET`). Checkout Sessions created by the framework carry
+`metadata.domain`; the hub routes each event to that site after re-fetching it from Stripe
+with the target site's own key — Stripe only returns it if the event belongs to the target's
+account, so a hub can't push events into a site that charges with another account. The other
+sites only need `STRIPE_SECRET_KEY` (a restricted key needs **Events: read**).
+See `core/services/billing/stripeHub.js`.
+
+**Addons that sell things** put `metadata.addon` on their Checkout Session; the webhook hands
+the payment to `addons/<addon>/hooks/billing.js` (`onPaymentSucceeded`, `onPaymentFailed`,
+`onCheckoutExpired`) with a server-side context for the site. A hook that throws makes the
+webhook answer 500 so Stripe retries — hooks must be idempotent.
+See `core/services/billing/hooks.js` and `addons/booking-calendar/hooks/billing.js`.
 
 **MercadoPago:**
 - URL: `https://yoursite.com/api/billing/webhook/mercadopago`

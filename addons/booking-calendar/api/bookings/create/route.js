@@ -1,34 +1,37 @@
 // POST /api/addons/booking-calendar/bookings/create
-// Body: { userId, meetingType?, startUtc, guestName, guestEmail, guestNotes?, timezoneGuest? }
+// Body: { userId, meetingType?, startUtc, guestName, guestEmail, guestNotes?, timezoneGuest?, returnPath? }
 //
 // Flow:
 //   1. Validate inputs; the meeting type must exist and be active.
-//   2. Paid types need checkout — not wired yet, so refuse (never book a paid slot for free).
-//   3. Re-verify the slot against live freebusy of EVERY connection (fails closed).
-//   4. Insert a pending_verify row carrying slotLock — the unique index on slotLock
-//      rejects a concurrent booking of the same host + start right here, at the DB.
-//   5. Insert the Google event on the primary connection; on failure, delete the row.
-//   6. Flip the row to confirmed (googleEventId, meetLink) and notify the host (best-effort).
+//   2. Re-verify the slot against live freebusy of EVERY connection (fails closed).
+//   3. Insert a row carrying slotLock — the unique index on slotLock rejects a
+//      concurrent booking of the same host + start right here, at the DB.
+//   4a. Free type: Google event on the primary connection → confirmed → host notified.
+//   4b. Paid type: the row holds the slot for HOLD_MS while the guest pays on Stripe;
+//       hooks/billing.js confirms it when the payment arrives. Returns { checkoutUrl }.
 
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { loadBookingEnv } from '../../../lib/env.js';
-import { makeCalendarForConnection, fetchAllBusy, insertEvent } from '../../../lib/googleClient.js';
+import { fetchAllBusy } from '../../../lib/googleClient.js';
 import { isSlotStillAvailable } from '../../../lib/slotEngine.js';
-import { notifyHostOfBooking } from '../../../lib/notify.js';
 import { publicOrigin } from '../../../lib/publicOrigin.js';
+import { confirmBooking } from '../../../lib/confirmBooking.js';
+import { createBookingCheckout } from '../../../lib/payments.js';
+import { idOf, updateOrThrow } from '../../../lib/db.js';
 import {
   fetchRules, isBookable, fetchActiveBookings, slotLockFor, isDuplicateKeyError,
+  releaseStaleHold, HOLD_MS,
 } from '../../../lib/meetingTypes.js';
 
 export async function POST(request) {
   try {
-    const { database, domain } = request.addonContext;
+    const { database, domain, siteId } = request.addonContext;
     const body = await request.json().catch(() => ({}));
 
     const {
       userId, meetingType = 'default', startUtc,
-      guestName, guestEmail, guestNotes = '', timezoneGuest = 'UTC',
+      guestName, guestEmail, guestNotes = '', timezoneGuest = 'UTC', returnPath = '/',
     } = body;
 
     if (!userId || !startUtc || !guestName || !guestEmail) {
@@ -48,13 +51,10 @@ export async function POST(request) {
     if (!isBookable(rules)) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
-    if ((rules.priceCents || 0) > 0) {
-      return NextResponse.json({ error: 'payment_required' }, { status: 402 });
-    }
+    const isPaid = (rules.priceCents || 0) > 0;
 
     const startDt = new Date(startUtc);
     const endDt = new Date(startDt.getTime() + (rules.durationMinutes || 30) * 60 * 1000);
-    const endUtc = endDt.toISOString();
 
     // Pull host's connections.
     const connResult = await database.use('bc_connections').fetch({ filters: { userId } });
@@ -62,7 +62,6 @@ export async function POST(request) {
     if (connections.length === 0) {
       return NextResponse.json({ error: 'Host has no connected calendars' }, { status: 409 });
     }
-    const primary = connections.find(c => c.isPrimary) || connections[0];
 
     const env = await loadBookingEnv(domain);
 
@@ -85,89 +84,87 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Slot no longer available' }, { status: 409 });
     }
 
-    // Insert pending booking row. slotLock makes a concurrent booking of the same start
+    // Insert the booking row. slotLock makes a concurrent booking of the same start
     // fail here. (Overlapping bookings with DIFFERENT starts are caught by the check
     // above, not by the index — the window for that race is the few ms in between.)
     const bookings = database.use('bc_bookings');
-    const cancelToken = crypto.randomBytes(16).toString('hex');
-    let pending;
+    const slotLock = slotLockFor(userId, startDt);
+    const row = {
+      userId,
+      meetingType,
+      guestName,
+      guestEmail,
+      guestNotes,
+      startUtc: startDt,
+      endUtc: endDt,
+      timezoneGuest,
+      status: isPaid ? 'pending_payment' : 'pending_verify',
+      cancelToken: crypto.randomBytes(16).toString('hex'),
+      slotLock,
+      ...(isPaid ? {
+        holdExpiresAt: new Date(Date.now() + HOLD_MS),
+        amountCents: rules.priceCents,
+        currency: rules.currency || 'USD',
+      } : {}),
+    };
+
+    let inserted;
     try {
-      pending = await bookings.add({
-        userId,
-        meetingType,
-        guestName,
-        guestEmail,
-        guestNotes,
-        startUtc: startDt,
-        endUtc: endDt,
-        timezoneGuest,
-        status: 'pending_verify',
-        cancelToken,
-        slotLock: slotLockFor(userId, startDt),
-      });
+      inserted = await bookings.add(row);
     } catch (err) {
-      if (isDuplicateKeyError(err)) {
+      if (!isDuplicateKeyError(err)) throw err;
+      // Taken — unless by an unpaid checkout past its hold, which we can release.
+      if (!(await releaseStaleHold(database, slotLock))) {
         return NextResponse.json({ error: 'Slot no longer available' }, { status: 409 });
+      }
+      try {
+        inserted = await bookings.add(row);
+      } catch (retryErr) {
+        if (isDuplicateKeyError(retryErr)) {
+          return NextResponse.json({ error: 'Slot no longer available' }, { status: 409 });
+        }
+        throw retryErr;
+      }
+    }
+    const bookingId = idOf(inserted);
+    const booking = { ...row, _id: bookingId };
+    const origin = publicOrigin(request);
+
+    if (isPaid) {
+      const back = `${origin}${safePath(returnPath)}`;
+      const sep = back.includes('?') ? '&' : '?';
+      let checkout;
+      try {
+        checkout = await createBookingCheckout({
+          domain, siteId, booking, rules,
+          returnUrl: `${back}${sep}paid=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${back}${sep}released=${bookingId}&t=${row.cancelToken}`,
+        });
+      } catch (err) {
+        await bookings.delete(bookingId).catch(() => {});
+        if (err.code === 'PAYMENT_NOT_CONFIGURED') {
+          return NextResponse.json({ error: 'payment_unavailable' }, { status: 503 });
+        }
+        console.error('[booking-calendar] checkout creation failed:', err);
+        return NextResponse.json({ error: 'payment_unavailable' }, { status: 502 });
+      }
+      await updateOrThrow(bookings, bookingId, { stripeSessionId: checkout.sessionId });
+      return NextResponse.json({ bookingId, checkoutUrl: checkout.url });
+    }
+
+    let confirmed;
+    try {
+      confirmed = await confirmBooking({ database, domain, origin, booking, rules, connections, env });
+    } catch (err) {
+      // Could not create the event — roll back the row (releases the slot).
+      await bookings.delete(bookingId).catch(() => {});
+      if (err.code === 'EVENT_INSERT_FAILED') {
+        return NextResponse.json({ error: 'Failed to create calendar event' }, { status: 502 });
       }
       throw err;
     }
-    const bookingId = pending._id || pending.id;
 
-    // Insert Google event on primary.
-    let eventResult;
-    try {
-      const { calendar } = makeCalendarForConnection({
-        database, connection: primary,
-        clientId: env.GOOGLE_CLIENT_ID,
-        clientSecret: env.GOOGLE_CLIENT_SECRET,
-        redirectUri: env.GOOGLE_REDIRECT_URI,
-      });
-      const typeName = rules.name?.es || rules.name?.en || meetingType;
-      const title = (rules.eventTitleTemplate || '{guestName} · {type}')
-        .replace('{guestName}', guestName)
-        .replace('{type}', typeName);
-      eventResult = await insertEvent({
-        calendar,
-        calendarId: primary.writeCalendarId || 'primary',
-        summary: title,
-        description: buildEventDescription({ guestName, guestEmail, guestNotes, cancelUrl: cancelUrlFor(request, cancelToken) }),
-        startUtc: startDt.toISOString(),
-        endUtc: endUtc,
-        attendees: [{ email: guestEmail, displayName: guestName }],
-        guestTimezone: timezoneGuest,
-      });
-    } catch (err) {
-      // Could not create event — roll back pending row (releases the slot).
-      await bookings.delete(bookingId).catch(() => {});
-      console.error('[booking-calendar] insertEvent failed:', err);
-      return NextResponse.json({ error: 'Failed to create calendar event' }, { status: 502 });
-    }
-
-    await bookings.update(bookingId, {
-      status: 'confirmed',
-      googleEventId: eventResult.eventId,
-      googleCalendarId: primary.writeCalendarId || 'primary',
-      meetLink: eventResult.meetLink || eventResult.hangoutLink || null,
-    });
-
-    // Host notification (best-effort).
-    if (primary.googleAccountEmail) {
-      await notifyHostOfBooking({
-        domain,
-        hostEmail: primary.googleAccountEmail,
-        booking: {
-          guestName, guestEmail, guestNotes,
-          startUtc: startDt.toISOString(), timezoneGuest,
-          meetLink: eventResult.meetLink,
-        },
-      });
-    }
-
-    return NextResponse.json({
-      bookingId,
-      meetLink: eventResult.meetLink,
-      cancelUrl: cancelUrlFor(request, cancelToken),
-    });
+    return NextResponse.json({ bookingId, meetLink: confirmed.meetLink, cancelUrl: confirmed.cancelUrl });
   } catch (err) {
     if (err.code === 'CALENDAR_UNAVAILABLE') {
       return NextResponse.json({ error: 'calendar_unavailable' }, { status: 503 });
@@ -180,17 +177,9 @@ export async function POST(request) {
   }
 }
 
-function buildEventDescription({ guestName, guestEmail, guestNotes, cancelUrl }) {
-  const lines = [
-    `Guest: ${guestName} <${guestEmail}>`,
-  ];
-  if (guestNotes) lines.push('', 'Notes:', guestNotes);
-  lines.push('', `Cancel: ${cancelUrl}`);
-  return lines.join('\n');
-}
-
-function cancelUrlFor(request, token) {
-  return new URL(`/api/addons/booking-calendar/bookings/cancel?token=${token}`, publicOrigin(request)).toString();
+/** Only a same-site path: never let the client choose where Stripe sends the guest. */
+function safePath(p) {
+  return typeof p === 'string' && /^\/(?!\/)[^\s\\]*$/.test(p) ? p.split('?')[0] : '/';
 }
 
 function isEmail(s) { return typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }

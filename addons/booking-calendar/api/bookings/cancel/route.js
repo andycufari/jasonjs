@@ -6,6 +6,8 @@
 import { NextResponse } from 'next/server';
 import { loadBookingEnv } from '../../../lib/env.js';
 import { makeCalendarForConnection, deleteEvent } from '../../../lib/googleClient.js';
+import { getStripeProvider } from '../../../lib/payments.js';
+import { idOf, updateOrThrow } from '../../../lib/db.js';
 
 async function handle(request, params) {
   try {
@@ -27,6 +29,22 @@ async function handle(request, params) {
 
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (row.status === 'cancelled') return NextResponse.json({ ok: true, alreadyCancelled: true });
+
+    // Abandoned checkout (guest came back from Stripe without paying): close the Stripe
+    // session so nobody can pay for a slot we're releasing. A payment that slips in
+    // anyway is handled by hooks/billing.js (re-takes the slot or refunds).
+    if (row.status === 'pending_payment' && !row.paymentId) {
+      if (row.stripeSessionId) {
+        try {
+          const { provider } = await getStripeProvider(domain);
+          await provider.expireCheckoutSession(row.stripeSessionId);
+        } catch (err) {
+          console.warn('[booking-calendar] cancel: could not expire checkout session (continuing):', err.message);
+        }
+      }
+      await updateOrThrow(bookings, idOf(row), { status: 'cancelled', slotLock: null });
+      return NextResponse.json({ ok: true });
+    }
 
     // Best-effort Google event delete. The event lives in whichever account was primary
     // when it was booked, and the primary can be changed in Settings since — so try the
@@ -62,8 +80,9 @@ async function handle(request, params) {
       }
     }
 
-    // slotLock null frees the slot in the unique index.
-    await bookings.update(row._id || row.id, { status: 'cancelled', slotLock: null });
+    // slotLock null frees the slot in the unique index. A paid booking is cancelled
+    // without an automatic refund — that's the host's call, from Stripe.
+    await updateOrThrow(bookings, idOf(row), { status: 'cancelled', slotLock: null });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[booking-calendar] bookings/cancel error:', err);

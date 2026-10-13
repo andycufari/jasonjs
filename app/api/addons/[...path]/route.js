@@ -12,8 +12,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { resolveSite } from '@/core/sites/resolve';
 import { createAuthOptions } from '@/core/auth/options.js';
-import { getSite, getAllDatabases } from '@/core/sites/files';
-import Database from '@/core/db';
+import { getSite } from '@/core/sites/files';
+import { createAddonContext } from '@/core/addons/context';
 
 /**
  * Handle addon API requests
@@ -37,29 +37,18 @@ async function handleRequest(request, routeContext, method) {
 
   // Build context (auto-injected into addon handlers)
   const { host } = await resolveSite(request);
-  const site = await getSite(host);
 
-  if (!site) {
+  // Unknown site → 404 before building auth for it (getSite is cached).
+  if (!(await getSite(host))) {
     return NextResponse.json(
       { error: 'Site not found' },
       { status: 404 }
     );
   }
 
-  const databases = await getAllDatabases(host);
   const authOptions = await createAuthOptions({ host });
   const session = await getServerSession(authOptions);
-
-  const addonContext = {
-    siteId: site._id || host,
-    domain: host,
-    userId: session?.user?.id || session?.user?.email || null,
-    session,
-    databaseSchemas: databases
-  };
-
-  // Create pre-configured database instance
-  const database = new Database(databases, {}, addonContext);
+  const addonContext = await createAddonContext({ host, session });
 
   // Build route path (default to 'index' if no sub-route)
   const routePath = routeParts.length > 0 ? routeParts.join('/') : 'index';
@@ -78,7 +67,7 @@ async function handleRequest(request, routeContext, method) {
     }
 
     // Inject context into request for handler access
-    request.addonContext = { ...addonContext, database };
+    request.addonContext = addonContext;
 
     return handler(request, { params: resolvedParams });
   } catch (error) {

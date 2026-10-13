@@ -50,6 +50,52 @@ export default function Book({
   const [guestNotes, setGuestNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  const [notice, setNotice] = useState(null); // outcome of a checkout we came back from
+
+  // Back from Stripe: ?paid=<id>&session_id=… (paid) or ?released=<id>&t=<token> (gave up).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const paidId = params.get('paid');
+    const sessionId = params.get('session_id');
+    const releasedToken = params.get('released') && params.get('t');
+    if (!paidId && !releasedToken) return;
+    window.history.replaceState({}, '', window.location.pathname);
+
+    if (releasedToken) {
+      fetch(`${ADDON}/bookings/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: releasedToken }),
+      }).catch(() => {}).finally(() => setNotice(t.paymentAbandoned));
+      return;
+    }
+
+    // The webhook confirms the booking a few seconds after payment: poll for it.
+    let tries = 0;
+    let stopped = false;
+    setNotice(t.checkingPayment);
+    const poll = async () => {
+      if (stopped) return;
+      tries++;
+      try {
+        const res = await fetch(`${ADDON}/bookings/status?id=${encodeURIComponent(paidId)}&s=${encodeURIComponent(sessionId || '')}`);
+        const data = await res.json();
+        if (res.ok && data.status === 'confirmed') {
+          setNotice(null);
+          setGuestEmail(data.guestEmail || '');
+          setResult({ meetLink: data.meetLink });
+          return;
+        }
+        if (res.ok && data.status === 'refunded') { setNotice(t.paymentRefunded); return; }
+        if (res.ok && data.status === 'payment_failed') { setNotice(t.paymentFailed); return; }
+      } catch {}
+      if (tries >= 20) { setNotice(t.paymentPending); return; }
+      setTimeout(poll, 2000);
+    };
+    poll();
+    return () => { stopped = true; };
+  }, []);
 
   // The meeting type itself: what the visitor is booking.
   useEffect(() => {
@@ -123,17 +169,28 @@ export default function Book({
           guestEmail: guestEmail.trim(),
           guestNotes: guestNotes.trim(),
           timezoneGuest: tz,
+          returnPath: window.location.pathname,
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(errorMessage(res.status, data, t)); return; }
+      if (!res.ok) { setError(errorMessage(res.status, data, t)); setSubmitting(false); return; }
+      if (data.checkoutUrl) {
+        // Paid type: the slot is held while the guest pays; keep the button busy.
+        window.location.href = data.checkoutUrl;
+        return;
+      }
       setResult(data);
+      setSubmitting(false);
     } catch {
       setError(t.genericError);
-    } finally {
       setSubmitting(false);
     }
   };
+
+  const isPaid = (type?.priceCents || 0) > 0;
+  const submitLabel = submitting
+    ? (isPaid ? t.redirecting : t.confirming)
+    : (isPaid ? t.payAndBook(priceLabel(type.priceCents, type.currency, lang)) : t.confirm);
 
   if (notFound) {
     return <p className="text-sm text-muted-foreground">{t.notFound}</p>;
@@ -177,6 +234,7 @@ export default function Book({
   return (
     <div className={styles.container || ''}>
       {header}
+      {notice && <p className="text-sm border rounded p-3 mb-4">{notice}</p>}
 
       {/* Day strip */}
       <div className="flex items-center gap-2 mb-4">
@@ -285,7 +343,7 @@ export default function Book({
             className="w-full p-2 rounded text-white font-medium disabled:opacity-50"
             style={{ backgroundColor: primary }}
           >
-            {submitting ? t.confirming : t.confirm}
+            {submitLabel}
           </button>
         </form>
       )}
@@ -294,8 +352,8 @@ export default function Book({
 }
 
 function errorMessage(status, data, t) {
+  if (data?.error === 'payment_unavailable') return t.paymentUnavailable;
   if (status === 503 && data?.error !== 'Addon not configured') return t.calendarUnavailable;
-  if (status === 402) return t.paymentSoon;
   if (status === 409) return t.slotTaken;
   return t.genericError;
 }

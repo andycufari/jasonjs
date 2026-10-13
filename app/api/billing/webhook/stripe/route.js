@@ -10,47 +10,72 @@ import {
   createCustomerFromWebhook,
 } from '@/core/services/billing/customer';
 import { resolveSite } from '@/core/sites/resolve';
+import { emitWorkerEvent } from '@/core/worker/events';
+import { resolveStripeTarget } from '@/core/services/billing/stripeHub';
+import { runAddonBillingHook } from '@/core/services/billing/hooks';
 
 /**
  * Stripe webhook handler
  * POST /api/billing/webhook/stripe
  *
+ * One endpoint per Stripe account can serve every site that charges with it: events
+ * carrying metadata.domain of another site are routed there (see stripeHub.js).
+ *
  * Handles:
  * - checkout.session.completed: Creates customer record if missing (fallback)
  * - customer.subscription.created/updated/deleted: Syncs subscription to database
  * - invoice.payment_succeeded/failed: Records payment history
+ * - one-time payments with metadata.addon → that addon's hooks/billing.js
+ * - one-time guest payments (metadata.guest + orderId) → worker event, like MercadoPago
+ * - checkout.session.expired → addon hook (release whatever the checkout was holding)
  */
 export async function POST(request) {
   try {
-    const { host: domain } = await resolveSite(request);
+    const { host: receivingDomain } = await resolveSite(request);
 
     // Get site configuration (contains siteId)
-    const site = await getSite(domain);
-    if (!site) {
-      console.error('Stripe webhook - site not found:', domain);
+    const receivingSite = await getSite(receivingDomain);
+    if (!receivingSite) {
+      console.error('Stripe webhook - site not found:', receivingDomain);
       return NextResponse.json({ error: 'Site not found' }, { status: 404 });
     }
 
     // Get billing configuration (with env vars resolved)
-    const billingConfig = await getBillingConfig(domain);
+    const billingConfig = await getBillingConfig(receivingDomain);
     if (!billingConfig?.stripe) {
       console.error('Stripe webhook - stripe not configured');
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 404 });
     }
 
     // Initialize Stripe provider
-    const provider = new StripeProvider(billingConfig.stripe);
+    const receivingProvider = new StripeProvider(billingConfig.stripe);
 
     // Verify webhook signature
-    let event;
+    let verifiedEvent;
     try {
-      event = await provider.verifyWebhook(request);
+      verifiedEvent = await receivingProvider.verifyWebhook(request);
     } catch (error) {
       console.error('Stripe webhook verification failed:', error.message);
       return NextResponse.json({ error: 'Webhook verification failed' }, { status: 400 });
     }
 
-    console.log(`Stripe webhook received: ${event.type}`);
+    // Route to the site the event belongs to (this one, unless metadata says otherwise).
+    let target;
+    try {
+      target = await resolveStripeTarget({
+        event: verifiedEvent, receivingDomain, receivingSite, receivingProvider,
+      });
+    } catch (error) {
+      console.error(`Stripe webhook - routing ${verifiedEvent.id} failed:`, error.message);
+      return NextResponse.json({ error: 'Routing failed' }, { status: 500 });
+    }
+    if (target.drop) {
+      console.warn(`Stripe webhook - dropped ${verifiedEvent.type} ${verifiedEvent.id}: ${target.drop}`);
+      return NextResponse.json({ received: true });
+    }
+
+    const { domain, site, provider, event } = target;
+    console.log(`Stripe webhook received: ${event.type}${domain !== receivingDomain ? ` → routed to ${domain}` : ''}`);
 
     // Handle the event
     const normalizedEvent = await provider.handleWebhookEvent(event);
@@ -169,6 +194,47 @@ export async function POST(request) {
       case 'payment.failed': {
         const payment = normalizedEvent.data;
 
+        // ADDON payment: the addon named in metadata applies it (e.g. confirms a booking).
+        // A failing hook answers 500 so Stripe retries — the money may already be taken.
+        if (payment.metadata?.addon) {
+          const hook = normalizedEvent.type === 'payment.succeeded' ? 'onPaymentSucceeded' : 'onPaymentFailed';
+          try {
+            await runAddonBillingHook({
+              addon: payment.metadata.addon, hook, domain, payload: { payment, provider },
+            });
+          } catch (error) {
+            console.error(`Stripe webhook - ${payment.metadata.addon}.${hook} failed for ${payment.id}:`, error);
+            return NextResponse.json({ error: 'Addon billing hook failed' }, { status: 500 });
+          }
+          break;
+        }
+
+        // GUEST one-time payment: no billing_customer / userId. Linked to the app's own
+        // order via metadata.orderId — same worker event as the MercadoPago webhook.
+        const orderId = payment.metadata?.orderId;
+        const isGuest = payment.metadata?.guest === true || payment.metadata?.guest === 'true';
+        if (isGuest && orderId) {
+          const eventName = normalizedEvent.type === 'payment.succeeded'
+            ? 'billing:guest_payment_succeeded'
+            : 'billing:guest_payment_failed';
+          await emitWorkerEvent({
+            siteId,
+            domain,
+            eventName,
+            payload: {
+              orderId,
+              status: payment.status,        // 'succeeded' | 'failed'
+              paymentId: payment.id,
+              amount: payment.amount,        // cents
+              currency: payment.currency,
+              email: payment.email,
+              metadata: payment.metadata,
+            },
+          });
+          console.log(`Guest ${normalizedEvent.type} emitted for order ${orderId} (payment ${payment.id})`);
+          break;
+        }
+
         // Find userId from customer
         const localCustomer = await findOrRecoverCustomer(payment.customerId);
 
@@ -184,6 +250,27 @@ export async function POST(request) {
         });
 
         console.log(`Payment ${payment.status} recorded for user ${localCustomer.userId}`);
+        break;
+      }
+
+      // Delayed payment method: the money isn't there yet (async_payment_* follows).
+      case 'payment.pending':
+        console.log(`Payment pending for session ${normalizedEvent.data.sessionId}`);
+        break;
+
+      // A checkout nobody paid: let the addon release whatever it was holding.
+      case 'checkout.expired': {
+        const checkout = normalizedEvent.data;
+        if (checkout.metadata?.addon) {
+          try {
+            await runAddonBillingHook({
+              addon: checkout.metadata.addon, hook: 'onCheckoutExpired', domain, payload: { checkout, provider },
+            });
+          } catch (error) {
+            console.error(`Stripe webhook - ${checkout.metadata.addon}.onCheckoutExpired failed:`, error);
+            return NextResponse.json({ error: 'Addon billing hook failed' }, { status: 500 });
+          }
+        }
         break;
       }
 

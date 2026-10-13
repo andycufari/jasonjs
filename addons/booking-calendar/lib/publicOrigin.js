@@ -4,7 +4,12 @@
 // so build the public one from the tenant domain — same rule as core/auth/options.js.
 
 export function publicOrigin(request) {
-  const domain = request.addonContext?.domain || '';
-  const isLocal = /^(localhost|127\.0\.0\.1)(:|$)/.test(domain);
-  return !domain || isLocal ? new URL(request.url).origin : `https://${domain}`;
+  return originFromDomain(request.addonContext?.domain || '', request.url);
+}
+
+/** Same rule without a request (billing webhooks act for a site that didn't receive the call). */
+export function originFromDomain(domain, fallbackUrl = null) {
+  const isLocal = /^(localhost|127\.0\.0\.1)(:|$)/.test(domain || '');
+  if ((!domain || isLocal) && fallbackUrl) return new URL(fallbackUrl).origin;
+  return `${isLocal ? 'http' : 'https'}://${domain}`;
 }

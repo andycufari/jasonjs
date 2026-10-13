@@ -144,9 +144,18 @@ export default class StripeProvider extends BaseProvider {
 
   /**
    * Create a custom checkout session with line items
+   *
+   * @param {string} customerIdOrEmail - Stripe customer ID (cus_…) or the buyer's email (guest checkout)
+   * @param {Object} options
+   * @param {Date|string|number} [options.expiresAt] - When the session stops accepting payment (Stripe: 30 min – 24 h from now)
+   * @param {string} [options.clientReferenceId] - Your own id for this purchase (order, booking…)
+   * @param {string} [options.statementDescriptorSuffix] - Appended to the account's card statement descriptor
    */
-  async createCustomCheckout(customerId, items, options = {}) {
-    const { currency = 'usd', returnUrl, cancelUrl, metadata = {} } = options;
+  async createCustomCheckout(customerIdOrEmail, items, options = {}) {
+    const {
+      currency = 'usd', returnUrl, cancelUrl, metadata = {},
+      expiresAt, clientReferenceId, statementDescriptorSuffix,
+    } = options;
 
     // Transform items to Stripe line_items format
     const lineItems = items.map(item => ({
@@ -161,23 +170,73 @@ export default class StripeProvider extends BaseProvider {
       quantity: item.quantity || 1,
     }));
 
-    const session = await this.stripe.checkout.sessions.create({
-      customer: customerId,
+    const sessionMetadata = {
+      ...metadata,
+      itemCount: items.length,
+      itemNames: items.map(i => i.name).join(', ').slice(0, 500), // Stripe caps values at 500 chars
+    };
+
+    const sessionParams = {
       mode: 'payment',
       line_items: lineItems,
       success_url: returnUrl || this.config.returnUrl,
       cancel_url: cancelUrl || this.config.cancelUrl,
-      metadata: {
-        ...metadata,
-        itemCount: items.length,
-        itemNames: items.map(i => i.name).join(', '),
-      },
-    });
+      metadata: sessionMetadata,
+      // Same metadata on the PaymentIntent, so its own events (refunds, disputes) can be
+      // attributed to the site and purchase too.
+      payment_intent_data: { metadata: sessionMetadata },
+    };
+
+    // Stripe rejects an email in `customer` ("No such customer"): it must be a cus_… id.
+    // Guest checkout passes the buyer's email, which goes in customer_email.
+    if (customerIdOrEmail && String(customerIdOrEmail).startsWith('cus_')) {
+      sessionParams.customer = customerIdOrEmail;
+    } else if (customerIdOrEmail) {
+      sessionParams.customer_email = customerIdOrEmail;
+    }
+    if (expiresAt) {
+      sessionParams.expires_at = Math.floor(new Date(expiresAt).getTime() / 1000);
+    }
+    if (clientReferenceId) {
+      sessionParams.client_reference_id = String(clientReferenceId);
+    }
+    if (statementDescriptorSuffix) {
+      sessionParams.payment_intent_data.statement_descriptor_suffix = statementDescriptorSuffix;
+    }
+
+    const session = await this.stripe.checkout.sessions.create(sessionParams);
 
     return {
       id: session.id,
       url: session.url,
     };
+  }
+
+  /**
+   * Stop a Checkout Session from accepting payment (e.g. the buyer gave up and the
+   * thing they were buying was released).
+   */
+  async expireCheckoutSession(sessionId) {
+    return await this.stripe.checkout.sessions.expire(sessionId);
+  }
+
+  /**
+   * Refund a payment in full.
+   */
+  async refundPayment(paymentIntentId, { metadata = {} } = {}) {
+    const refund = await this.stripe.refunds.create({
+      payment_intent: paymentIntentId,
+      metadata,
+    });
+    return { id: refund.id, status: refund.status };
+  }
+
+  /**
+   * Fetch an event from Stripe. Fails with 404 when the event doesn't belong to this
+   * key's account — used by the webhook hub to prove which account an event is from.
+   */
+  async retrieveEvent(eventId) {
+    return await this.stripe.events.retrieve(eventId);
   }
 
   /**
@@ -275,23 +334,30 @@ export default class StripeProvider extends BaseProvider {
         };
 
       case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded':
         // Handle one-time payments
         if (data.object.mode === 'payment') {
-          return {
-            type: 'payment.succeeded',
-            data: {
-              id: data.object.payment_intent,
-              customerId: data.object.customer,
-              amount: data.object.amount_total,
-              currency: data.object.currency,
-              status: 'succeeded',
-              description: 'One-time payment',
-              metadata: data.object.metadata,
-            },
-          };
+          // Delayed methods (bank debits) complete the session UNPAID; their money
+          // arrives later with async_payment_succeeded. Only 'paid' is a payment.
+          if (data.object.payment_status !== 'paid') {
+            return { type: 'payment.pending', data: this.normalizeCheckoutPayment(data.object, 'pending') };
+          }
+          return { type: 'payment.succeeded', data: this.normalizeCheckoutPayment(data.object, 'succeeded') };
+        }
+        if (type === 'checkout.session.async_payment_succeeded') {
+          return { type: 'unknown', data: data.object };
         }
         // For subscription checkouts, wait for subscription.created event
         return { type: 'checkout.completed', data: data.object };
+
+      case 'checkout.session.async_payment_failed':
+        return { type: 'payment.failed', data: this.normalizeCheckoutPayment(data.object, 'failed') };
+
+      case 'checkout.session.expired':
+        return {
+          type: 'checkout.expired',
+          data: { sessionId: data.object.id, metadata: data.object.metadata },
+        };
 
       default:
         return { type: 'unknown', data: data.object };
@@ -315,6 +381,23 @@ export default class StripeProvider extends BaseProvider {
       currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
       cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
       metadata: stripeSubscription.metadata,
+    };
+  }
+
+  /**
+   * Normalize a one-time Checkout Session payment to common format
+   */
+  normalizeCheckoutPayment(session, status) {
+    return {
+      id: session.payment_intent,
+      sessionId: session.id,
+      customerId: session.customer,
+      email: session.customer_details?.email || session.customer_email || null,
+      amount: session.amount_total,
+      currency: session.currency,
+      status,
+      description: 'One-time payment',
+      metadata: session.metadata,
     };
   }
 

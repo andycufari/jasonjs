@@ -84,9 +84,8 @@ export async function POST(request) {
 
     const checkoutCurrency = currency || (providerName === 'mercadopago' ? 'ARS' : 'USD');
 
-    // No getOrCreateCustomer: pass the buyer email straight through as the
-    // provider customer identifier. MercadoPago uses payer.email; Stripe accepts
-    // an email-only customer for one-time Checkout sessions.
+    // No getOrCreateCustomer: pass the buyer email straight through. MercadoPago uses
+    // it as payer.email; the Stripe provider turns it into customer_email.
     const checkoutSession = await provider.createCustomCheckout(
       email,
       items,
@@ -99,6 +98,7 @@ export async function POST(request) {
           orderId,
           guest: true,
           siteId,
+          domain, // lets a shared Stripe webhook (stripeHub.js) route the payment here
           customCheckout: true,
         },
       }

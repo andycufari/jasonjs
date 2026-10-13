@@ -45,19 +45,54 @@ export async function fetchRules(database, userId, meetingType) {
 }
 
 /**
+ * Paid types hold the slot while the guest pays. Stripe's minimum session life is
+ * 30 minutes and the session expires with the hold, so nobody can pay for a slot that
+ * was already released.
+ */
+export const HOLD_MS = 31 * 60 * 1000;
+
+/** Does this booking keep its time slot taken? */
+export function holdsSlot(b, now = new Date()) {
+  if (b.status === 'confirmed') return true;
+  if (b.status === 'pending_payment') {
+    // Paid but not confirmed yet (e.g. Google failed, Stripe will retry): still taken.
+    return !!b.paymentId || new Date(b.holdExpiresAt) > now;
+  }
+  return false;
+}
+
+/**
  * Bookings that hold their time slot. Newest start first, so a long history never
  * pushes upcoming bookings out of the limit.
  */
-export async function fetchActiveBookings(database, userId, limit = 500) {
+export async function fetchActiveBookings(database, userId, { limit = 500, excludeId = null } = {}) {
   const result = await database.use('bc_bookings').fetch({
-    filters: { userId, status: 'confirmed' },
+    filters: { userId },
     sort: { startUtc: 'desc' },
     limit,
   });
+  const now = new Date();
   const rows = Array.isArray(result) ? result : (result?.data || []);
   return rows
-    .filter(b => b.startUtc && b.endUtc)
+    .filter(b => b.startUtc && b.endUtc && holdsSlot(b, now))
+    .filter(b => !excludeId || String(b._id || b.id) !== String(excludeId))
     .map(b => ({ startUtc: new Date(b.startUtc).toISOString(), endUtc: new Date(b.endUtc).toISOString() }));
+}
+
+/**
+ * An unpaid hold past its expiry still owns slotLock until checkout.session.expired
+ * arrives. If a new booking runs into it first, release it here.
+ * @returns {Promise<boolean>} true if a stale hold was released
+ */
+export async function releaseStaleHold(database, slotLock) {
+  const bookings = database.use('bc_bookings');
+  const result = await bookings.fetch({ filters: { slotLock }, limit: 1 });
+  const row = Array.isArray(result) ? result[0] : (result?.data?.[0] || null);
+  // Only unpaid checkouts past their hold. A pending_verify row is a free booking
+  // in flight (creating its Google event right now) — never steal its slot.
+  if (!row || row.status !== 'pending_payment' || holdsSlot(row)) return false;
+  await bookings.update(String(row._id || row.id), { status: 'expired', slotLock: null });
+  return true;
 }
 
 /**
