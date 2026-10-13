@@ -64,6 +64,7 @@ export async function POST(request) {
     try {
       target = await resolveStripeTarget({
         event: verifiedEvent, receivingDomain, receivingSite, receivingProvider,
+        receivingConfig: billingConfig.stripe,
       });
     } catch (error) {
       console.error(`Stripe webhook - routing ${verifiedEvent.id} failed:`, error.message);

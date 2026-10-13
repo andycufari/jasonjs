@@ -14,13 +14,24 @@ import { getSite } from '@/core/sites/files';
 import { getBillingConfig } from '@/core/services/billing/config';
 import StripeProvider from '@/core/services/billing/providers/stripe';
 
+//
+// A Stripe account shared with systems outside the platform (another product's own
+// checkout, say) delivers THEIR events here too. With `"sharedAccount": true` in the
+// receiving site's billing.json stripe config, events without metadata.domain — i.e. not
+// created by a platform site — are dropped instead of going down the legacy path.
+// Opt-in: sites that own their Stripe account keep handling untagged events as before.
+
 /**
  * @returns {Promise<Object>} { domain, site, provider, event } to handle, or { drop: reason }
  *   when the event can't be attributed. Throws on transient failures so Stripe retries.
  */
-export async function resolveStripeTarget({ event, receivingDomain, receivingSite, receivingProvider }) {
+export async function resolveStripeTarget({ event, receivingDomain, receivingSite, receivingProvider, receivingConfig = {} }) {
   const metadata = event?.data?.object?.metadata || {};
   const targetDomain = metadata.domain;
+
+  if (!targetDomain && receivingConfig.sharedAccount) {
+    return { drop: 'no metadata.domain on a shared Stripe account — not from a platform site' };
+  }
 
   if (!targetDomain || targetDomain === receivingDomain) {
     return { domain: receivingDomain, site: receivingSite, provider: receivingProvider, event };

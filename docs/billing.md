@@ -95,6 +95,11 @@ account, so a hub can't push events into a site that charges with another accoun
 sites only need `STRIPE_SECRET_KEY` (a restricted key needs **Events: read**).
 See `core/services/billing/stripeHub.js`.
 
+If the Stripe account is **shared with systems outside the platform** (another product's own
+checkout), their events reach the hub too. Add `"sharedAccount": true` to the hub's
+`billing.json` stripe config: events without `metadata.domain` are then dropped instead of
+going down the legacy customer/payment path.
+
 **Addons that sell things** put `metadata.addon` on their Checkout Session; the webhook hands
 the payment to `addons/<addon>/hooks/billing.js` (`onPaymentSucceeded`, `onPaymentFailed`,
 `onCheckoutExpired`) with a server-side context for the site. A hook that throws makes the
