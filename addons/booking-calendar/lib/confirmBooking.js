@@ -6,8 +6,37 @@ import { makeCalendarForConnection, insertEvent } from './googleClient.js';
 import { notifyHostOfBooking } from './notify.js';
 import { idOf, updateOrThrow } from './db.js';
 
-export function cancelUrlFor(origin, cancelToken) {
+/**
+ * Where the guest cancels: the page they booked on (the Book widget opens its cancel
+ * view on ?cancel=), or — for rows without a pagePath — the API, which shows a bare
+ * confirm page. Neither cancels on a plain GET: mail scanners open every link.
+ */
+export function cancelUrlFor(origin, cancelToken, pagePath) {
+  if (pagePath) return `${origin}${pagePath}?cancel=${cancelToken}`;
   return `${origin}/api/addons/booking-calendar/bookings/cancel?token=${cancelToken}`;
+}
+
+export function typeNameOf(rules, meetingType) {
+  return rules?.name?.es || rules?.name?.en || meetingType;
+}
+
+/** The booking as the host emails show it. */
+export function bookingForEmail(booking, typeName, meetLink) {
+  return {
+    guestName: booking.guestName,
+    guestEmail: booking.guestEmail,
+    guestNotes: booking.guestNotes,
+    subject: booking.subject,
+    whatsapp: booking.whatsapp,
+    answers: booking.answers,
+    typeName,
+    amountCents: booking.amountCents,
+    currency: booking.currency,
+    paymentId: booking.paymentId,
+    startUtc: new Date(booking.startUtc).toISOString(),
+    timezoneGuest: booking.timezoneGuest,
+    meetLink: meetLink ?? booking.meetLink ?? null,
+  };
 }
 
 /**
@@ -16,9 +45,9 @@ export function cancelUrlFor(origin, cancelToken) {
  */
 export async function confirmBooking({ database, domain, origin, booking, rules, connections, env }) {
   const primary = connections.find(c => c.isPrimary) || connections[0];
-  const cancelUrl = cancelUrlFor(origin, booking.cancelToken);
+  const cancelUrl = cancelUrlFor(origin, booking.cancelToken, booking.pagePath);
 
-  const typeName = rules.name?.es || rules.name?.en || booking.meetingType;
+  const typeName = typeNameOf(rules, booking.meetingType);
 
   let eventResult;
   try {
@@ -61,20 +90,8 @@ export async function confirmBooking({ database, domain, origin, booking, rules,
     await notifyHostOfBooking({
       domain,
       hostEmail: primary.googleAccountEmail,
-      booking: {
-        guestName: booking.guestName,
-        guestEmail: booking.guestEmail,
-        guestNotes: booking.guestNotes,
-        subject: booking.subject,
-        whatsapp: booking.whatsapp,
-        answers: booking.answers,
-        typeName,
-        amountCents: booking.amountCents,
-        currency: booking.currency,
-        startUtc: new Date(booking.startUtc).toISOString(),
-        timezoneGuest: booking.timezoneGuest,
-        meetLink,
-      },
+      booking: bookingForEmail(booking, typeName, meetLink),
+      hostTimezone: rules.timezone,
     });
   }
 

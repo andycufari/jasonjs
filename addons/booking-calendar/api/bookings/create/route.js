@@ -117,6 +117,8 @@ export async function POST(request) {
       timezoneGuest,
       status: isPaid ? 'pending_payment' : 'pending_verify',
       cancelToken: crypto.randomBytes(16).toString('hex'),
+      // The page the guest booked on: their cancel link opens it (Book's cancel view).
+      pagePath: isSafePath(returnPath) ? returnPath.split('?')[0] : null,
       slotLock,
       ...(isPaid ? {
         holdExpiresAt: new Date(Date.now() + HOLD_MS),
@@ -196,7 +198,11 @@ export async function POST(request) {
 
 /** Only a same-site path: never let the client choose where Stripe sends the guest. */
 function safePath(p) {
-  return typeof p === 'string' && /^\/(?!\/)[^\s\\]*$/.test(p) ? p.split('?')[0] : '/';
+  return isSafePath(p) ? p.split('?')[0] : '/';
+}
+
+function isSafePath(p) {
+  return typeof p === 'string' && p.length <= 200 && /^\/(?!\/)[^\s\\]*$/.test(p);
 }
 
 function isEmail(s) { return typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }

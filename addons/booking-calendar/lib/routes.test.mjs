@@ -11,6 +11,14 @@ delete process.env.REDIS_URL; delete process.env.REDIS_URI; // memory caches onl
 const { GET: typesPublic } = await import('../api/types/public/route.js');
 const { GET: slots } = await import('../api/slots/route.js');
 const { POST: create } = await import('../api/bookings/create/route.js');
+const { GET: cancelGet, POST: cancelPost } = await import('../api/bookings/cancel/route.js');
+const { GET: lookup } = await import('../api/bookings/lookup/route.js');
+const { notifyHostOfBooking } = await import('./notify.js');
+const { getEmailService } = await import('../../../core/services/email.js');
+
+// Capture host emails instead of sending them.
+const sent = [];
+getEmailService().send = async (domain, options) => { sent.push(options); return { success: true }; };
 
 function fakeDb(tables) {
   const match = (row, filters) => Object.entries(filters || {}).every(([k, v]) =>
@@ -43,12 +51,17 @@ const type = (over) => ({
   weeklyHours: {}, name: { es: over.meetingType }, priceCents: 0, currency: 'USD', ...over,
 });
 
-function call(handler, url, { db, method = 'GET', body } = {}) {
-  const request = new Request(`https://andy.test${url}`, {
-    method, ...(body ? { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } } : {}),
-  });
+function raw(handler, url, { db, method = 'GET', body, form } = {}) {
+  const init = { method };
+  if (body) Object.assign(init, { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+  if (form) Object.assign(init, { body: new URLSearchParams(form).toString(), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+  const request = new Request(`https://andy.test${url}`, init);
   request.addonContext = { database: db, domain: 'andy.test', siteId: 'site1' };
-  return handler(request).then(async (res) => ({ status: res.status, body: await res.json() }));
+  return handler(request);
+}
+
+function call(handler, url, opts) {
+  return raw(handler, url, opts).then(async (res) => ({ status: res.status, body: await res.json() }));
 }
 
 let passed = 0;
@@ -120,5 +133,91 @@ await test('create: valid form reaches the calendar step (no connections → 409
   assert.equal(unknown.status, 404);
 });
 
-console.log(`\nroutes: ${passed}/7 PASS`);
+// ── Cancelling ──────────────────────────────────────────────────────────────────
+
+const soon = new Date(Date.now() + 3 * 24 * 3600e3);
+const booking = (over) => ({
+  _id: `b_${over.cancelToken}`, userId: 'andy', meetingType: 'intro', status: 'confirmed',
+  guestName: 'Ana', guestEmail: 'ana@example.com', subject: 'Migrar a IA local', timezoneGuest: 'UTC',
+  startUtc: soon, endUtc: new Date(soon.getTime() + 15 * 60e3), slotLock: `andy|${over.cancelToken}`,
+  pagePath: '/meet/intro', ...over,
+});
+const cdb = fakeDb({
+  bc_availability_rules: [type({ meetingType: 'intro', name: { es: '👋 Intro', en: '👋 Intro' }, timezone: 'America/Argentina/Buenos_Aires' })],
+  bc_connections: [{ _id: 'c1', userId: 'andy', isPrimary: true, googleAccountEmail: 'andy@cm64.studio' }],
+  bc_bookings: [
+    booking({ cancelToken: 'tok' }),
+    booking({ cancelToken: 'nopage', pagePath: undefined }),
+    booking({ cancelToken: 'past', startUtc: new Date(Date.now() - 3600e3) }),
+    booking({ cancelToken: 'form' }),
+  ],
+});
+const row = (token) => cdb.use('bc_bookings').fetch({ filters: { cancelToken: token } }).then(r => r[0]);
+
+await test('opening the cancel link never cancels: it sends the guest to the page they booked on', async () => {
+  const res = await raw(cancelGet, '/bookings/cancel?token=tok', { db: cdb });
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get('location'), 'https://andy.test/meet/intro?cancel=tok');
+  assert.equal((await row('tok')).status, 'confirmed');
+
+  const bare = await raw(cancelGet, '/bookings/cancel?token=nopage', { db: cdb });
+  assert.equal(bare.status, 200);
+  assert.match(await bare.text(), /<form method="post">/);
+  assert.equal((await row('nopage')).status, 'confirmed');
+});
+
+await test('lookup tells the cancel view which meeting it is', async () => {
+  const r = await call(lookup, '/bookings/lookup?token=tok', { db: cdb });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.status, 'confirmed');
+  assert.equal(r.body.name.es, '👋 Intro');
+  assert.ok(!('cancelToken' in r.body) && !('guestEmail' in r.body));
+  assert.equal((await call(lookup, '/bookings/lookup?token=nope', { db: cdb })).status, 404);
+});
+
+await test('guest cancels with a reason: row cancelled, slot freed, host emailed with the reason', async () => {
+  sent.length = 0;
+  const r = await call(cancelPost, '/bookings/cancel', { db: cdb, method: 'POST', body: { token: 'tok', reason: 'Me surgió un viaje' } });
+  assert.equal(r.status, 200);
+  const after = await row('tok');
+  assert.equal(after.status, 'cancelled');
+  assert.equal(after.slotLock, null);
+  assert.equal(after.cancelledBy, 'guest');
+  assert.equal(after.cancelReason, 'Me surgió un viaje');
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].to, 'andy@cm64.studio');
+  assert.ok(sent[0].body, 'emailService takes the HTML as `body`');
+  assert.match(sent[0].body, /Me surgió un viaje/);
+  assert.match(sent[0].subject, /Cancelled/);
+
+  const again = await call(cancelPost, '/bookings/cancel', { db: cdb, method: 'POST', body: { token: 'tok', reason: 'x' } });
+  assert.equal(again.body.alreadyCancelled, true);
+  assert.equal(sent.length, 1, 'no second email');
+});
+
+await test('a meeting that already started can\'t be cancelled by the guest', async () => {
+  const r = await call(cancelPost, '/bookings/cancel', { db: cdb, method: 'POST', body: { token: 'past', reason: 'tarde' } });
+  assert.equal(r.status, 409);
+  assert.equal(r.body.error, 'already_started');
+  assert.equal((await row('past')).status, 'confirmed');
+});
+
+await test('the bare confirm page posts a form and gets HTML back', async () => {
+  const res = await raw(cancelPost, '/bookings/cancel', { db: cdb, method: 'POST', form: { token: 'form', reason: 'No llego' } });
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type'), /text\/html/);
+  assert.equal((await row('form')).cancelReason, 'No llego');
+});
+
+await test('new-booking email reaches the email service with a body', async () => {
+  sent.length = 0;
+  await notifyHostOfBooking({
+    domain: 'andy.test', hostEmail: 'andy@cm64.studio', hostTimezone: 'America/Argentina/Buenos_Aires',
+    booking: { guestName: 'Ana', guestEmail: 'ana@example.com', subject: 'Hola', typeName: 'Intro', startUtc: soon.toISOString() },
+  });
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].body, /Hola/);
+});
+
+console.log(`\nroutes: ${passed}/13 PASS`);
 process.exit(0);

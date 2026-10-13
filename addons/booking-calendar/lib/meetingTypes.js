@@ -115,6 +115,7 @@ export function publicType(rules) {
     durationMinutes: rules.showDuration === false ? null : rules.durationMinutes,
     order: rules.order || 0,
     questions: Array.isArray(rules.questions) ? rules.questions : [],
+    maxAdvanceDays: rules.maxAdvanceDays || 365, // same default as slotEngine
   };
 }
 

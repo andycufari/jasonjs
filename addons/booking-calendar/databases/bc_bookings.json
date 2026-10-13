@@ -26,6 +26,10 @@
     "paymentId":        { "type": "string", "description": "Set as soon as the payment is confirmed — a paid hold is never released" },
     "paidAt":           { "type": "datetime" },
     "cancelToken":      { "type": "string", "description": "Random 32-byte hex for guest-initiated cancel" },
+    "pagePath":         { "type": "string", "description": "Page the guest booked on — their cancel link opens it with ?cancel=<token>" },
+    "cancelledAt":      { "type": "datetime" },
+    "cancelledBy":      { "type": "string", "description": "guest | host" },
+    "cancelReason":     { "type": "string" },
     "slotLock":         { "type": "string", "description": "userId|startUtc while the booking holds its slot; null once it doesn't" }
   },
   "indexes": [

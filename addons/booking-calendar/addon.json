@@ -56,21 +56,21 @@
       { "path": "bookings/create",       "methods": ["POST"], "auth": false, "description": "Public: verify slot, insert event into host's Google Calendar" },
       { "path": "bookings/status",       "methods": ["GET"],  "auth": false, "description": "Guest back from checkout: booking status (needs the Stripe session id)" },
       { "path": "bookings/list",         "methods": ["GET"],  "auth": true,  "description": "Host: list upcoming bookings" },
-      { "path": "bookings/cancel",       "methods": ["POST"], "auth": "mixed", "description": "Host by session OR guest by cancelToken" }
+      { "path": "bookings/lookup",       "methods": ["GET"],  "auth": false, "description": "Guest's cancel view: the booking behind a cancelToken" },
+      { "path": "bookings/cancel",       "methods": ["GET", "POST"], "auth": "mixed", "description": "POST: host by session OR guest by cancelToken (+ reason; emails the host). GET never cancels: redirects to the booking page's cancel view" }
     ]
   },
 
   "components": {
     "Book": {
-      "description": "Public guest booking widget. Shows available slots, collects guest details, creates the booking.",
+      "description": "Public guest booking widget: month calendar + that day's times → form → confirmation. Opens its cancel view on ?cancel=<token> (the guest's cancel link points back to the page). Colors follow the site theme (--foreground, --card, --border…) plus brand.primaryColor.",
       "file": "components/Book.jsx",
       "props": {
         "userId":       { "type": "string",  "description": "Host userId — only needed when the site has more than one host" },
         "meetingType":  { "type": "string",  "default": "default", "description": "Meeting type code — usually \"{{params.slug}}\" on a /meet/:slug page" },
         "lang":         { "type": "string",  "default": "es", "description": "es | en. Pass { \"en\": \"en\", \"es\": \"es\" } to follow the visitor's language" },
         "showHeader":   { "type": "boolean", "default": true, "description": "Show the type's name, price and description above the calendar" },
-        "brand":        { "type": "object",  "description": "Visual branding: { primaryColor, logoUrl }" },
-        "styles":       { "type": "object",  "description": "Tailwind class overrides keyed by slot/day/button" }
+        "brand":        { "type": "object",  "description": "Visual branding: { primaryColor }" }
       }
     },
     "MeetingTypes": {
