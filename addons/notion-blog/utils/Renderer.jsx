@@ -41,6 +41,16 @@ function decodeHtmlEntities(text) {
   return text.replace(/&[#\w]+;/g, match => entities[match] || match);
 }
 
+// Notion encodes soft line breaks (Shift+Enter, or several paragraphs typed
+// inside a single callout) as "\n" within one rich_text run. HTML collapses
+// "\n" into a space, so the whole block rendered as one run-on paragraph.
+function withLineBreaks(text) {
+  if (typeof text !== 'string' || !text.includes('\n')) return text;
+  return text.split('\n').map((line, i) => (
+    <Fragment key={`ln-${i}`}>{i > 0 && <br />}{line}</Fragment>
+  ));
+}
+
 export function renderRichText(richText) {
   if (!richText || !Array.isArray(richText)) {
     if (typeof richText === 'string') {
@@ -58,7 +68,7 @@ export function renderRichText(richText) {
           if (match.index > lastIndex) {
             parts.push(
               <Fragment key={`text-${i}`}>
-                {decodeHtmlEntities(tempText.substring(lastIndex, match.index))}
+                {withLineBreaks(decodeHtmlEntities(tempText.substring(lastIndex, match.index)))}
               </Fragment>
             );
             i++;
@@ -99,7 +109,7 @@ export function renderRichText(richText) {
         if (lastIndex < tempText.length) {
           parts.push(
             <Fragment key={`text-${i}`}>
-              {decodeHtmlEntities(tempText.substring(lastIndex))}
+              {withLineBreaks(decodeHtmlEntities(tempText.substring(lastIndex)))}
             </Fragment>
           );
         }
@@ -107,7 +117,7 @@ export function renderRichText(richText) {
         return parts;
       }
 
-      return decodeHtmlEntities(richText);
+      return withLineBreaks(decodeHtmlEntities(richText));
     }
     return null;
   }
@@ -116,11 +126,11 @@ export function renderRichText(richText) {
     if (!text) return null;
 
     if (typeof text === 'string') {
-      return <Fragment key={index}>{decodeHtmlEntities(text)}</Fragment>;
+      return <Fragment key={index}>{withLineBreaks(decodeHtmlEntities(text))}</Fragment>;
     }
 
     let content = text.plain_text || text.content || '';
-    content = decodeHtmlEntities(content);
+    content = withLineBreaks(decodeHtmlEntities(content));
 
     const annotations = text.annotations || {};
     const hasLink = text.href || text.url ||
@@ -271,7 +281,7 @@ export function renderBlock(block, blockClasses = null, textColor = null, isDark
         <li className={`mb-2 ${baseTextColor}`}>
           <div className="flex items-start">
             <div className="flex-1">
-              {richText ? renderRichText(richText) : decodeHtmlEntities(content)}
+              {richText ? renderRichText(richText) : withLineBreaks(decodeHtmlEntities(content))}
             </div>
           </div>
           {block.children?.length > 0 && (
@@ -291,7 +301,7 @@ export function renderBlock(block, blockClasses = null, textColor = null, isDark
         <li className={`mb-2 ${baseTextColor}`}>
           <div className="flex items-start">
             <div className="flex-1">
-              {richText ? renderRichText(richText) : decodeHtmlEntities(content)}
+              {richText ? renderRichText(richText) : withLineBreaks(decodeHtmlEntities(content))}
             </div>
           </div>
           {block.children?.length > 0 && (
@@ -309,28 +319,28 @@ export function renderBlock(block, blockClasses = null, textColor = null, isDark
     case 'paragraph':
       return (
         <p className={`${classes.paragraph}`}>
-          {richText ? renderRichText(richText) : decodeHtmlEntities(content)}
+          {richText ? renderRichText(richText) : withLineBreaks(decodeHtmlEntities(content))}
         </p>
       );
 
     case 'heading_1':
       return (
         <h1 className={classes.heading_1}>
-          {richText ? renderRichText(richText) : decodeHtmlEntities(content)}
+          {richText ? renderRichText(richText) : withLineBreaks(decodeHtmlEntities(content))}
         </h1>
       );
 
     case 'heading_2':
       return (
         <h2 className={classes.heading_2}>
-          {richText ? renderRichText(richText) : decodeHtmlEntities(content)}
+          {richText ? renderRichText(richText) : withLineBreaks(decodeHtmlEntities(content))}
         </h2>
       );
 
     case 'heading_3':
       return (
         <h3 className={classes.heading_3}>
-          {richText ? renderRichText(richText) : decodeHtmlEntities(content)}
+          {richText ? renderRichText(richText) : withLineBreaks(decodeHtmlEntities(content))}
         </h3>
       );
 
@@ -338,7 +348,7 @@ export function renderBlock(block, blockClasses = null, textColor = null, isDark
       return (
         <pre className={classes.code}>
           <code className={classes.codeText}>
-            {richText ? renderRichText(richText) : decodeHtmlEntities(content)}
+            {richText ? renderRichText(richText) : withLineBreaks(decodeHtmlEntities(content))}
           </code>
         </pre>
       );
@@ -348,7 +358,7 @@ export function renderBlock(block, blockClasses = null, textColor = null, isDark
         <div className={`${classes.to_do} ${baseTextColor}`}>
           <label htmlFor={id} className="flex items-center">
             <input type="checkbox" id={id} defaultChecked={block.checked} className="mr-2 accent-blue-500" />
-            {richText ? renderRichText(richText) : decodeHtmlEntities(content)}
+            {richText ? renderRichText(richText) : withLineBreaks(decodeHtmlEntities(content))}
           </label>
         </div>
       );
@@ -357,7 +367,7 @@ export function renderBlock(block, blockClasses = null, textColor = null, isDark
       return (
         <details className={`${classes.toggle} ${baseTextColor}`}>
           <summary className="cursor-pointer font-medium">
-            {richText ? renderRichText(richText) : decodeHtmlEntities(content)}
+            {richText ? renderRichText(richText) : withLineBreaks(decodeHtmlEntities(content))}
           </summary>
           <div className={`pl-4 mt-2 border-l ${borderColor}`}>
             {block.children?.map((child, idx) => (
@@ -396,7 +406,7 @@ export function renderBlock(block, blockClasses = null, textColor = null, isDark
     case 'quote':
       return (
         <blockquote className={classes.quote} key={id}>
-          {richText ? renderRichText(richText) : decodeHtmlEntities(content)}
+          {richText ? renderRichText(richText) : withLineBreaks(decodeHtmlEntities(content))}
         </blockquote>
       );
 
@@ -553,7 +563,7 @@ export function renderBlock(block, blockClasses = null, textColor = null, isDark
         <div className={`${classes.callout} ${baseTextColor}`} key={id}>
           <div className="text-2xl">{block.icon}</div>
           <div>
-            {richText ? renderRichText(richText) : decodeHtmlEntities(content)}
+            {richText ? renderRichText(richText) : withLineBreaks(decodeHtmlEntities(content))}
             {block.children?.map((child, idx) => (
               <Fragment key={child.id || `callout-child-${idx}`}>
                 {renderBlock(child, blockClasses, textColor, isDark)}
