@@ -3,7 +3,7 @@
 // A private addon (.cm64/) may register a remote adapter at boot via
 // registerAdapter() — that registration is the ONLY mode switch in the system.
 
-import { readFile, access, stat } from 'fs/promises';
+import { readFile, readdir, access, stat } from 'fs/promises';
 import { join } from 'path';
 import { pathToFileURL } from 'url';
 import { defaultDomain } from './resolve.js';
@@ -28,6 +28,10 @@ const logger = createLogger('FileSystem');
  *   Site configuration record for a domain.
  * @property {(domain: string, fileClass: string, fileName: string) => Promise<number|null>} getFileTimestamp
  *   Lightweight last-modified timestamp (ms) for cache validation — must not read content.
+ * @property {(domain: string, fileClass: string) => Promise<string|null>} [getClassSignature]
+ *   Optional: cheap fingerprint of ALL files of a class (e.g. "count:newest updatedAt"),
+ *   changing when one is added, edited or deleted. Validates caches built from the whole
+ *   class (getAllDatabases); without it those caches live until their TTL.
  * @property {(siteId: string, deployId: string) => Promise<Object|null>} getDeployVersion
  *   Deployment/build version info (adapter-only concept; local mode has none).
  * @property {() => Promise<Object>} healthCheck
@@ -618,9 +622,14 @@ class SiteFiles {
     const version = versionInfo?.version || versionInfo?._id || 'latest';
     const cacheKey = this.cache.generateKey(domain, 'all-databases', version);
 
+    // Live files (not a pinned version) can change under the cache: compare a cheap
+    // fingerprint of the database files so an edited schema applies on the next request,
+    // like getFile() already does for pages and components with their timestamps.
+    const signature = version === 'latest' && !isDev ? await this._getDatabasesSignature(domain) : null;
+
     // Try cache first
     const cached = await this.cache.get(cacheKey, isDev);
-    if (cached !== null) {
+    if (cached !== null && (!signature || this.fileTimestampCache.get(cacheKey) === signature)) {
       if (!isDev) {
         logger.debug(`Cache hit: all databases`, { domain, version });
       }
@@ -641,12 +650,45 @@ class SiteFiles {
     // Cache the result
     if (Object.keys(databases).length > 0) {
       await this.cache.set(cacheKey, databases, null, isDev);
+      if (signature) this.fileTimestampCache.set(cacheKey, signature);
       if (!isDev) {
         logger.debug(`Cached: all databases`, { domain, version, count: Object.keys(databases).length });
       }
     }
 
     return databases;
+  }
+
+  /**
+   * Fingerprint of a site's database files, or null when it can't be computed
+   * (adapter without getClassSignature, unsafe domain, I/O error) — then the TTL rules.
+   * Local mode: stat only, no content reads — databases/ dir mtime (add/remove/rename),
+   * file count, newest file mtime (edits) and settings/database.json mtime (legacy).
+   * @private
+   */
+  async _getDatabasesSignature(domain) {
+    try {
+      if (this.adapter) {
+        return typeof this.adapter.getClassSignature === 'function'
+          ? await this.adapter.getClassSignature(domain, 'database')
+          : null;
+      }
+      if (!this._isSafeSegment(domain)) return null;
+
+      const dir = join(process.env.SITES_PATH || './sites', domain, 'databases');
+      const legacy = await this.getLocalFileTimestamp(domain, 'setting', 'database');
+      const dirStat = await stat(dir).catch(() => null);
+      if (!dirStat) return `none:${legacy || 0}`;
+
+      const names = await readdir(dir);
+      const mtimes = await Promise.all(
+        names.map(name => stat(join(dir, name)).then(s => s.mtimeMs, () => 0))
+      );
+      return `${dirStat.mtimeMs}:${names.length}:${Math.max(0, ...mtimes)}:${legacy || 0}`;
+    } catch (error) {
+      logger.debug('Databases signature unavailable', { domain, error: error.message });
+      return null;
+    }
   }
 
   /**

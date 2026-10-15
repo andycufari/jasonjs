@@ -7,7 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Database triggers.** A database file can declare
+  `"triggers": { "onAdd" | "onUpdate" | "onDelete": { "type": "function", "target": "<function>" } }`.
+  After a successful write — from the data API, a component or another
+  function — `core/db/index.js` runs the target in the background through
+  `runFunction` with `params = { event, database, record }` and
+  `app.source === 'trigger'` (an HTTP caller can't fake it, so a function can
+  refuse to run any other way). The write never waits for the function nor
+  fails because of it; a rejection or an error result (throw, 404, 401, an
+  error response) goes to the logs. `onDelete` receives the record as it was
+  (read as admin before deleting). Loop guard: a trigger function writing to
+  the database that fired it doesn't fire it again (`triggeredBy` in the
+  function's db context). Tests: `node tests/unit/database-triggers.test.mjs`
+  (also in `npm run test:unit`). Docs: `skills/database.md` → Triggers,
+  `docs/databases.md` → Triggers.
+
 ### Fixed
+- **Schema validation errors are 400 with their reason, not a generic 500.**
+  A `POST /api/data/<db>` missing a required field answered
+  `500 {"error":"Operation failed"}`; the real message only reached the logs.
+  `validateSchema` now marks its errors (`status: 400`,
+  `code: VALIDATION_FAILED`, `expose`), `performOperation` keeps those marks
+  on its `{ success: false }` result, and the data route (and `db.add()` in
+  functions) rethrow them via `resultError`, so the client gets e.g.
+  `Required field 'email' is missing`. They describe the caller's own input,
+  so nothing internal leaks; every other error stays sanitized.
+- **An edited database schema applies within seconds, not ~6 minutes.**
+  `getAllDatabases` cached the schemas for 5 minutes with no invalidation, on
+  top of a 60 s cache in the data route, so in production after changing a
+  database file the site kept validating against the old schema (e.g.
+  rejecting writes for a field that no longer exists). It now compares a
+  cheap fingerprint of the site's database files before using the cache —
+  local mode: `stat` only (`databases/` dir mtime, file count, newest file
+  mtime, `settings/database.json` mtime); a file-source adapter can provide
+  an optional `getClassSignature(domain, 'database')` — the same idea as the
+  per-file timestamp check pages and components already have. The data
+  route's own cache went from 60 s to 5 s. Pinned versions are unaffected.
 - **`git clone && npm run dev` now actually serves the demo site with no
   `.env`.** The README promised zero-config, but `resolveSite()` fell back to
   the literal host `localhost` when `DEFAULT_DOMAIN` was unset, and no

@@ -417,6 +417,50 @@ Define schemas in `databases/{name}.json`:
 }
 ```
 
+## Triggers
+
+Run a server function whenever a record is added, updated or deleted — declared next to
+the schema, so it fires for every write (public forms, components, other functions):
+
+```json
+{
+  "type": "jason",
+  "schema": { "email": { "type": "text", "required": true } },
+  "security": { "read": "admin", "create": "public", "update": "admin", "delete": "admin" },
+  "triggers": {
+    "onAdd": { "type": "function", "target": "notifyNewSignup" }
+  }
+}
+```
+
+| Event | Fires after | `params.record` |
+|-------|-------------|-----------------|
+| `onAdd` | a successful create | the created record (with `_id`, `createdAt`) |
+| `onUpdate` | a successful update | the updated record (or `{ id }` if the connector doesn't return it) |
+| `onDelete` | a successful delete | the record as it was before deleting |
+
+The function gets `params = { event, database, record }` and `app.source === 'trigger'`:
+
+```javascript
+// @desc Email me every new signup — only as a trigger
+async function notifyNewSignup(app) {
+  // Functions are also public HTTP endpoints. app.source can't be faked by a caller,
+  // so this keeps anyone from calling it with a made-up record.
+  if (app.source !== 'trigger') return app.response({ error: 'Trigger only' }, 'FORBIDDEN');
+
+  var r = app.params.record;
+  await app.utils.sendEmail({ to: 'me@example.com', subject: 'New signup: ' + r.email, body: '<p>' + r.email + '</p>' });
+  return app.response({ ok: true });
+}
+```
+
+- Runs in the background: the write never waits for it and never fails because of it.
+  Errors (including an error response from the function) go to the function logs.
+- There is no auth user: use `db.use('x', true)` inside it.
+- A trigger function writing to **its own** database doesn't fire that database's
+  triggers again (no loops). Writes to other databases do fire theirs.
+- Only `"type": "function"` exists today.
+
 ## Server-Side Admin Mode
 
 ```javascript
@@ -470,6 +514,8 @@ var results = await db.use('keys', true).query({ status: 'active' });
 | Define `_id`, `createdAt` in schema | Auto-added, don't define |
 | Create users database | Use `settings/auth.json` for user fields |
 | `db.use('x')` in webhooks/workers | `db.use('x', true)` — admin mode needed when no auth user |
+| Call a notify function from the form after `add()` | `"triggers": { "onAdd": ... }` in the database file |
+| Read a 400 as a server bug | Schema errors come back as 400 `VALIDATION_FAILED` with the reason (e.g. `Required field 'email' is missing`) |
 
 ## Related
 

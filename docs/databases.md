@@ -720,6 +720,41 @@ All databases in a single file:
 
 ---
 
+## Triggers
+
+Run a server function after every successful write to a database — from the data API, a component or another function. Declare it in the database file:
+
+```json
+// databases/signups.json
+{
+  "type": "jason",
+  "schema": { "email": { "type": "string", "required": true } },
+  "triggers": {
+    "onAdd": { "type": "function", "target": "notifySignup" }
+  }
+}
+```
+
+Events are `onAdd`, `onUpdate` and `onDelete` (`onDelete` receives the record as it was before deleting). The function gets `params = { event, database, record }` and `app.source === 'trigger'`, which an HTTP caller can't fake:
+
+```javascript
+// functions/notifySignup.js
+export default async function ({ app, params }) {
+  if (app.source !== 'trigger') return app.response({ error: 'Trigger only' }, 'FORBIDDEN');
+  app.log(`New signup: ${params.record.email}`);
+  return app.response({ ok: true });
+}
+```
+
+- It runs in the background: the write never waits for it and never fails because of it. Errors go to the function logs.
+- There is no signed-in user — use `app.db.use('x', true)` inside it.
+- A trigger function writing to the database that fired it doesn't fire it again (no loops).
+- Only `"type": "function"` is supported.
+
+> 💡 **Validation errors are 400s.** A write through the data API that breaks the schema (e.g. a missing required field) comes back as `400` with `code: "VALIDATION_FAILED"` and the reason, e.g. `Required field 'email' is missing`.
+
+---
+
 ## Advanced Topics
 
 For performance optimization with indexes, see the advanced guide (coming soon).

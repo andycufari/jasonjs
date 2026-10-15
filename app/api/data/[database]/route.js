@@ -1,7 +1,7 @@
 // app/api/data/[database]/route.js
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import Database from '@/core/db';
+import Database, { resultError } from '@/core/db';
 import { getSite } from '@/core/sites/files';
 import { sanitizeData } from '@/core/security/sanitize';
 import { getFile } from '@/core/sites/files.js';
@@ -22,7 +22,9 @@ export const revalidate = 3600;
 
 // In-memory cache for database configurations
 const configCache = new Map();
-const CACHE_TTL = 60000; // 60 seconds cache (1 minute for good performance)
+// Short on purpose: getAllDatabases is cached and checks a cheap fingerprint of the
+// database files, so an edited schema applies within seconds instead of a minute.
+const CACHE_TTL = 5000;
 
 function getCachedConfig(host, bypassCache = false) {
   if (bypassCache) return null; // Bypass cache if requested
@@ -379,7 +381,7 @@ async function handler(request, { params }) {
     // Handle enhanced Database result format { success, error, data }
     if (result && typeof result === 'object' && 'success' in result) {
       if (!result.success) {
-        throw new Error(result.error || 'Database operation failed');
+        throw resultError(result, 'Database operation failed');
       }
       responseData = result.data;
     }
@@ -421,8 +423,11 @@ async function handler(request, { params }) {
     let sanitizedMessage = 'Operation failed';
     let statusCode = error.status || 500;
 
-    // Handle timeout errors specifically
-    if (error.message?.includes('timeout')) {
+    // Errors marked `expose` (schema validation) describe the request itself — show them as is
+    if (error.expose) {
+      sanitizedMessage = error.message;
+      statusCode = error.status || 400;
+    } else if (error.message?.includes('timeout')) {
       sanitizedMessage = 'Request timed out';
       statusCode = 504; // Gateway Timeout
     } else if (isDev) {

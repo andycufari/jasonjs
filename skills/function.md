@@ -294,6 +294,14 @@ async function generateDescription(app) {
 | `'ERROR'` | 500 | Server error |
 | `'TOO_MANY_REQUESTS'` | 429 | Rate limited |
 
+## Database Triggers
+
+A function can run on its own whenever a record is added, updated or deleted:
+`"triggers": { "onAdd": { "type": "function", "target": "myFunction" } }` in the database
+file. It receives `params = { event, database, record }` and `app.source === 'trigger'`.
+Check `app.source` when the function must only run as a trigger — every function is also
+a public HTTP endpoint. See `skill:database` → Triggers.
+
 ## Calling from Components
 
 ```jsx

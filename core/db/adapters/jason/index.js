@@ -377,9 +377,22 @@ export function applySchemaDefaults(data, schema) {
 }
 
 /**
- * Validate data against schema if defined
+ * Validate data against schema if defined.
+ * Its errors describe the caller's own input, so they go back as 400 with the real
+ * message (`expose`) instead of a generic 500 "Operation failed".
  */
 export function validateSchema(data, schema, isUpdate = false) {
+  try {
+    return checkSchema(data, schema, isUpdate);
+  } catch (error) {
+    error.status = 400;
+    error.code = 'VALIDATION_FAILED';
+    error.expose = true;
+    throw error;
+  }
+}
+
+function checkSchema(data, schema, isUpdate) {
   if (!schema) return true;
 
   // Enhanced schema validation with rich text support

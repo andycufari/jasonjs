@@ -382,7 +382,9 @@ export async function createAppContext({
     domain,
     userId: session?.user?.id || null,
     session: session ? { user: session.user } : null,
-    serverSideAccess: true
+    serverSideAccess: true,
+    // Writes made by a trigger function to the database that fired it don't fire it again
+    triggeredBy: source === 'trigger' ? params?.database || null : null
   };
   const database = new Database(databaseConfig, {}, contextParams);
 

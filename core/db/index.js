@@ -15,6 +15,13 @@ import appLog from '../utils/appLog.js';
 
 const logger = createLogger('Database');
 
+/** Error for a failed { success:false } result, keeping its status/expose (see performOperation). */
+export function resultError(result, fallback) {
+  const error = new Error(result?.error || fallback);
+  if (result?.expose) Object.assign(error, { status: result.status, code: result.code, expose: true });
+  return error;
+}
+
 class Database {
   constructor(domainConfig, params, context = {}) {
     this.domainConfig = domainConfig;
@@ -247,6 +254,8 @@ class Database {
       return {
         success: false,
         error: error.message,
+        // Keep how the error should be shown (schema validation → 400 with its message)
+        ...(error.expose ? { status: error.status, code: error.code, expose: true } : {}),
         data: null
       };
     }
@@ -359,6 +368,8 @@ class Database {
     // Invalidate related caches after successful write
     if (result.success) {
       await this.invalidateRelatedCaches();
+      const created = Array.isArray(result.data) ? result.data : [result.data];
+      for (const record of created) this.fireTrigger('onAdd', record);
     }
 
     return result;
@@ -428,6 +439,10 @@ class Database {
     // Invalidate related caches after successful write
     if (result.success) {
       await this.invalidateRelatedCaches();
+      const updated = result.data && typeof result.data === 'object' && !Array.isArray(result.data)
+        ? result.data
+        : { id: recordId };
+      this.fireTrigger('onUpdate', updated);
     }
 
     return result;
@@ -461,6 +476,15 @@ class Database {
       }
     }
 
+    // onDelete gets the record as it was: read it (as admin) only if a trigger wants it
+    let deleted = null;
+    if (this.selectedDatabase?.triggers?.onDelete && recordId) {
+      try {
+        const before = await this.use(this.selectedDatabase.id, true).getById(recordId);
+        if (before) deleted = typeof before.getValues === 'function' ? before.getValues() : before;
+      } catch (_) { /* the trigger still gets the id */ }
+    }
+
     // Support both formats:
     // .delete(id) - clean API
     // .delete(config) - object format for backward compatibility
@@ -474,9 +498,53 @@ class Database {
     // Invalidate related caches after successful write
     if (result.success) {
       await this.invalidateRelatedCaches();
+      this.fireTrigger('onDelete', deleted || { id: recordId });
     }
 
     return result;
+  }
+
+  /**
+   * Database triggers, declared in the database file:
+   *   "triggers": { "onAdd": { "type": "function", "target": "notifyNewSignup" } }
+   * Events: onAdd, onUpdate, onDelete. After a successful write the target function runs
+   * in the background with params { event, database, record } and app.source === 'trigger'
+   * (an HTTP caller can't fake that). The write never waits for it nor fails because of it.
+   * A trigger function writing to its own database does not fire it again (no loops).
+   */
+  fireTrigger(event, record) {
+    const db = this.selectedDatabase;
+    const trigger = db?.triggers?.[event];
+    if (!trigger || !record) return;
+
+    const type = trigger.type || 'function';
+    const functionName = trigger.target || trigger.function;
+    if (type !== 'function' || !functionName) {
+      logger.error(`[trigger] ${db.id}.${event}: only { "type": "function", "target": "<name>" } is supported`);
+      return;
+    }
+    // Site functions are addressed by domain; without one (e.g. a script) nothing runs
+    const domain = this.context?.domain;
+    if (!domain) return;
+    if (this.context.triggeredBy === db.id) return;
+
+    // Record instances keep their fields in _data (no toJSON): take the values
+    const values = typeof record.getValues === 'function' ? record.getValues() : record;
+    const plain = JSON.parse(JSON.stringify(values));
+    const failed = (reason) => logger.error(`[trigger] ${db.id}.${event} -> ${functionName} failed: ${reason}`);
+    import('../functions/run.js')
+      .then(({ runFunction }) => runFunction(domain, functionName, {
+        params: { event, database: db.id, record: plain },
+        source: 'trigger',
+        databaseConfig: this.domainConfig
+      }))
+      .then((result) => {
+        // runFunction reports failures (throw, 404, 401, timeout) as a result, not a rejection
+        if (result?.error || result?.__STATUS__ >= 400) {
+          failed(result.message || result.error || `status ${result.__STATUS__}`);
+        }
+      })
+      .catch((error) => failed(error.message));
   }
 
   // ===== FLUID API METHODS =====
@@ -524,7 +592,7 @@ class Database {
     if (result.success && result.data) {
       return wrapInRecords(result.data, this, this.selectedDatabase?.id);
     }
-    throw new Error(result.error || 'Failed to create record');
+    throw resultError(result, 'Failed to create record');
   }
 
   /**
