@@ -79,12 +79,17 @@ export async function POST(request) {
         message: 'Cleared all caches (filesystem, database, pagedata)'
       };
     } else if (domain || site) {
-      // Clear cache entries for a specific domain/site
+      // Everything cached for this one site: its files (pages, settings, database
+      // schemas, with their timestamps) and its page data. Other sites keep their caches.
       const target = domain || site;
-      const cleared = await getFileSystem().invalidateDomainCache(target);
+      const files = await getFileSystem().invalidateDomainCache(target);
+      // PageData keys embed JSON.stringify({ domain, ... }) — match that exact field so
+      // "example.com" doesn't also flush "shop.example.com"
+      const pageData = getCache('PageData');
+      const pages = pageData ? await pageData.invalidate(`"domain":${JSON.stringify(target)}`) : 0;
       result = {
-        cleared,
-        message: `Cleared ${cleared} cache entries for domain: ${target}`
+        cleared: files + pages,
+        message: `Cleared caches for domain ${target}: ${files} files, ${pages} page data`
       };
     } else if (component) {
       // Clear cache entries for a specific component across all domains

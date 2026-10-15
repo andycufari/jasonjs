@@ -44,6 +44,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an optional `getClassSignature(domain, 'database')` — the same idea as the
   per-file timestamp check pages and components already have. The data
   route's own cache went from 60 s to 5 s. Pinned versions are unaffected.
+- **`POST /api/flush-cache?domain=<d>` flushes the whole site, including its
+  page data.** It only invalidated the domain's FileSystem entries, so
+  rendered page data (1 min `PageData` cache) survived the flush. It now also
+  invalidates that domain's `PageData` entries, matching the exact `domain`
+  field of the key so `example.com` doesn't flush `shop.example.com`. Other
+  sites keep their caches — no need for `?all=true`.
 - **`git clone && npm run dev` now actually serves the demo site with no
   `.env`.** The README promised zero-config, but `resolveSite()` fell back to
   the literal host `localhost` when `DEFAULT_DOMAIN` was unset, and no
