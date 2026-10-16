@@ -12,6 +12,7 @@ import {
 } from '@/core/services/billing/customer';
 import { resolveSite } from '@/core/sites/resolve';
 import { emitWorkerEvent } from '@/core/worker/events';
+import { runAddonBillingHook } from '@/core/services/billing/hooks';
 
 /**
  * MercadoPago webhook/IPN handler
@@ -139,6 +140,21 @@ export async function POST(request) {
       case 'payment.failed': {
         const payment = normalizedEvent.data;
 
+        // ADDON payment: the addon named in metadata applies it (e.g. confirms a booking).
+        // A failing hook answers 500 so MercadoPago retries — the money may already be taken.
+        if (payment.metadata?.addon) {
+          const hook = normalizedEvent.type === 'payment.succeeded' ? 'onPaymentSucceeded' : 'onPaymentFailed';
+          try {
+            await runAddonBillingHook({
+              addon: payment.metadata.addon, hook, domain, payload: { payment, provider },
+            });
+          } catch (error) {
+            console.error(`MercadoPago webhook - ${payment.metadata.addon}.${hook} failed for ${payment.id}:`, error);
+            return NextResponse.json({ error: 'Addon billing hook failed' }, { status: 500 });
+          }
+          break;
+        }
+
         // GUEST one-time payment: anonymous checkout has no billing_customer / userId.
         // It is linked to the app's own order via metadata.orderId. Emit a worker
         // event so the site can mark its order paid (handler in the site's workers.json).
@@ -186,6 +202,11 @@ export async function POST(request) {
         console.log(`Payment ${payment.status} recorded for user ${localCustomer.userId}`);
         break;
       }
+
+      // In process / authorized: the final status arrives in a later notification.
+      case 'payment.pending':
+        console.log(`MercadoPago payment ${normalizedEvent.data.id} pending (${event.data?.status})`);
+        break;
 
       default:
         console.log('Unhandled MercadoPago event type:', normalizedEvent.type);

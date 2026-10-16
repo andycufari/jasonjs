@@ -39,6 +39,7 @@ export async function POST(request) {
       description: normalizeDescription(body.description),
       priceCents: clampInt(body.priceCents, 0, 10_000_000, 0),
       currency: typeof body.currency === 'string' && /^[A-Z]{3}$/.test(body.currency) ? body.currency : 'USD',
+      priceArsCents: clampInt(body.priceArsCents, 0, 1_000_000_000, 0),
       active: body.active !== false,
       order: clampInt(body.order, -1000, 1000, 0),
       showDuration: body.showDuration !== false,

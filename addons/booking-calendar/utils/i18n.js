@@ -19,6 +19,8 @@ const STRINGS = {
     calendarUnavailable: 'No pudimos consultar la agenda en este momento. Probá de nuevo en un rato.',
     paymentUnavailable: 'El pago online no está disponible en este momento. Probá de nuevo en un rato.',
     payAndBook: (price) => `Pagar ${price} y reservar`,
+    payWithCard: (price) => `Pagar con tarjeta · ${price}`,
+    payWithMp: (price) => `Pagar con Mercado Pago · ${price}`,
     redirecting: 'Te llevamos al pago…',
     checkingPayment: 'Confirmando tu pago…',
     paymentPending: 'Recibimos tu pago. En unos minutos te llega la invitación por mail.',
@@ -43,6 +45,8 @@ const STRINGS = {
     confirming: 'Reservando…',
     freeFine: 'Te llega la invitación de Google Calendar con el link de Meet.',
     paidFine: 'Pagás con tarjeta en Stripe. El horario queda reservado mientras pagás.',
+    paidFineMp: 'Pagás en Mercado Pago. El horario queda reservado mientras pagás.',
+    paidFineBoth: 'Tarjeta en dólares (Stripe) o pesos con Mercado Pago. El horario queda reservado mientras pagás.',
     doneTitle: (name) => name ? `¡Listo, ${name}!` : '¡Listo!',
     doneSub: 'Quedó reservado. Nos vemos.',
     inviteIn: (email) => email ? `La invitación de Google Calendar está en ${email}.` : 'La invitación de Google Calendar está en tu mail.',
@@ -81,6 +85,8 @@ const STRINGS = {
     calendarUnavailable: "We couldn't check the calendar right now. Please try again in a bit.",
     paymentUnavailable: "Online payment isn't available right now. Please try again in a bit.",
     payAndBook: (price) => `Pay ${price} and book`,
+    payWithCard: (price) => `Pay by card · ${price}`,
+    payWithMp: (price) => `Pay with Mercado Pago · ${price}`,
     redirecting: 'Taking you to payment…',
     checkingPayment: 'Confirming your payment…',
     paymentPending: "We got your payment. The calendar invite will reach your inbox in a few minutes.",
@@ -105,6 +111,8 @@ const STRINGS = {
     confirming: 'Booking…',
     freeFine: "You'll get a Google Calendar invite with the Meet link.",
     paidFine: 'You pay by card on Stripe. The time is held for you while you pay.',
+    paidFineMp: 'You pay on Mercado Pago. The time is held for you while you pay.',
+    paidFineBoth: 'Card in US dollars (Stripe) or Argentine pesos with Mercado Pago. The time is held for you while you pay.',
     doneTitle: (name) => name ? `You're booked, ${name}!` : "You're booked!",
     doneSub: 'All set. See you then.',
     inviteIn: (email) => email ? `The Google Calendar invite is in ${email}.` : 'The Google Calendar invite is in your inbox.',
@@ -148,7 +156,15 @@ export function pickLang(value, lang) {
 
 export function priceLabel(priceCents, currency, lang) {
   if (!priceCents) return getStrings(lang).free;
-  const amount = priceCents / 100;
-  const shown = Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+  const shown = (priceCents / 100).toLocaleString(lang === 'en' ? 'en-US' : 'es-AR', { maximumFractionDigits: 2 });
   return `${currency || 'USD'} ${shown}`;
+}
+
+/** Every price a type is sold at: "USD 79 · ARS 79.000", or "Gratis". */
+export function typePriceLabel(type, lang) {
+  const parts = [
+    type?.priceCents ? priceLabel(type.priceCents, type.currency, lang) : null,
+    type?.priceArsCents ? priceLabel(type.priceArsCents, 'ARS', lang) : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : getStrings(lang).free;
 }

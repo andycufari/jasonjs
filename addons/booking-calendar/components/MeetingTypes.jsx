@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getStrings, pickLang, priceLabel } from '../utils/i18n.js';
+import { getStrings, pickLang, typePriceLabel } from '../utils/i18n.js';
 import { CSS, brandVars } from '../utils/ui.js';
 
 const ADDON = '/api/addons/booking-calendar';
@@ -51,7 +51,7 @@ export default function MeetingTypes({
             <div className="bc-type-head">
               <h3 className="bc-type-name">{pickLang(type.name, lang)}</h3>
               <div className="bc-badges">
-                <span className="bc-badge">{priceLabel(type.priceCents, type.currency, lang)}</span>
+                <span className="bc-badge">{typePriceLabel(type, lang)}</span>
                 {type.durationMinutes ? <span className="bc-badge">⏱ {t.minutes(type.durationMinutes)}</span> : null}
               </div>
             </div>

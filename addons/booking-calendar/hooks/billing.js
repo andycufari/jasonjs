@@ -1,7 +1,8 @@
-// Billing hooks — called by the framework's payment webhooks for payments whose
-// metadata.addon is 'booking-calendar' (see core/services/billing/hooks.js).
+// Billing hooks — called by the framework's payment webhooks (Stripe and MercadoPago) for
+// payments whose metadata.addon is 'booking-calendar' (see core/services/billing/hooks.js).
+// `provider` is the one the payment came through, so refunds go back the same way.
 //
-// Stripe may deliver the same event more than once and retries when a hook throws,
+// Providers deliver the same event more than once and retry when a hook throws,
 // so every hook is idempotent: it looks at the booking's current state first.
 
 import { loadBookingEnv } from '../lib/env.js';
@@ -13,6 +14,11 @@ import { idOf, updateOrThrow } from '../lib/db.js';
 import {
   fetchRules, fetchActiveBookings, slotLockFor, isDuplicateKeyError, HOLD_MS,
 } from '../lib/meetingTypes.js';
+
+/** Our booking id: metadata.bookingId (Stripe), booking_id or external_reference (MercadoPago). */
+function bookingIdOf(payment) {
+  return payment.metadata?.bookingId || payment.metadata?.booking_id || payment.externalReference || null;
+}
 
 async function fetchBooking(database, bookingId) {
   if (!bookingId) return null;
@@ -27,11 +33,11 @@ async function fetchBooking(database, bookingId) {
 export async function onPaymentSucceeded({ payment, provider, context }) {
   const { database, domain } = context;
   const bookings = database.use('bc_bookings');
-  const booking = await fetchBooking(database, payment.metadata?.bookingId);
+  const booking = await fetchBooking(database, bookingIdOf(payment));
 
   if (!booking) {
-    // Nothing a retry can fix. Loud, so the host can look at the payment in Stripe.
-    console.error(`[booking-calendar] payment ${payment.id} for unknown booking ${payment.metadata?.bookingId}`);
+    // Nothing a retry can fix. Loud, so the host can look at the payment in Stripe / MercadoPago.
+    console.error(`[booking-calendar] payment ${payment.id} for unknown booking ${bookingIdOf(payment)}`);
     return;
   }
   if (booking.status === 'confirmed' || booking.status === 'refunded') return; // duplicate delivery
@@ -45,7 +51,7 @@ export async function onPaymentSucceeded({ payment, provider, context }) {
   }
 
   // Record the payment before anything else: a paid hold is never released (holdsSlot),
-  // so if confirming fails below and Stripe retries, the slot is still ours.
+  // so if confirming fails below and the provider retries, the slot is still ours.
   if (!booking.paymentId) {
     await updateOrThrow(bookings, id, { paymentId: payment.id, paidAt: new Date() });
   }
@@ -75,7 +81,7 @@ export async function onPaymentSucceeded({ payment, provider, context }) {
   const env = await loadBookingEnv(domain);
   const start = new Date(booking.startUtc);
   const end = new Date(booking.endUtc);
-  const busy = await fetchAllBusy({ // CALENDAR_UNAVAILABLE throws → Stripe retries
+  const busy = await fetchAllBusy({ // CALENDAR_UNAVAILABLE throws → the provider retries
     database, connections, env,
     fromUtc: new Date(start.getTime() - 60 * 60 * 1000).toISOString(),
     toUtc: new Date(end.getTime() + 60 * 60 * 1000).toISOString(),
@@ -92,7 +98,7 @@ export async function onPaymentSucceeded({ payment, provider, context }) {
     return refund({ provider, bookings, id, payment, reason: 'host calendar no longer free' });
   }
 
-  // Throws if Google refuses → Stripe retries; the paid hold keeps the slot meanwhile.
+  // Throws if Google refuses → the provider retries; the paid hold keeps the slot meanwhile.
   await confirmBooking({
     database, domain, origin: originFromDomain(domain), booking, rules, connections, env,
   });
@@ -101,7 +107,7 @@ export async function onPaymentSucceeded({ payment, provider, context }) {
 /** A delayed payment method failed: release the slot. */
 export async function onPaymentFailed({ payment, context }) {
   const { database } = context;
-  const booking = await fetchBooking(database, payment.metadata?.bookingId);
+  const booking = await fetchBooking(database, bookingIdOf(payment));
   if (!booking || booking.status !== 'pending_payment' || booking.paymentId) return;
   await updateOrThrow(database.use('bc_bookings'), idOf(booking), { status: 'payment_failed', slotLock: null });
 }

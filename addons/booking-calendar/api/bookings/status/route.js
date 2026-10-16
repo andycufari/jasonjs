@@ -1,6 +1,7 @@
-// GET /api/addons/booking-calendar/bookings/status?id=<bookingId>&s=<stripeSessionId>
+// GET /api/addons/booking-calendar/bookings/status?id=<bookingId>&s=<statusToken>
 // Public, for the guest coming back from checkout: has the payment confirmed the booking?
-// Needs the Stripe session id too — only the payer has it (Stripe puts it in the return URL).
+// Needs the booking's statusToken too — only the payer has it (it's in the return URL).
+// Bookings made before statusToken existed match their Stripe session id instead.
 
 import { NextResponse } from 'next/server';
 
@@ -16,7 +17,8 @@ export async function GET(request) {
 
     const result = await database.use('bc_bookings').fetch({ filters: { _id: id }, limit: 1 });
     const row = Array.isArray(result) ? result[0] : (result?.data?.[0] || null);
-    if (!row || !row.stripeSessionId || row.stripeSessionId !== sessionId) {
+    const proof = row?.statusToken || row?.stripeSessionId;
+    if (!proof || proof !== sessionId) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 

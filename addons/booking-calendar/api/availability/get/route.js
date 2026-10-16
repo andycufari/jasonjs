@@ -9,6 +9,7 @@ const DEFAULT_RULES = {
   description: { es: '', en: '' },
   priceCents: 0,
   currency: 'USD',
+  priceArsCents: 0,
   active: true,
   order: 0,
   showDuration: true,

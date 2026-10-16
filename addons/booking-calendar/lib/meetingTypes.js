@@ -112,6 +112,7 @@ export function publicType(rules) {
     description: rules.description || { es: '', en: '' },
     priceCents: rules.priceCents || 0,
     currency: rules.currency || 'USD',
+    priceArsCents: rules.priceArsCents || 0, // MercadoPago, in pesos (0 = not offered)
     durationMinutes: rules.showDuration === false ? null : rules.durationMinutes,
     order: rules.order || 0,
     questions: Array.isArray(rules.questions) ? rules.questions : [],

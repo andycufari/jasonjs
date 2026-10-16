@@ -57,7 +57,10 @@ export default function MeetingTypesEditor() {
             >
               {type.name?.es || type.name?.en || type.meetingType}
               <span className="ml-2 text-xs text-muted-foreground">
-                /{type.meetingType} · {type.priceCents ? `${type.currency} ${type.priceCents / 100}` : 'free'}
+                /{type.meetingType} · {[
+                  type.priceCents ? `${type.currency} ${type.priceCents / 100}` : null,
+                  type.priceArsCents ? `ARS ${type.priceArsCents / 100}` : null,
+                ].filter(Boolean).join(' / ') || 'free'}
               </span>
             </button>
           );

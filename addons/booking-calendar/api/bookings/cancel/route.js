@@ -11,7 +11,7 @@
 import { NextResponse } from 'next/server';
 import { loadBookingEnv } from '../../../lib/env.js';
 import { makeCalendarForConnection, deleteEvent } from '../../../lib/googleClient.js';
-import { getStripeProvider } from '../../../lib/payments.js';
+import { expireBookingCheckout } from '../../../lib/payments.js';
 import { idOf, updateOrThrow } from '../../../lib/db.js';
 import { fetchRules } from '../../../lib/meetingTypes.js';
 import { typeNameOf, bookingForEmail } from '../../../lib/confirmBooking.js';
@@ -47,14 +47,13 @@ async function cancel(request, { id, token, reason }) {
   if (!row) return { status: 404, body: { error: 'Not found' } };
   if (row.status === 'cancelled') return { status: 200, body: { ok: true, alreadyCancelled: true } };
 
-  // Abandoned checkout (guest came back from Stripe without paying): close the Stripe
-  // session so nobody can pay for a slot we're releasing. A payment that slips in
-  // anyway is handled by hooks/billing.js (re-takes the slot or refunds).
+  // Abandoned checkout (guest came back without paying): close the checkout so nobody
+  // can pay for a slot we're releasing. A payment that slips in anyway is handled by
+  // hooks/billing.js (re-takes the slot or refunds).
   if (row.status === 'pending_payment' && !row.paymentId) {
-    if (row.stripeSessionId) {
+    if (row.checkoutId || row.stripeSessionId) {
       try {
-        const { provider } = await getStripeProvider(domain);
-        await provider.expireCheckoutSession(row.stripeSessionId);
+        await expireBookingCheckout(domain, row);
       } catch (err) {
         console.warn('[booking-calendar] cancel: could not expire checkout session (continuing):', err.message);
       }

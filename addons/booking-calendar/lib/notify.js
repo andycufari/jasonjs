@@ -15,7 +15,7 @@ export async function notifyHostOfCancellation({ domain, hostEmail, booking, rea
     <div style="font-family: system-ui, sans-serif; max-width: 560px;">
       <h2 style="margin: 0 0 12px 0;">${escapeHtml(booking.guestName)} cancelled</h2>
       <p><strong>Reason:</strong><br>${reason ? escapeHtml(reason).replace(/\n/g, '<br>') : '<em>(none given)</em>'}</p>
-      ${booking.amountCents ? `<p><strong>Paid ${escapeHtml(booking.currency)} ${booking.amountCents / 100}</strong> — not refunded automatically. Refund it from Stripe if it applies${booking.paymentId ? ` (payment ${escapeHtml(booking.paymentId)})` : ''}.</p>` : ''}
+      ${booking.amountCents ? `<p><strong>Paid ${escapeHtml(booking.currency)} ${booking.amountCents / 100}</strong> — not refunded automatically. Refund it from ${booking.provider === 'mercadopago' ? 'MercadoPago' : 'Stripe'} if it applies${booking.paymentId ? ` (payment ${escapeHtml(booking.paymentId)})` : ''}.</p>` : ''}
       <hr style="border: none; border-top: 1px solid #ddd; margin: 16px 0;">
       ${renderBooking(booking, hostTimezone)}
     </div>

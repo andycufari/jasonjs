@@ -5,7 +5,7 @@
  * Handles IPN/webhooks for payment notifications.
  */
 
-import { MercadoPagoConfig, Payment, Preference, PreApproval, Customer } from 'mercadopago';
+import { MercadoPagoConfig, Payment, PaymentRefund, Preference, PreApproval, Customer } from 'mercadopago';
 import BaseProvider from './base.js';
 
 export default class MercadoPagoProvider extends BaseProvider {
@@ -22,6 +22,7 @@ export default class MercadoPagoProvider extends BaseProvider {
     });
 
     this.payment = new Payment(this.client);
+    this.paymentRefund = new PaymentRefund(this.client);
     this.preference = new Preference(this.client);
     this.preApproval = new PreApproval(this.client);
     this.customer = new Customer(this.client);
@@ -137,7 +138,15 @@ export default class MercadoPagoProvider extends BaseProvider {
    * Create a custom checkout with line items
    */
   async createCustomCheckout(customerId, items, options = {}) {
-    const { currency = 'ARS', returnUrl, cancelUrl, metadata = {} } = options;
+    const {
+      currency = 'ARS', returnUrl, cancelUrl, metadata = {},
+      // Optional, for checkouts that hold something while the buyer pays (e.g. a booking):
+      externalReference, // our id for the purchase; comes back as payment.external_reference
+      notificationUrl,   // webhook for THIS checkout (overrides the account's panel setting)
+      expiresAt,         // Date/ISO — the checkout stops accepting payments after it
+      instantOnly = false, // approved or rejected right away: no cash/ATM methods, no pending
+      statementDescriptor,
+    } = options;
 
     // Transform items to MercadoPago items format
     const mpItems = items.map(item => ({
@@ -161,6 +170,18 @@ export default class MercadoPagoProvider extends BaseProvider {
           pending: returnUrl || this.config.returnUrl,
         },
         auto_return: 'approved',
+        ...(externalReference ? { external_reference: String(externalReference) } : {}),
+        ...(notificationUrl ? { notification_url: notificationUrl } : {}),
+        ...(expiresAt ? {
+          expires: true,
+          expiration_date_from: new Date().toISOString(),
+          expiration_date_to: new Date(expiresAt).toISOString(),
+        } : {}),
+        ...(instantOnly ? {
+          binary_mode: true,
+          payment_methods: { excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }] },
+        } : {}),
+        ...(statementDescriptor ? { statement_descriptor: statementDescriptor } : {}),
         metadata: {
           ...metadata,
           itemCount: items.length,
@@ -173,6 +194,31 @@ export default class MercadoPagoProvider extends BaseProvider {
       id: preference.id,
       url: preference.init_point,
     };
+  }
+
+  /**
+   * Stop a checkout from accepting payments (the buyer gave up, the hold was released).
+   */
+  async expireCheckout(preferenceId) {
+    return await this.preference.update({
+      id: preferenceId,
+      updatePreferenceRequest: { expires: true, expiration_date_to: new Date().toISOString() },
+    });
+  }
+
+  /**
+   * Refund a payment in full. Refunding one that is already refunded is not an error
+   * (a webhook retry after the refund went through).
+   */
+  async refundPayment(paymentId) {
+    try {
+      const refund = await this.paymentRefund.total({ payment_id: String(paymentId) });
+      return { id: String(refund.id), status: refund.status };
+    } catch (err) {
+      const current = await this.payment.get({ id: String(paymentId) }).catch(() => null);
+      if (current?.status === 'refunded') return { id: null, status: 'already_refunded' };
+      throw err;
+    }
   }
 
   /**
@@ -206,10 +252,13 @@ export default class MercadoPagoProvider extends BaseProvider {
    * Verify MercadoPago webhook/IPN notification
    */
   async verifyWebhook(request) {
-    // MercadoPago sends notifications as query params and body
+    // Two formats reach the same URL: IPN (?topic=payment&id=123) and Webhooks
+    // (?type=payment&data.id=123, plus a JSON body { type, action, data: { id } }).
+    // Nothing in them is trusted: the resource is fetched again with our token.
     const url = new URL(request.url);
-    const topic = url.searchParams.get('topic') || url.searchParams.get('type');
-    const id = url.searchParams.get('id');
+    const body = await request.clone().json().catch(() => ({}));
+    const topic = url.searchParams.get('topic') || url.searchParams.get('type') || body?.type || body?.topic;
+    const id = url.searchParams.get('data.id') || url.searchParams.get('id') || body?.data?.id;
 
     if (!topic || !id) {
       throw new Error('Invalid MercadoPago notification: missing topic or id');
@@ -226,7 +275,9 @@ export default class MercadoPagoProvider extends BaseProvider {
         data = await this.preApproval.get({ id });
         break;
       default:
-        throw new Error(`Unknown MercadoPago notification topic: ${topic}`);
+        // merchant_order, chargebacks, etc.: acknowledged and ignored (an error would
+        // make MercadoPago retry them for days).
+        return { type: topic, id, data: null };
     }
 
     return {
@@ -272,7 +323,7 @@ export default class MercadoPagoProvider extends BaseProvider {
             data: this.normalizePayment(data),
           };
         }
-        break;
+        return { type: 'payment.pending', data: this.normalizePayment(data) };
 
       default:
         return { type: 'unknown', data };
@@ -354,6 +405,9 @@ export default class MercadoPagoProvider extends BaseProvider {
       currency: mpPayment.currency_id.toLowerCase(),
       status,
       description: mpPayment.description || 'Payment',
+      email: mpPayment.payer?.email,
+      externalReference: mpPayment.external_reference || null,
+      // MercadoPago returns metadata keys in snake_case (bookingId → booking_id).
       metadata: mpPayment.metadata,
     };
   }

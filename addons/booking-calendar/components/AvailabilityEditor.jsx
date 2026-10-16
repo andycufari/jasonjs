@@ -121,6 +121,7 @@ export default function AvailabilityEditor({ initialRules, onSaved, onDeleted })
   }
 
   const price = (rules.priceCents || 0) / 100;
+  const priceArs = (rules.priceArsCents || 0) / 100;
 
   return (
     <div className="space-y-6">
@@ -135,7 +136,7 @@ export default function AvailabilityEditor({ initialRules, onSaved, onDeleted })
             className="w-full p-2 rounded border" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Price (0 = free)">
+          <Field label="Price — card, Stripe (both prices 0 = free)">
             <input type="number" min={0} step="1" value={price}
               onChange={(e) => updateField('priceCents', Math.round((parseFloat(e.target.value) || 0) * 100))}
               className="w-full p-2 rounded border" />
@@ -149,6 +150,11 @@ export default function AvailabilityEditor({ initialRules, onSaved, onDeleted })
             </select>
           </Field>
         </div>
+        <Field label="Price in pesos — MercadoPago (0 = not offered)">
+          <input type="number" min={0} step="1" value={priceArs}
+            onChange={(e) => updateField('priceArsCents', Math.round((parseFloat(e.target.value) || 0) * 100))}
+            className="w-full p-2 rounded border" />
+        </Field>
         <Field label="Name — ES">
           <input type="text" value={rules.name?.es || ''} maxLength={80}
             onChange={(e) => updateLang('name', 'es', e.target.value)}

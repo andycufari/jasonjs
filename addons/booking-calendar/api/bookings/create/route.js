@@ -1,6 +1,8 @@
 // POST /api/addons/booking-calendar/bookings/create
 // Body: { userId?, meetingType?, startUtc, guestName, guestEmail, subject, whatsapp?, answers?,
-//         guestNotes?, timezoneGuest?, returnPath? }
+//         guestNotes?, timezoneGuest?, returnPath?, provider? }
+// provider ('stripe' | 'mercadopago') only matters for paid types; default: the first one
+// the site and the type support.
 // userId may be omitted on a single-host site. answers = { questionKey: value } for the
 // type's questions (select → option index).
 //
@@ -10,7 +12,7 @@
 //   3. Insert a row carrying slotLock — the unique index on slotLock rejects a
 //      concurrent booking of the same host + start right here, at the DB.
 //   4a. Free type: Google event on the primary connection → confirmed → host notified.
-//   4b. Paid type: the row holds the slot for HOLD_MS while the guest pays on Stripe;
+//   4b. Paid type: the row holds the slot for HOLD_MS while the guest pays (Stripe or MercadoPago);
 //       hooks/billing.js confirms it when the payment arrives. Returns { checkoutUrl }.
 
 import crypto from 'crypto';
@@ -20,7 +22,7 @@ import { fetchAllBusy } from '../../../lib/googleClient.js';
 import { isSlotStillAvailable } from '../../../lib/slotEngine.js';
 import { publicOrigin } from '../../../lib/publicOrigin.js';
 import { confirmBooking } from '../../../lib/confirmBooking.js';
-import { createBookingCheckout } from '../../../lib/payments.js';
+import { createBookingCheckout, configuredProviders, payableProviders, priceFor } from '../../../lib/payments.js';
 import { idOf, updateOrThrow } from '../../../lib/db.js';
 import {
   fetchRules, isBookable, fetchActiveBookings, slotLockFor, isDuplicateKeyError,
@@ -65,7 +67,7 @@ export async function POST(request) {
     if (checked.error) {
       return NextResponse.json({ error: checked.error }, { status: 400 });
     }
-    const isPaid = (rules.priceCents || 0) > 0;
+    const isPaid = (rules.priceCents || 0) > 0 || (rules.priceArsCents || 0) > 0;
 
     const startDt = new Date(startUtc);
     const endDt = new Date(startDt.getTime() + (rules.durationMinutes || 30) * 60 * 1000);
@@ -98,6 +100,16 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Slot no longer available' }, { status: 409 });
     }
 
+    // Which provider the guest pays with: one the site has keys for and the type has a price for.
+    let provider = null;
+    if (isPaid) {
+      const payable = payableProviders(rules, await configuredProviders(domain));
+      provider = body.provider ? String(body.provider) : payable[0];
+      if (!provider || !payable.includes(provider)) {
+        return NextResponse.json({ error: 'payment_unavailable' }, { status: body.provider ? 400 : 503 });
+      }
+    }
+
     // Insert the booking row. slotLock makes a concurrent booking of the same start
     // fail here. (Overlapping bookings with DIFFERENT starts are caught by the check
     // above, not by the index — the window for that race is the few ms in between.)
@@ -122,8 +134,10 @@ export async function POST(request) {
       slotLock,
       ...(isPaid ? {
         holdExpiresAt: new Date(Date.now() + HOLD_MS),
-        amountCents: rules.priceCents,
-        currency: rules.currency || 'USD',
+        provider,
+        ...priceFor(rules, provider),
+        // Proves "I'm the one who paid" when the guest comes back (bookings/status).
+        statusToken: crypto.randomBytes(16).toString('hex'),
       } : {}),
     };
 
@@ -155,8 +169,8 @@ export async function POST(request) {
       let checkout;
       try {
         checkout = await createBookingCheckout({
-          domain, siteId, booking, rules,
-          returnUrl: `${back}${sep}paid=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
+          provider, domain, siteId, origin, booking, rules,
+          returnUrl: `${back}${sep}paid=${bookingId}&s=${row.statusToken}`,
           cancelUrl: `${back}${sep}released=${bookingId}&t=${row.cancelToken}`,
         });
       } catch (err) {
@@ -167,7 +181,10 @@ export async function POST(request) {
         console.error('[booking-calendar] checkout creation failed:', err);
         return NextResponse.json({ error: 'payment_unavailable' }, { status: 502 });
       }
-      await updateOrThrow(bookings, bookingId, { stripeSessionId: checkout.sessionId });
+      await updateOrThrow(bookings, bookingId, {
+        checkoutId: checkout.sessionId,
+        ...(provider === 'stripe' ? { stripeSessionId: checkout.sessionId } : {}),
+      });
       return NextResponse.json({ bookingId, checkoutUrl: checkout.url });
     }
 

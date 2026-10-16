@@ -13,6 +13,9 @@ const { GET: slots } = await import('../api/slots/route.js');
 const { POST: create } = await import('../api/bookings/create/route.js');
 const { GET: cancelGet, POST: cancelPost } = await import('../api/bookings/cancel/route.js');
 const { GET: lookup } = await import('../api/bookings/lookup/route.js');
+const { GET: status } = await import('../api/bookings/status/route.js');
+const { priceFor, payableProviders } = await import('./payments.js');
+const { onPaymentSucceeded } = await import('../hooks/billing.js');
 const { notifyHostOfBooking } = await import('./notify.js');
 const { getEmailService } = await import('../../../core/services/email.js');
 
@@ -219,5 +222,58 @@ await test('new-booking email reaches the email service with a body', async () =
   assert.match(sent[0].body, /Hola/);
 });
 
-console.log(`\nroutes: ${passed}/13 PASS`);
+
+// ── Paying: Stripe or MercadoPago ─────────────────────────────────────────────────
+
+await test('price per provider; a provider is offered only if the site has keys and the type a price', async () => {
+  const both = { priceCents: 7900, currency: 'USD', priceArsCents: 9_000_000 };
+  assert.deepEqual(priceFor(both, 'stripe'), { amountCents: 7900, currency: 'USD' });
+  assert.deepEqual(priceFor(both, 'mercadopago'), { amountCents: 9_000_000, currency: 'ARS' });
+  assert.deepEqual(payableProviders(both, ['stripe', 'mercadopago']), ['stripe', 'mercadopago']);
+  assert.deepEqual(payableProviders(both, ['stripe']), ['stripe'], 'no MP keys → card only');
+  assert.deepEqual(payableProviders({ priceCents: 7900 }, ['stripe', 'mercadopago']), ['stripe'], 'no peso price → card only');
+  // The test site has no billing.json: paid types list no providers.
+  const r = await call(typesPublic, '/types/public?meetingType=consulta', { db });
+  assert.deepEqual(r.body.type.providers, []);
+  assert.equal(r.body.type.priceArsCents, 0);
+});
+
+await test('status: only the payer (statusToken, or the old Stripe session id) sees the booking', async () => {
+  const sdb = fakeDb({ bc_bookings: [
+    { _id: 'p1', status: 'confirmed', statusToken: 'tok1', startUtc: soon, guestEmail: 'ana@example.com', meetLink: 'https://meet' },
+    { _id: 'p2', status: 'pending_payment', stripeSessionId: 'cs_old' },
+  ] });
+  const ok = await call(status, '/bookings/status?id=p1&s=tok1', { db: sdb });
+  assert.equal(ok.body.status, 'confirmed');
+  assert.equal(ok.body.meetLink, 'https://meet');
+  assert.equal((await call(status, '/bookings/status?id=p1&s=nope', { db: sdb })).status, 404);
+  assert.equal((await call(status, '/bookings/status?id=p2&s=cs_old', { db: sdb })).body.status, 'pending_payment');
+});
+
+await test('MercadoPago payment finds its booking by booking_id / external_reference; wrong amount never confirms', async () => {
+  const hdb = fakeDb({ bc_bookings: [
+    { _id: 'h1', userId: 'andy', status: 'pending_payment', provider: 'mercadopago', amountCents: 9_000_000, currency: 'ARS' },
+    { _id: 'h2', userId: 'andy', status: 'confirmed', provider: 'mercadopago', amountCents: 9_000_000, currency: 'ARS', paymentId: '7' },
+  ] });
+  const context = { database: hdb, domain: 'andy.test' };
+  const rows = hdb.use('bc_bookings');
+  const h1 = async () => (await rows.fetch({ filters: { _id: 'h1' } }))[0];
+
+  // Paid less than the price (a tampered or edited checkout): logged, not confirmed, no payment recorded.
+  const errors = []; const origError = console.error; console.error = (m) => errors.push(String(m));
+  await onPaymentSucceeded({ context, provider: null,
+    payment: { id: '9', amount: 100, currency: 'ars', metadata: { addon: 'booking-calendar', booking_id: 'h1' } } });
+  await onPaymentSucceeded({ context, provider: null,
+    payment: { id: '9', amount: 100, currency: 'ars', metadata: {}, externalReference: 'h1' } });
+  console.error = origError;
+  assert.equal(errors.filter(e => /NOT confirmed/.test(e)).length, 2, 'found by booking_id and by external_reference');
+  assert.equal((await h1()).status, 'pending_payment');
+  assert.equal((await h1()).paymentId, undefined);
+
+  // A repeated notification for a confirmed booking does nothing (no Google, no refund).
+  await onPaymentSucceeded({ context, provider: { refundPayment: () => { throw new Error('no refunds here'); } },
+    payment: { id: '7', amount: 9_000_000, currency: 'ars', metadata: { booking_id: 'h2' } } });
+});
+
+console.log(`\nroutes: ${passed}/16 PASS`);
 process.exit(0);

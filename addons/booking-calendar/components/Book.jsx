@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { detectTimezone } from '../utils/tzDetect.js';
 import { formatSlotLabel, formatLongDay, ymdInTz, tzLabel } from '../utils/formatSlot.js';
-import { getStrings, localeFor, pickLang, priceLabel } from '../utils/i18n.js';
+import { getStrings, localeFor, pickLang, priceLabel, typePriceLabel } from '../utils/i18n.js';
 import { CSS, brandVars } from '../utils/ui.js';
 import { confettiBurst } from '../utils/confetti.js';
 
@@ -60,6 +60,7 @@ export default function Book({
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // { meetLink, cancelUrl, startUtc, guestName, guestEmail }
   const [notice, setNotice] = useState(null); // outcome of a checkout we came back from
+  const [payingWith, setPayingWith] = useState(null); // the pay button that was pressed
 
   useEffect(() => {
     const zone = detectTimezone();
@@ -74,9 +75,10 @@ export default function Book({
       return;
     }
 
-    // Back from Stripe: ?paid=<id>&session_id=… (paid) or ?released=<id>&t=<token> (gave up).
+    // Back from checkout: ?paid=<id>&s=<statusToken> (paid) or ?released=<id>&t=<token> (gave up).
+    // session_id: links from before statusToken existed (Stripe only).
     const paidId = params.get('paid');
-    const sessionId = params.get('session_id');
+    const sessionId = params.get('s') || params.get('session_id');
     const releasedToken = params.get('released') && params.get('t');
     if (!paidId && !releasedToken) return;
     window.history.replaceState({}, '', window.location.pathname);
@@ -203,10 +205,14 @@ export default function Book({
   };
 
   const questions = type?.questions || [];
-  const isPaid = (type?.priceCents || 0) > 0;
+  const isPaid = (type?.priceCents || 0) > 0 || (type?.priceArsCents || 0) > 0;
+  // How this type can be paid here (the API only lists providers the site has keys for).
+  const providers = type?.providers || (type?.priceCents ? ['stripe'] : []);
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
+    // Each pay button submits the form with its provider as value.
+    const provider = e?.nativeEvent?.submitter?.value || providers[0];
     if (!selectedSlot) return;
     if (!guestName.trim() || !guestEmail.trim() || !subject.trim()) {
       setError(t.nameEmailRequired);
@@ -218,6 +224,7 @@ export default function Book({
       return;
     }
     setSubmitting(true);
+    setPayingWith(provider);
     setError(null);
     try {
       const res = await fetch(`${ADDON}/bookings/create`, {
@@ -234,6 +241,7 @@ export default function Book({
           answers,
           timezoneGuest: tz,
           returnPath: window.location.pathname,
+          ...(isPaid && provider ? { provider } : {}),
         }),
       });
       const data = await res.json();
@@ -341,7 +349,7 @@ export default function Book({
     <div className="bc-head">
       <h2 className="bc-title">{typeName}</h2>
       <div className="bc-badges">
-        <span className="bc-badge">{priceLabel(type.priceCents, type.currency, lang)}</span>
+        <span className="bc-badge">{typePriceLabel(type, lang)}</span>
         {type.durationMinutes ? <span className="bc-badge">⏱ {t.minutes(type.durationMinutes)}</span> : null}
       </div>
       {pickLang(type.description, lang) && <p className="bc-desc">{pickLang(type.description, lang)}</p>}
@@ -353,6 +361,14 @@ export default function Book({
     const submitLabel = submitting
       ? (isPaid ? t.redirecting : t.confirming)
       : (isPaid ? t.payAndBook(priceLabel(type.priceCents, type.currency, lang)) : t.confirm);
+    const payLabel = (p) => (submitting && payingWith === p
+      ? t.redirecting
+      : p === 'mercadopago'
+        ? t.payWithMp(priceLabel(type.priceArsCents, 'ARS', lang))
+        : t.payWithCard(priceLabel(type.priceCents, type.currency, lang)));
+    const fine = !isPaid ? t.freeFine
+      : providers.length > 1 ? t.paidFineBoth
+      : providers[0] === 'mercadopago' ? t.paidFineMp : t.paidFine;
     return shell(
       <>
         {header}
@@ -411,8 +427,16 @@ export default function Book({
               );
             })}
 
-            <button type="submit" disabled={submitting} className="bc-btn">{submitLabel}</button>
-            <p className="bc-fine">{isPaid ? t.paidFine : t.freeFine}</p>
+            {isPaid && providers.length > 1
+              ? providers.map(p => (
+                  <button key={p} type="submit" name="provider" value={p} disabled={submitting} className="bc-btn">
+                    {payLabel(p)}
+                  </button>
+                ))
+              : isPaid && providers[0] === 'mercadopago'
+                ? <button type="submit" name="provider" value="mercadopago" disabled={submitting} className="bc-btn">{payLabel('mercadopago')}</button>
+                : <button type="submit" disabled={submitting} className="bc-btn">{submitLabel}</button>}
+            <p className="bc-fine">{fine}</p>
           </form>
         </div>
       </>
