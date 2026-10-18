@@ -160,7 +160,19 @@ export async function fetchActiveBookings(database, userId, { limit = 500, exclu
   return rows
     .filter(b => b.startUtc && b.endUtc && holdsSlot(b, now))
     .filter(b => !excludeId || String(b._id || b.id) !== String(excludeId))
+    .filter(hasValidTimes)
     .map(b => ({ startUtc: new Date(b.startUtc).toISOString(), endUtc: new Date(b.endUtc).toISOString() }));
+}
+
+// One row with unparseable times used to throw here and take down every slots request
+// (andy.cm64.io/meet, 2026-10-15 → 10-18). Skip it and say which one it is.
+function hasValidTimes(b) {
+  const ok = !Number.isNaN(new Date(b.startUtc).getTime()) && !Number.isNaN(new Date(b.endUtc).getTime());
+  if (!ok) {
+    console.error('[booking-calendar] booking with invalid times skipped:', String(b._id || b.id),
+      JSON.stringify({ startUtc: b.startUtc, endUtc: b.endUtc, status: b.status }));
+  }
+  return ok;
 }
 
 /**

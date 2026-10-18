@@ -275,5 +275,18 @@ await test('MercadoPago payment finds its booking by booking_id / external_refer
     payment: { id: '7', amount: 9_000_000, currency: 'ars', metadata: { booking_id: 'h2' } } });
 });
 
-console.log(`\nroutes: ${passed}/16 PASS`);
+await test('a booking with unparseable times is skipped, not a 500 for every slots request', async () => {
+  const { fetchActiveBookings } = await import('./meetingTypes.js');
+  const db = fakeDb({ bc_bookings: [
+    { _id: 'ok', userId: 'h', status: 'confirmed', startUtc: '2026-10-20T13:00:00.000Z', endUtc: '2026-10-20T13:15:00.000Z' },
+    { _id: 'bad', userId: 'h', status: 'confirmed', startUtc: {}, endUtc: 'nope' },
+  ] });
+  const err = console.error; console.error = () => {};
+  try {
+    assert.deepEqual(await fetchActiveBookings(db, 'h'),
+      [{ startUtc: '2026-10-20T13:00:00.000Z', endUtc: '2026-10-20T13:15:00.000Z' }]);
+  } finally { console.error = err; }
+});
+
+console.log(`\nroutes: ${passed}/17 PASS`);
 process.exit(0);
