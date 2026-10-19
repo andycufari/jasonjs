@@ -19,5 +19,9 @@ try {
     'no known field at all: error instead of an empty row');
 
   assert.deepEqual(transformToNotionProperties({ id: 'x' }, schema), {}, 'only special fields: nothing to check');
+
+  const crm = transformToNotionProperties({ Status: 'Enviada', Phone: '+18495195253' }, { Status: 'status', Phone: 'phone_number' });
+  assert.deepEqual(crm.Status, { status: { name: 'Enviada' } }, 'status properties are written (they used to be dropped)');
+  assert.deepEqual(crm.Phone, { phone_number: '+18495195253' }, 'phone_number properties are written');
 } finally { console.warn = warn; }
 console.log('notion-unknown-fields: PASS');

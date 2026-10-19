@@ -65,6 +65,12 @@ const transformValueToNotion = (value, type, relationConfig = null) => {
     case 'email':
       return { email: value };
 
+    case 'phone_number':
+      return { phone_number: String(value) };
+
+    case 'status':
+      return { status: { name: String(value) } };
+
     case 'checkbox':
       return { checkbox: Boolean(value) };
 

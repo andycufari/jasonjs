@@ -115,6 +115,18 @@ const transformProperty = (property) => {
     
     case 'select':
       return property.select?.name || null;
+
+    case 'status':
+      return property.status?.name || null;
+
+    case 'phone_number':
+      return property.phone_number || null;
+
+    case 'created_time':
+      return property.created_time || null;
+
+    case 'last_edited_time':
+      return property.last_edited_time || null;
       
     case 'multi_select':
       return property.multi_select?.map(item => item.name) || [];
