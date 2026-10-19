@@ -137,13 +137,20 @@ export const transformToNotionProperties = (data, schema = null) => {
 
   // If we have a schema, use it to transform the data according to the schema
   if (schema) {
-    Object.entries(data).forEach(([key, value]) => {
-      // Skip special fields that are handled differently
-      if (['id', 'createdAt', 'updatedAt', 'cover', 'icon'].includes(key)) return;
+    // Notion property names are case-sensitive ("Email"); callers often write "email".
+    const byLowerName = new Map(Object.keys(schema).map(name => [name.toLowerCase(), name]));
+    const unknown = [];
+    let fields = 0;
 
-      // Warn if field is not in schema
-      if (!schema[key]) {
-        console.warn(`Field "${key}" is not defined in the Notion schema and will be ignored.`);
+    Object.entries(data).forEach(([rawKey, value]) => {
+      // Skip special fields that are handled differently
+      if (['id', 'createdAt', 'updatedAt', 'cover', 'icon'].includes(rawKey)) return;
+      fields++;
+
+      const key = schema[rawKey] ? rawKey : byLowerName.get(String(rawKey).toLowerCase());
+      if (!key) {
+        unknown.push(rawKey);
+        console.warn(`Field "${rawKey}" is not defined in the Notion schema and will be ignored.`);
         return;
       }
 
@@ -185,6 +192,16 @@ export const transformToNotionProperties = (data, schema = null) => {
         properties[key] = transformedValue;
       }
     });
+
+    // Every field unknown = the write would create an empty row (or change nothing) and
+    // still report success. andy.cm64.io lost 75 of 90 newsletter sign-ups that way.
+    if (fields > 0 && unknown.length === fields) {
+      const error = new Error(
+        `None of the fields (${unknown.join(', ')}) exist in the Notion schema (${Object.keys(schema).join(', ')})`
+      );
+      Object.assign(error, { status: 400, code: 'VALIDATION_FAILED', expose: true });
+      throw error;
+    }
   } else {
     // Original behavior when no schema is provided
     // Handle Title field first if it exists
