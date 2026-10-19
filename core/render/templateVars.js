@@ -92,9 +92,13 @@ export function replaceTemplateVars(obj, context = {}, shouldEscape = false) {
 
   // Handle objects
   if (typeof obj === 'object') {
+    // Walk only plain objects. A Date, ObjectId, RegExp or Buffer passes through untouched:
+    // rebuilding it as {} stored every Date written through Database as {} (since 2025-11).
+    const proto = Object.getPrototypeOf(obj);
+    if (proto !== Object.prototype && proto !== null) return obj;
     const replaced = {};
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
         replaced[key] = replaceTemplateVars(obj[key], context, shouldEscape);
       }
     }
