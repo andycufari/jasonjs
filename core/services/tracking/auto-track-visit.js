@@ -28,10 +28,50 @@ function shouldSkip(headersList) {
   return false;
 }
 
+// Known crawlers, AI agents, link-preview fetchers and HTTP libraries.
+// First match wins, so specific names go before the generic patterns.
+// Bots are still recorded (with $device 'bot' and the name in $bot) so the
+// dashboard can show them as their own category instead of mixing them
+// into visitor counts.
+const BOTS = [
+  ['Googlebot', /Googlebot|Google-InspectionTool|GoogleOther|Google-Extended|APIs-Google|AdsBot-Google|Mediapartners-Google|Storebot-Google/i],
+  ['Bingbot', /bingbot|BingPreview|msnbot/i],
+  ['GPTBot', /GPTBot|ChatGPT-User|OAI-SearchBot/i],
+  ['ClaudeBot', /ClaudeBot|Claude-User|Claude-SearchBot|anthropic-ai/i],
+  ['PerplexityBot', /PerplexityBot|Perplexity-User/i],
+  ['Meta', /facebookexternalhit|meta-externalagent|meta-externalfetcher|facebookcatalog/i],
+  ['Applebot', /Applebot/i],
+  ['Amazonbot', /Amazonbot/i],
+  ['Bytespider', /Bytespider|TikTokSpider/i],
+  ['WhatsApp', /WhatsApp/i],
+  ['Telegram', /TelegramBot/i],
+  ['Twitter', /Twitterbot/i],
+  ['LinkedIn', /LinkedInBot/i],
+  ['Slack', /Slackbot|Slack-ImgProxy/i],
+  ['Discord', /Discordbot/i],
+  ['SEO', /AhrefsBot|SemrushBot|MJ12bot|DotBot|DataForSeoBot|BLEXBot|serpstatbot|SeznamBot|PetalBot|YandexBot|Baiduspider|DuckDuckBot|Sogou/i],
+  ['Headless', /HeadlessChrome|Lighthouse|PhantomJS|Puppeteer|Playwright/i],
+  ['HTTP client', /^(curl|Wget|python-requests|Python-urllib|python-httpx|aiohttp|Go-http-client|node-fetch|undici|axios|okhttp|Java\/|libwww-perl|Ruby|Scrapy)/i],
+  ['Monitor', /ELB-HealthChecker|UptimeRobot|Pingdom|StatusCake|Site24x7|BetterUptime|Better Stack|cron-job\.org/i],
+  // Word-bounded so phone brands like "Cubot" do not match
+  ['Other bot', /\bbot\b|bot\/|crawler|spider|scraper|fetcher/i],
+];
+
+function detectBot(ua = '') {
+  if (!ua.trim()) return 'No user-agent';
+  for (const [name, re] of BOTS) {
+    if (re.test(ua)) return name;
+  }
+  return null;
+}
+
 // Lightweight server-side UA parser.
 // Intentionally duplicated from core/services/analytics.js (which is 'use client')
 // so this module stays server-safe to import.
 function parseBrowser(ua = '') {
+  // In-app browsers first: their UA also contains Safari/Chrome (or neither)
+  if (ua.includes('Instagram')) return 'Instagram';
+  if (ua.includes('FBAN') || ua.includes('FBAV')) return 'Facebook';
   if (ua.includes('Edg')) return 'Edge';
   if (ua.includes('OPR') || ua.includes('Opera')) return 'Opera';
   if (ua.includes('Chrome')) return 'Chrome';
@@ -42,9 +82,10 @@ function parseBrowser(ua = '') {
 
 function parseOS(ua = '') {
   if (ua.includes('Windows')) return 'Windows';
+  // iOS before macOS: iPhone UAs say "like Mac OS X"
+  if (ua.includes('iPhone') || ua.includes('iPad') || ua.includes('iPod')) return 'iOS';
   if (ua.includes('Mac OS') || ua.includes('Macintosh')) return 'macOS';
   if (ua.includes('Android')) return 'Android';
-  if (ua.includes('iPhone') || ua.includes('iPad') || ua.includes('iOS')) return 'iOS';
   if (ua.includes('Linux')) return 'Linux';
   return 'Unknown';
 }
@@ -92,12 +133,15 @@ export async function trackVisit({ host, pagePath, headersList, clientIp, pageTy
     // a top-level field so it can be indexed (MongoDB rejects $-prefixed
     // field names in index key specs, so we deliberately do NOT prefix it).
     // When null, the tracker omits it entirely (absent, not null).
+    const bot = detectBot(userAgent);
+
     await analyticsTracker.track(host, '$page_view', {
       $page: pagePath,
       $referrer: referrer,
       $browser: parseBrowser(userAgent),
       $os: parseOS(userAgent),
-      $device: parseDevice(userAgent),
+      $device: bot ? 'bot' : parseDevice(userAgent),
+      ...(bot ? { $bot: bot } : {}),
       $pageType: pageType,
       ...(visitorHash ? { visitorHash } : {}),
     });

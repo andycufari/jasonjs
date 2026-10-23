@@ -9,7 +9,7 @@ Every page render is recorded server-side. You get visitors, unique users, pages
 - **Cookieless.** No `document.cookie`, no client JS, no consent banner.
 - **Unique visitors via rotating salted hash** (same approach as Plausible, Fathom). `sha256(dailySalt + ip + userAgent + siteId)` → 16-char fingerprint. Salt rotates every UTC day; old salts are TTL-deleted after 48h, so historical hashes become mathematically irreversible.
 - **No PII stored.** Raw IP and User-Agent are hashed on the fly, never written to disk.
-- **Bots and no-JS clients ARE tracked.** Server-side tracking sees every real request, unlike Google Analytics.
+- **Bots and no-JS clients ARE tracked, and bots are labeled.** Server-side tracking sees every real request, unlike Google Analytics. Crawlers, AI agents, link-preview fetchers (Instagram/WhatsApp), HTTP libraries and uptime monitors are recorded with `$device: "bot"` and their name in `$bot` (e.g. `Googlebot`, `GPTBot`, `Meta`), so dashboards can count people and bots separately.
 - **Fire-and-forget.** Tracking runs after `renderPage` resolves but is not awaited. A slow or broken Mongo never delays your pages.
 - **Prefetch-safe.** Next.js `<Link>` hover prefetches and RSC payloads are filtered out, so counts aren't inflated.
 
@@ -29,7 +29,8 @@ A lean document per page view in the `analytics_events` collection:
     $referrer: "https://google.com",    // only if present
     $browser: "Chrome",
     $os: "macOS",
-    $device: "desktop",
+    $device: "desktop",                 // "mobile" | "tablet" | "desktop" | "bot"
+    $bot: "Googlebot",                  // only when $device is "bot"
     $pageType: "page"                   // or "not-found", "error", "html"
   },
   userId: null,                         // set if user is authenticated

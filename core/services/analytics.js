@@ -252,11 +252,12 @@ function getOSInfo() {
   
   const ua = navigator.userAgent;
   
-  if (ua.includes('Mac')) return 'macOS';
+  // iOS before macOS (iPhone UAs say "like Mac OS X"), Android before Linux
   if (ua.includes('Windows')) return 'Windows';
-  if (ua.includes('Linux')) return 'Linux';
+  if (ua.includes('iPhone') || ua.includes('iPad') || ua.includes('iPod')) return 'iOS';
+  if (ua.includes('Mac')) return 'macOS';
   if (ua.includes('Android')) return 'Android';
-  if (ua.includes('iOS')) return 'iOS';
+  if (ua.includes('Linux')) return 'Linux';
   
   return 'Unknown';
 }
