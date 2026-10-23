@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **next 15.5.28 + sharp 0.35.5.** Fixes unauthenticated RCE in the image
+  optimizer (`/_next/image`): GHSA-2464-fhr4-w9xw (libvips in sharp < 0.35.5)
+  and GHSA-2xp9-vwfh-vxw4 (AVIF/libheif, next < 15.5.24). With the default
+  `images.remotePatterns` (any https host) anyone could make the server process
+  an image of their choice. `sharp` is now a direct dependency so installs don't
+  keep an old version from the lockfile. sharp 0.35 declares `node >=20.9`.
+
 ### Added
 - **Database triggers.** A database file can declare
   `"triggers": { "onAdd" | "onUpdate" | "onDelete": { "type": "function", "target": "<function>" } }`.
