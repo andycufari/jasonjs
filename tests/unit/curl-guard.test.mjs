@@ -47,6 +47,8 @@ assert.match(checkCurlUrl('https://printer.local/', permissive), /internal domai
 // 8. Wildcard
 const wild = { general: { allowedExternalDomains: ['*.twilio.com'] } };
 assert.equal(checkCurlUrl('https://api.twilio.com/2010-04-01', wild), null, 'wildcard subdomain');
+assert.equal(checkCurlUrl('https://twilio.com/', wild), null, 'wildcard base domain');
+assert.match(checkCurlUrl('https://eviltwilio.com/', wild), /not in the allowed domains list/, 'wildcard is not a bare suffix');
 
 // 9. Invalid URL and odd config types don't break it
 assert.equal(checkCurlUrl('not a url', general), 'Invalid URL format');

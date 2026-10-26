@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- **`*.domain` in `allowedExternalDomains` no longer matches any host that
+  merely ends the same.** `*.twilio.com` was checked with
+  `endsWith('twilio.com')`, so `eviltwilio.com` passed too. It now matches
+  the base domain or a real subdomain (`'.' + base`).
 - **next 15.5.28 + sharp 0.35.5.** Fixes unauthenticated RCE in the image
   optimizer (`/_next/image`): GHSA-2464-fhr4-w9xw (libvips in sharp < 0.35.5)
   and GHSA-2xp9-vwfh-vxw4 (AVIF/libheif, next < 15.5.24). With the default

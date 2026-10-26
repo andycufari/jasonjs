@@ -113,8 +113,9 @@ export function checkCurlUrl(url, settings) {
 
   const isAllowed = allowedDomains.some(domain => {
     if (domain.startsWith('*.')) {
+      // "*.twilio.com" → twilio.com and its subdomains; NOT "eviltwilio.com"
       const baseDomain = domain.slice(2);
-      return urlObj.hostname.endsWith(baseDomain);
+      return urlObj.hostname === baseDomain || urlObj.hostname.endsWith('.' + baseDomain);
     }
     return urlObj.hostname === domain;
   });
