@@ -261,6 +261,8 @@ Add allowed domains to `settings/general.json`:
 }
 ```
 
+`allowedExternalDomains` goes **inside** `general.json` (the `general` setting file). `*.domain` allows its subdomains. Only HTTPS URLs are accepted; IPs, internal hosts and cloud-metadata endpoints are always blocked. Legacy: a setting file named `allowedExternalDomains` whose content is the array also works, and both lists are merged.
+
 ---
 
 ## Utilities
@@ -298,7 +300,7 @@ async function utilsExample(app) {
 |---------|-------------|
 | `generateSlug(title)` | URL-safe slug with timestamp |
 | `sendEmail(options)` | Send email (rate limited) |
-| `sendWebhook(url, data, opts)` | HTTP webhook (rate limited) |
+| `sendWebhook(url, data, opts)` | HTTP webhook (rate limited; same `allowedExternalDomains` allowlist as `app.CURL`) |
 | `uploadFile(data, path, opts)` | Upload to storage |
 | `generatePDF(template, data)` | Generate PDF |
 | `optimizeImage(key, opts)` | Optimize image |

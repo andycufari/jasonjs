@@ -133,7 +133,7 @@ await app.utils.sendEmail({
   text: 'Hello'  // Optional fallback
 });
 
-// EXTERNAL API (requires allowedExternalDomains in settings)
+// EXTERNAL API (requires "allowedExternalDomains": [...] inside settings/general.json; HTTPS only)
 const result = await app.CURL(
   'https://api.example.com/data',
   { query: 'test' },  // params

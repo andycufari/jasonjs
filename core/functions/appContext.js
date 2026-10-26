@@ -23,111 +23,20 @@ import { getEmailService } from '@/core/services/email';
 import appLog, { setSiteContext } from '@/core/utils/appLog';
 import analyticsTracker from '@/core/services/tracking/analytics';
 import axios from 'axios';
+import { checkCurlUrl } from './curlGuard.js';
 
 // ============================================
 // External HTTP (app.CURL) — SSRF-safe fetch
 // ============================================
 
 /**
- * Check if hostname is an internal/private IP address
- */
-function isInternalIP(hostname) {
-  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
-    return true;
-  }
-
-  const ipv4Regex = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/;
-  const match = hostname.match(ipv4Regex);
-
-  if (match) {
-    const [, a, b] = match.map(Number);
-    if (a === 10) return true;
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    if (a === 192 && b === 168) return true;
-    if (a === 169 && b === 254) return true;
-    if (a === 127) return true;
-  }
-
-  if (hostname.includes(':')) {
-    if (hostname.toLowerCase().startsWith('fc') || hostname.toLowerCase().startsWith('fd')) {
-      return true;
-    }
-    if (hostname.toLowerCase().startsWith('fe80')) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Check if URL is a cloud metadata endpoint
- */
-function isCloudMetadataEndpoint(url) {
-  const lowerUrl = url.toLowerCase();
-  if (lowerUrl.includes('169.254.169.254')) return true;
-  if (lowerUrl.includes('metadata.google.internal')) return true;
-  return false;
-}
-
-/**
- * Secure CURL implementation with domain allowlist
- * Allowed domains come from settings.allowedExternalDomains
+ * Secure CURL implementation with domain allowlist.
+ * Validation (allowlist + SSRF blocks) lives in ./curlGuard.js
  */
 async function simpleCURL(url, params = {}, method = 'GET', auth = null, settings = {}) {
-  try {
-    const urlObj = new URL(url);
-
-    if (isInternalIP(urlObj.hostname)) {
-      throw new Error('Direct IP addresses are not allowed. Please use domain names and add them to your allowed domains list.');
-    }
-
-    if (isCloudMetadataEndpoint(url)) {
-      throw new Error('Access to cloud metadata endpoints is not allowed for security reasons');
-    }
-
-    if (urlObj.protocol !== 'https:') {
-      throw new Error('Only HTTPS URLs are allowed for security reasons');
-    }
-
-    const allowedDomains = settings.allowedExternalDomains || [];
-
-    if (allowedDomains.length === 0) {
-      throw new Error('No external domains configured. Add allowed domains to your site settings under "allowedExternalDomains"');
-    }
-
-    const isAllowed = allowedDomains.some(domain => {
-      if (domain.startsWith('*.')) {
-        const baseDomain = domain.slice(2);
-        return urlObj.hostname.endsWith(baseDomain);
-      }
-      return urlObj.hostname === domain;
-    });
-
-    if (!isAllowed) {
-      throw new Error(
-        `Domain "${urlObj.hostname}" is not in the allowed domains list. ` +
-        `Current allowed domains: ${allowedDomains.join(', ')}. ` +
-        `Add it to your site settings to use this API.`
-      );
-    }
-
-    const internalPatterns = [
-      /\.local$/, /\.internal$/, /\.lan$/, /^localhost/,
-      /^127\./, /^10\./, /^172\.(1[6-9]|2[0-9]|3[0-1])\./, /^192\.168\./
-    ];
-
-    for (const pattern of internalPatterns) {
-      if (pattern.test(urlObj.hostname)) {
-        throw new Error(`Domain "${urlObj.hostname}" appears to be an internal domain and is not allowed`);
-      }
-    }
-
-  } catch (error) {
-    if (error instanceof TypeError) {
-      return { response: null, status: null, error: 'Invalid URL format' };
-    }
-    return { response: null, status: null, error: error.message };
+  const blocked = checkCurlUrl(url, settings);
+  if (blocked) {
+    return { response: null, status: null, error: blocked };
   }
 
   const config = {

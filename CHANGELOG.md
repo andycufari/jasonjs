@@ -32,6 +32,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/databases.md` → Triggers.
 
 ### Fixed
+- **`app.CURL` reads `allowedExternalDomains` from `settings/general.json`,
+  as documented.** `simpleCURL` looked for `settings.allowedExternalDomains`
+  at the top level, but `getAllSettings()` returns one key per setting file
+  (`{ general: {...}, ... }`), so an allowlist in `general.json` was never
+  seen and every `app.CURL` / `utils.sendWebhook` answered
+  `No external domains configured`. A setting file literally named
+  `allowedExternalDomains` holding the array keeps working, and both lists
+  are merged (lowercased, deduped). Malformed config (a string, non-string
+  entries) no longer surfaces as `Invalid URL format`. Validation moved to
+  `core/functions/curlGuard.js` (no imports); tests:
+  `tests/unit/curl-guard.test.mjs`.
 - **Schema validation errors are 400 with their reason, not a generic 500.**
   A `POST /api/data/<db>` missing a required field answered
   `500 {"error":"Operation failed"}`; the real message only reached the logs.
