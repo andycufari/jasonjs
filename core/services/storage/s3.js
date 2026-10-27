@@ -362,7 +362,58 @@ export async function listTenantFiles(siteId, options = {}) {
   }
 }
 
+// ===== PRIVATE FILES =====
+
+// Bucket with all public access blocked (firmwares, installers, form uploads).
+// Its objects have no public URL; the only way in is a short-lived signed GET.
+const PRIVATE_BUCKET = process.env.S3_PRIVATE_BUCKET_NAME;
+
+/**
+ * Resolve a site-relative path ("installers/app.dmg") or a full key
+ * ("<siteId>/installers/app.dmg") to a key inside this site's prefix.
+ * Anything that would leave the prefix is rejected.
+ */
+export function resolvePrivateKey(siteId, path) {
+  if (!siteId) throw new Error('Site ID required');
+  const prefix = `${siteId}/`;
+  let rel = String(path || '').trim().replace(/\/+/g, '/').replace(/^\//, '');
+  if (rel.startsWith(prefix)) rel = rel.slice(prefix.length);
+  if (!rel || rel.endsWith('/')) throw new Error('A file path is required');
+  if (rel.split('/').some(part => part === '..' || part === '.')) {
+    throw new Error('Invalid file path');
+  }
+  return `${prefix}${rel}`;
+}
+
+/**
+ * Signed GET for a private file of this site.
+ * @param {string} siteId - Tenant identifier (server-controlled)
+ * @param {string} path - Site-relative path or full key
+ * @param {Object} options - { expiresIn: seconds (60..86400, default 600), filename: force download with this name }
+ * @returns {Promise<{url: string, key: string, expiresAt: string}>}
+ */
+export async function getPrivateDownloadUrl(siteId, path, options = {}) {
+  if (!PRIVATE_BUCKET) throw new Error('S3_PRIVATE_BUCKET_NAME is not configured');
+  const key = resolvePrivateKey(siteId, path);
+  const expiresIn = Math.min(Math.max(parseInt(options.expiresIn, 10) || 600, 60), 86400);
+
+  const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+  const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const client = await getS3Client();
+
+  const commandInput = { Bucket: PRIVATE_BUCKET, Key: key };
+  if (options.filename) {
+    const safeName = String(options.filename).replace(/[^\x20-\x7E]|["\\]/g, '_');
+    commandInput.ResponseContentDisposition = `attachment; filename="${safeName}"`;
+  }
+
+  const url = await getSignedUrl(client, new GetObjectCommand(commandInput), { expiresIn });
+  return { url, key, expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString() };
+}
+
 export default {
+  getPrivateDownloadUrl,
+  resolvePrivateKey,
   generatePresignedUrl,
   deleteFile,
   getOptimizedUrl,

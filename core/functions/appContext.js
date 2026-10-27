@@ -330,6 +330,17 @@ export async function createAppContext({
     ai,
     cache: siteCache,
 
+    // ===== PRIVATE FILES =====
+    // Files in the private bucket (S3_PRIVATE_BUCKET_NAME) have no public URL.
+    // Check who is asking first, then hand out a link that expires.
+    storage: {
+      async signedUrl(path, options = {}) {
+        const { getPrivateDownloadUrl } = await import('@/core/services/storage/s3');
+        const result = await getPrivateDownloadUrl(String(siteId), path, options);
+        return result.url;
+      }
+    },
+
     // ===== SITE ENVIRONMENT VARIABLES =====
     env: {
       async get(varName, defaultValue = null) {

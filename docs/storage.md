@@ -518,6 +518,15 @@ function BatchUpload() {
 
 ---
 
+## Private Files (Firmwares, Installers)
+
+Set `S3_PRIVATE_BUCKET_NAME` to a bucket with all public access blocked and put
+files under `<siteId>/<path>` (e.g. `<siteId>/installers/app-1.0.0.dmg`). They have
+no public URL. A server function checks who is asking and returns a temporary link
+with `app.storage.signedUrl()`; see [functions.md](functions.md#private-files).
+
+---
+
 ## Configuration
 
 **Add S3 credentials to `settings/.env`:**

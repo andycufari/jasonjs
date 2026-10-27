@@ -61,6 +61,7 @@ async function example(app) {
     utils,         // Email, slugs, webhooks
     ai,            // AI chat
     cache,         // Cache API
+    storage,       // Private files: await storage.signedUrl('installers/app.dmg')
     env,           // Environment variables (async! use await env.get('KEY'))
     billing        // Subscription status
   } = app;
@@ -304,6 +305,34 @@ async function utilsExample(app) {
 | `uploadFile(data, path, opts)` | Upload to storage |
 | `generatePDF(template, data)` | Generate PDF |
 | `optimizeImage(key, opts)` | Optimize image |
+
+---
+
+## Private Files
+
+Files in the private bucket (`S3_PRIVATE_BUCKET_NAME`, all public access blocked)
+have no public URL. A function decides who may download
+and hands out a link that expires.
+
+```javascript
+async function download(app) {
+  const { params, db, storage, response } = app;
+
+  // Your rule: a valid license, a registered device, an admin...
+  const license = await db.use('licenses').findOne({ token: params.t });
+  if (!license) return response({ error: 'Invalid link' }, 403);
+
+  const url = await storage.signedUrl('installers/app-1.0.0.dmg', {
+    expiresIn: 600,              // seconds (60 to 86400, default 600)
+    filename: 'app-1.0.0.dmg'    // optional: force download with this name
+  });
+  return response({ url });
+}
+```
+
+The path is relative to the site (`<folder>/<name>` as uploaded). Paths that try to
+leave the site (`..`) are rejected. The link works for anyone who has it until it
+expires, so keep `expiresIn` short.
 
 ---
 
