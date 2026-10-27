@@ -142,31 +142,33 @@ const OptimizedImage = ({ src, alt, width = 800 }) => {
 
 ## Server-Side Storage (Functions)
 
+In functions, `app.storage` has ONE method: `signedUrl()`. There is no
+`storage.upload()` server-side; files come in through FormBuilder/`app.storage.upload`
+on the client.
+
+### Private files (firmwares, installers, paid downloads)
+
+Put the file in `S3_PRIVATE_BUCKET_NAME` (all public access blocked) under
+`<siteId>/installers/app-1.0.0.dmg`. It has NO URL. A function checks who is asking and returns a link that expires:
+
 ```javascript
-// @desc Generate and upload PDF report
-async function generateReport(app) {
+// @desc Hand out a download link to a licensed user
+async function download(app) {
   const { params, db, storage, response } = app;
+  const license = await db.use('licenses').findOne({ token: params.t });
+  if (!license) return response({ error: 'Invalid link' }, 403);
 
-  // Generate PDF buffer (from library like pdfkit)
-  const pdfBuffer = await generatePDF(params.data);
-
-  // Upload to S3
-  const result = await storage.upload(pdfBuffer, {
-    fileName: `report-${Date.now()}.pdf`,
-    fileType: 'application/pdf',
-    path: 'reports'
+  const url = await storage.signedUrl('installers/app-1.0.0.dmg', {
+    expiresIn: 600,             // seconds, 60..86400 (default 600)
+    filename: 'app-1.0.0.dmg'   // optional: force download with this name
   });
-
-  // Save reference to database
-  await db.use('reports').add({
-    title: params.title,
-    file: result, // { url, key, name, type, size }
-    generatedAt: new Date()
-  });
-
-  return response({ success: true, url: result.url });
+  return response({ url });
 }
 ```
+
+Path = `<folder>/<name>` as uploaded, relative to the site. `..` is rejected. Anyone
+holding the link can use it until it expires: keep `expiresIn` short and do the
+check BEFORE calling `signedUrl`.
 
 ### Delete Files with Record
 
@@ -296,6 +298,8 @@ Files stored in database:
 | Forget `accept` types | Specify `accept="image/*"` |
 | Use `app.storage.list()` client-side | Use server function for listing |
 | Hardcode S3 credentials | Use env variables |
+| Public URL for paid/firmware files | Private bucket + `storage.signedUrl()` |
+| `storage.upload()` in a function | Doesn't exist server-side |
 
 ## Related
 
