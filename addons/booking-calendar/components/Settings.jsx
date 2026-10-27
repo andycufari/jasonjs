@@ -101,6 +101,35 @@ function BookingsPane() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Host cancel: the cancel endpoint deletes the Google event (Google emails the guest) and
+  // marks the row cancelled. The reason is stored, not sent — write to the guest yourself.
+  const [cancelling, setCancelling] = useState(null); // booking id with the form open
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const cancelBooking = async (id) => {
+    setBusy(true);
+    try {
+      const r = await fetch('/api/addons/booking-calendar/bookings/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, reason }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setError(data.error === 'already_started' ? 'That booking already started.' : (data.error || 'Cancel failed'));
+        return;
+      }
+      setBookings(list => list.filter(b => b.id !== id));
+      setCancelling(null);
+      setReason('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
   if (error) return <p className="text-sm text-red-600">{error}</p>;
   if (bookings.length === 0) return <p className="text-sm text-muted-foreground">No upcoming bookings.</p>;
@@ -124,10 +153,39 @@ function BookingsPane() {
               <span className="text-muted-foreground">{a.label}:</span> {a.value}
             </div>
           ))}
-          {b.meetLink && (
-            <a href={b.meetLink} target="_blank" rel="noopener noreferrer" className="text-xs underline">
-              Meet link
-            </a>
+          <div className="flex gap-4 text-xs">
+            {b.meetLink && (
+              <a href={b.meetLink} target="_blank" rel="noopener noreferrer" className="underline">
+                Meet link
+              </a>
+            )}
+            {cancelling !== b.id && (
+              <button type="button" className="underline text-red-600" onClick={() => { setCancelling(b.id); setReason(''); }}>
+                Cancel booking
+              </button>
+            )}
+          </div>
+          {cancelling === b.id && (
+            <div className="space-y-2 pt-2">
+              <textarea
+                className="w-full border rounded p-2 text-sm bg-transparent"
+                rows={2}
+                placeholder="Reason (optional, saved with the booking — not sent to the guest)"
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                The Google event is deleted and Google emails {b.guestEmail} a cancellation.
+              </p>
+              <div className="flex gap-2">
+                <button type="button" disabled={busy} className="border rounded px-3 py-1 text-xs text-red-600 disabled:opacity-50" onClick={() => cancelBooking(b.id)}>
+                  {busy ? 'Cancelling…' : 'Confirm cancel'}
+                </button>
+                <button type="button" disabled={busy} className="border rounded px-3 py-1 text-xs" onClick={() => setCancelling(null)}>
+                  Keep it
+                </button>
+              </div>
+            </div>
           )}
         </div>
       ))}
