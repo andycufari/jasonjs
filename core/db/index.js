@@ -136,6 +136,16 @@ class Database {
       return { valid: false, error: `Invalid database type "${config.type}". Valid types: ${validTypes.join(', ')}` };
     }
 
+    // A mongodb database must bring its own connection: without one it used to fall back to the
+    // platform's Mongo, where every site's jason tables live (see resolveSiteConnection in
+    // core/db/adapters/mongodb). Rejected here too, so the error is clear before any query runs.
+    if (config.type === 'mongodb' && !(config.connection || config.config?.connection)) {
+      return {
+        valid: false,
+        error: 'type "mongodb" requires its own "connection" (e.g. "[[env.MY_MONGODB_URI]]"). For data stored by the platform, use "type": "jason".',
+      };
+    }
+
     return { valid: true, warnings };
   }
 

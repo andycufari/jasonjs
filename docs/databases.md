@@ -27,6 +27,25 @@ const posts = await app.db.use('posts').add({
 
 > 💡 **Automatic fields:** Every record gets `_id`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy` for free.
 
+### Your own MongoDB (`"type": "mongodb"`)
+
+`jason` stores your data in the platform, scoped to your site. To read an external MongoDB
+of your own, use `"type": "mongodb"` — and it **must** say where that MongoDB is:
+
+```json
+// database/places.json
+{
+  "type": "mongodb",
+  "connection": "[[env.MY_MONGODB_URI]]",
+  "database": "mydb",
+  "collection": "places",
+  "schema": { "name": { "type": "string" } }
+}
+```
+
+Set `MY_MONGODB_URI` in your site's `.env`. A `mongodb` database without `connection` is
+rejected: it never falls back to the platform's MongoDB, where other sites' data lives.
+
 ---
 
 ## Field Types

@@ -380,14 +380,34 @@ function convertToRegexMatch(condition) {
   };
 }
 
-async function getDatabase(databaseConfig) {
-  // Use connection string from config, fallback to environment variable
-  const connectionString = databaseConfig.connection || databaseConfig.config?.connection || process.env.MONGODB_URI;
-
-  if (!connectionString) {
-    console.error('MongoDB connection string not found in config or environment variables');
-    return null;
+/**
+ * Connection string of a site-declared `mongodb` database. It must come from the database
+ * config itself (usually `[[env.X]]` from the site's .env).
+ *
+ * There is deliberately NO fallback to process.env.MONGODB_URI: that is the platform's Mongo,
+ * where every site's jason tables live as `<siteId>_<table>`. With the fallback, any site could
+ * declare `{ "type": "mongodb", "collection": "<otherSite>_<table>" }` and read or write another
+ * site's data — and by marking fields `encrypted: true` in its own schema, get them decrypted
+ * with the framework-wide key. Framework code that needs the platform DB uses getMongoClient().
+ *
+ * @param {Object} databaseConfig
+ * @returns {string}
+ * @throws {Error} when the config has no connection of its own
+ */
+export function resolveSiteConnection(databaseConfig = {}) {
+  const connectionString = databaseConfig.connection || databaseConfig.config?.connection;
+  if (!connectionString || typeof connectionString !== 'string') {
+    throw new Error(
+      `Database "${databaseConfig.id || databaseConfig.name || 'unknown'}" is type "mongodb" but has no "connection". ` +
+      'A mongodb database must point to its own MongoDB: add "connection": "[[env.MY_MONGODB_URI]]" and set that variable in the site .env. ' +
+      'For data stored by the platform, use "type": "jason".'
+    );
   }
+  return connectionString;
+}
+
+async function getDatabase(databaseConfig) {
+  const connectionString = resolveSiteConnection(databaseConfig);
 
   // Get client from connection pool
   const client = await getMongoClient(connectionString);
