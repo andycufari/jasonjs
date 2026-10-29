@@ -192,10 +192,25 @@ async function fetchPageData(params, searchParams, options = {}) {
       const sanitizedData = sanitizeData(actualData);
       const decodedData = decodeSafeEntities(sanitizedData);
 
-      if (fetchConfig.findOne === true) {
-        dataContext[fetchConfig.database] = decodedData.length > 0 ? decodedData[0] : {};
+      let result;
+      if (fetchConfig.findOne === true || fetchConfig.single === true) {
+        // If decodedData is already a single object (e.g., fetchType: 'page'), use it directly
+        if (Array.isArray(decodedData)) {
+          result = decodedData.length > 0 ? decodedData[0] : {};
+        } else {
+          result = decodedData || {};
+        }
       } else {
-        dataContext[fetchConfig.database] = decodedData;
+        result = decodedData;
+      }
+
+      // Keyed by `id` if given, else by database name (existing v2 pages read it there).
+      // Also exposed as `data`: that's where a single fetch lived in v1, where the docs
+      // say it is ({{data.Title}}), and where @notion/directory components read it.
+      const contextKey = fetchConfig.id || fetchConfig.database;
+      dataContext[contextKey] = result;
+      if (!('data' in dataContext)) {
+        dataContext.data = result;
       }
     } else {
       // Handle object with named data sources (new format)

@@ -669,9 +669,12 @@ class SiteFiles {
   async _getDatabasesSignature(domain) {
     try {
       if (this.adapter) {
-        return typeof this.adapter.getClassSignature === 'function'
-          ? await this.adapter.getClassSignature(domain, 'database')
-          : null;
+        if (typeof this.adapter.getClassSignature !== 'function') return null;
+        // Include the legacy settings/database.json too, or editing it (e.g. adding
+        // `security`) keeps serving the cached config.
+        const classSignature = await this.adapter.getClassSignature(domain, 'database');
+        const legacy = await this.adapter.getFileTimestamp(domain, 'setting', 'database');
+        return `${classSignature}|${legacy || 0}`;
       }
       if (!this._isSafeSegment(domain)) return null;
 
