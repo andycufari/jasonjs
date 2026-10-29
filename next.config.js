@@ -12,6 +12,12 @@ if (typeof window === 'undefined' && typeof localStorage !== 'undefined') {
   }
 }
 
+// CM64 addon present (.cm64/): it provides runtime component compilation and
+// database-mode function execution. Its site components compile in the browser,
+// which needs 'unsafe-eval'; the open-source build compiles them at build time
+// and keeps eval blocked.
+const hasCm64 = fs.existsSync(path.join(__dirname, '.cm64'));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Disable dev indicators that may have SSR issues
@@ -26,7 +32,7 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               // Scripts: self, inline, blob workers, and common CDNs
-              "script-src 'self' 'unsafe-inline' blob: https://www.youtube.com https://www.google.com https://www.googletagmanager.com https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://v8.js-dos.com https://tally.so",
+              `script-src 'self' 'unsafe-inline' ${hasCm64 ? "'unsafe-eval' " : ''}blob: https://www.youtube.com https://www.google.com https://www.googletagmanager.com https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://v8.js-dos.com https://tally.so`,
               // Styles: self, inline, and common CDNs
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://v8.js-dos.com",
               "img-src 'self' data: blob: https: http:",
@@ -48,10 +54,7 @@ const nextConfig = {
     config.resolve.alias['@site'] = path.join(__dirname, 'sites');
     config.resolve.alias['@sites'] = path.join(__dirname, 'sites');
 
-    // CM64 addon: when a .cm64/ directory is present it provides runtime
-    // component compilation + database-mode function execution. Without it,
-    // @cm64 resolves to stubs that throw with a helpful message.
-    const hasCm64 = fs.existsSync(path.join(__dirname, '.cm64'));
+    // Without the CM64 addon, @cm64 resolves to stubs that throw with a helpful message.
     config.resolve.alias['@cm64'] = hasCm64
       ? path.join(__dirname, '.cm64')
       : path.join(__dirname, 'core/cm64-stub');

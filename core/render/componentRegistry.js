@@ -250,7 +250,7 @@ export const getComponents = async function(page, isDev = false) {
           // Site component (no @ prefix): resolved by the unified file system.
           // Local mode imports sites/{domain}/components/{name}.jsx natively;
           // adapter mode delegates to the CM64 addon's runtime loader.
-          const Component = await getComponent(domain, cleanComponentName);
+          const Component = await getComponent(domain, cleanComponentName, { siteId, isDev, versionId: page.version });
 
           if (Component) {
             componentRegistry[componentName] = Component;

@@ -535,12 +535,14 @@ class SiteFiles {
    *
    * @param {string} domain - Domain/site identifier
    * @param {string} name - Component name (may include subfolders)
+   * @param {Object} [options] - Render context for the adapter's loader
+   *   ({ siteId, isDev, versionId }); local mode doesn't need it
    * @returns {Promise<Function|null>} React component, or null if not found
    */
-  async getComponent(domain, name) {
+  async getComponent(domain, name, options = {}) {
     if (this.adapter) {
       const m = await import('@cm64/component-loader');
-      return m.loadStudioComponent(domain, name);
+      return m.loadStudioComponent(domain, name, options);
     }
 
     if (!this._isSafeSegment(domain) || !this._isSafeSegment(name)) {
@@ -1259,9 +1261,9 @@ export async function getDeployVersion(siteId, deployId) {
 /**
  * Get a site component as a ready React component
  */
-export async function getComponent(domain, name) {
+export async function getComponent(domain, name, options = {}) {
   const fs = getFileSystem();
-  return await fs.getComponent(domain, name);
+  return await fs.getComponent(domain, name, options);
 }
 
 /**
