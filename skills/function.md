@@ -79,6 +79,7 @@ async function functionName(app) {
     cache,            // { get(key), set(key, value, ttl), delete(key) }
     utils,            // { sendEmail(), generateSlug(), uploadFile(), sendWebhook() }
     CURL,             // Secure external HTTP
+    sleep,            // await sleep(ms) — max 10s per call, never past the 60s run limit
     env,              // { get(name, default), has(name), all() } - all async!
 
     // Helpers

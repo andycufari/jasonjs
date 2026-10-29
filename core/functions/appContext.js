@@ -235,6 +235,24 @@ export function createSiteCache(siteId) {
   };
 }
 
+// Hard limit for a site function run (also bounds app.sleep)
+export const EXECUTION_TIMEOUT_MS = 60000;
+
+/**
+ * app.sleep(ms) for site functions — for polling loops (wait for a row to change).
+ * Max 10s per call. When a run times out, Promise.race gives up but the function
+ * keeps going in the background, so sleep refuses to wait past the run's deadline.
+ */
+export function createSleep(deadline) {
+  return async function sleep(ms) {
+    const wait = Math.min(Math.max(Number(ms) || 0, 0), 10000);
+    if (Date.now() + wait > deadline) {
+      throw new Error('app.sleep: function time limit reached');
+    }
+    await new Promise(resolve => setTimeout(resolve, wait));
+  };
+}
+
 // ============================================
 // createAppContext — the `app` object
 // ============================================
@@ -340,6 +358,10 @@ export async function createAppContext({
         return result.url;
       }
     },
+
+    // ===== SLEEP =====
+    // For polling loops (wait for a row to change).
+    sleep: createSleep(Date.now() + EXECUTION_TIMEOUT_MS),
 
     // ===== SITE ENVIRONMENT VARIABLES =====
     env: {

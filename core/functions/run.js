@@ -19,10 +19,8 @@
  */
 
 import { getFunction, getAllDatabases, getAllSettings } from '@/core/sites/files';
-import { createAppContext } from './appContext.js';
+import { createAppContext, EXECUTION_TIMEOUT_MS } from './appContext.js';
 import appLog from '@/core/utils/appLog';
-
-const EXECUTION_TIMEOUT_MS = 60000; // 1 minute
 
 /**
  * Run a site function
