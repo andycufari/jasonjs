@@ -124,6 +124,9 @@ export async function securityMiddleware(request) {
     pathname.startsWith('/api/auth/callback/') ||  // OAuth callbacks
     pathname === '/api/auth/session' ||             // Session checks
     pathname === '/api/auth/csrf' ||                // CSRF tokens
+    // middleware.js fetches this itself (Host = the site) to resolve function rewrites;
+    // the threat rule for /api/internal blocked it, so no rewrite in routes.json ever applied
+    pathname === '/api/internal/routes' ||
     request.method === 'OPTIONS'                    // Preflight requests
   );
 
