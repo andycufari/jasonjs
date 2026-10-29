@@ -59,6 +59,19 @@ function matchPattern(pattern, path) {
   return params;
 }
 
+export const ROUTES_HOST_HEADER = 'x-jasonjs-routes-host';
+
+/**
+ * Which site /api/internal/routes answers for. The middleware's own request arrives
+ * on localhost carrying the site in ROUTES_HOST_HEADER; anything from outside
+ * comes with the site's real Host, and the header is ignored — no reading
+ * another tenant's routes.
+ */
+export function routesHostFor(hostHeader, routesHostHeader, resolvedHost) {
+  const isLocal = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(hostHeader || '');
+  return isLocal && routesHostHeader ? routesHostHeader : resolvedHost;
+}
+
 /**
  * Fetch function routes for a domain from the internal API
  * @param {string} origin - Request origin (e.g., "http://localhost:3000")
@@ -67,8 +80,10 @@ function matchPattern(pattern, path) {
  */
 async function fetchFunctionRoutes(origin, host) {
   try {
+    // fetch ignores a Host header (it sends the URL's host), and origin here is the
+    // server's own localhost — so the site goes in a header of ours
     const res = await fetch(`${origin}/api/internal/routes`, {
-      headers: { host }
+      headers: { [ROUTES_HOST_HEADER]: host }
     });
 
     if (!res.ok) return {};
