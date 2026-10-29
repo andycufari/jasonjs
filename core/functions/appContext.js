@@ -284,9 +284,11 @@ export function isSiteAdmin(session, siteId, isStudioRequest) {
  * @param {boolean} options.isStudioRequest - Studio IDE request flag
  * @param {Object} options.databaseConfig - Pre-loaded database config
  * @param {Object} options.settings - Pre-loaded site settings
+ * @param {string} options.siteId - Site record id (defaults to the domain, which is the id in local mode)
  */
 export async function createAppContext({
   domain,
+  siteId = domain,
   functionName,
   params = {},
   session = null,
@@ -297,8 +299,6 @@ export async function createAppContext({
   databaseConfig = {},
   settings = {}
 }) {
-  // In the open-source runtime, the site identifier IS the domain
-  const siteId = domain;
 
   // Set logging context
   setSiteContext(siteId, domain, session?.user?.id || null, functionName, { source, method });

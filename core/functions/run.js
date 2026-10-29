@@ -18,14 +18,14 @@
  * @module core/functions/run
  */
 
-import { getFunction, getAllDatabases, getAllSettings } from '@/core/sites/files';
+import { getFunction, getAllDatabases, getAllSettings, getSite } from '@/core/sites/files';
 import { createAppContext, EXECUTION_TIMEOUT_MS } from './appContext.js';
 import appLog from '@/core/utils/appLog';
 
 /**
  * Run a site function
  *
- * @param {string} domain - Site domain (siteId in OSS mode)
+ * @param {string} domain - Site domain
  * @param {string} name - Function name/path (e.g. "hello" or "webhook/stripe")
  * @param {Object} requestContext
  * @param {Object} requestContext.params - Merged params (body + query), legacy-compatible
@@ -95,9 +95,16 @@ export async function runFunction(domain, name, requestContext = {}) {
   const dbConfig = databaseConfig || await getAllDatabases(domain) || {};
   const siteSettings = settings || await getAllSettings(domain) || {};
 
+  // The site record id keys the site's data (collections, users, files). Locally it is
+  // the domain; with a file-source adapter it is whatever id the site record carries,
+  // the same one pages and /api/data use.
+  const site = await getSite(domain);
+  const siteId = site?._id ? String(site._id) : domain;
+
   // 4. Build the app object
   const app = await createAppContext({
     domain,
+    siteId,
     functionName: name,
     params,
     session,
@@ -120,7 +127,7 @@ export async function runFunction(domain, name, requestContext = {}) {
     headers,
     session,
     domain,
-    siteId: domain,
+    siteId,
     method
   };
 
