@@ -11,7 +11,9 @@ module.exports = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./core/**/*.{js,ts,jsx,tsx,mdx}",
-    "./lib/**/*.{js,ts,jsx,tsx,mdx}"
+    "./lib/**/*.{js,ts,jsx,tsx,mdx}",
+    // CM64 addon user components (no-op when .cm64/ is absent)
+    "./.cm64/user/**/*.{js,jsx}"
   ],
   safelist: [
     // Colors - Extended palette for AI components

@@ -62,6 +62,15 @@ const loadTrustedComponent = async (componentName, componentPath, context = {}) 
   }
 };
 
+// User components (any prefix that isn't addons/framework/system): the CM64
+// addon's own set first when present (asked by the full path, e.g.
+// "op/MainMenu"), then components/user/<userPath>
+const loadUserComponent = async (componentName, componentPath, userPath, context = {}) => {
+  const cm64 = await import('@cm64/user-components');
+  return await cm64.loadUserComponent(componentPath)
+    || await loadTrustedComponent(componentName, `user/${userPath}`, context);
+};
+
 const loadAddonComponent = async (componentName, componentPath, context = {}) => {
   try {
     // Addon components are in /addons/{addon-name}/components/{ComponentName}
@@ -174,7 +183,7 @@ export const getComponents = async function(page, isDev = false) {
           componentRegistry[componentName] = await loadTrustedComponent(componentName, `system/${pathParts.join('/')}`, errorContext);
         } else {
           // Fallback to user directory for user/ComponentName or any other prefix
-          componentRegistry[componentName] = await loadTrustedComponent(componentName, `user/${componentPath}`, errorContext);
+          componentRegistry[componentName] = await loadUserComponent(componentName, componentPath, componentPath, errorContext);
         }
       }
     }
@@ -221,7 +230,7 @@ export const getComponents = async function(page, isDev = false) {
           componentRegistry[componentName] = await loadTrustedComponent(cleanComponentName, `system/${pathParts.join('/')}`, errorContext);
         } else {
           // Fallback to user directory for @user/ComponentName or any other prefix
-          componentRegistry[componentName] = await loadTrustedComponent(cleanComponentName, `user/${pathParts.join('/')}`, errorContext);
+          componentRegistry[componentName] = await loadUserComponent(cleanComponentName, localPath, pathParts.join('/'), errorContext);
         }
         continue;
       }else{
