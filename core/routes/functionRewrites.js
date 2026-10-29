@@ -62,6 +62,22 @@ function matchPattern(pattern, path) {
 export const ROUTES_HOST_HEADER = 'x-jasonjs-routes-host';
 
 /**
+ * Where the middleware reaches its own server. Not request.nextUrl.origin: behind
+ * Cloudflare it says https (X-Forwarded-Proto) while the port speaks plain http,
+ * so the fetch died with "fetch failed" and no rewrite ever applied.
+ */
+export function internalOrigin(origin, envPort) {
+  let port = '';
+  try {
+    const u = new URL(origin);
+    if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(u.hostname)) port = u.port;
+  } catch {
+    // no usable origin — fall back to the env port
+  }
+  return `http://127.0.0.1:${port || envPort || 3000}`;
+}
+
+/**
  * Which site /api/internal/routes answers for. The middleware's own request arrives
  * on localhost carrying the site in ROUTES_HOST_HEADER; anything from outside
  * comes with the site's real Host, and the header is ignored — no reading
@@ -80,9 +96,8 @@ export function routesHostFor(hostHeader, routesHostHeader, resolvedHost) {
  */
 async function fetchFunctionRoutes(origin, host) {
   try {
-    // fetch ignores a Host header (it sends the URL's host), and origin here is the
-    // server's own localhost — so the site goes in a header of ours
-    const res = await fetch(`${origin}/api/internal/routes`, {
+    // fetch ignores a Host header (it sends the URL's host), so the site goes in a header of ours
+    const res = await fetch(`${internalOrigin(origin, process.env.PORT)}/api/internal/routes`, {
       headers: { [ROUTES_HOST_HEADER]: host }
     });
 
