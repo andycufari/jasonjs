@@ -31,6 +31,7 @@ async function myFunction(app) {
 | `app.context` | Current request info | Full | Full |
 | `app.user` | Custom fields | Full | - |
 | `app.ai` | AI prompts | Full | Full |
+| `app.crypto` | Random tokens, hashes, HMAC | - | Full |
 
 ---
 

@@ -24,6 +24,7 @@ import appLog, { setSiteContext } from '@/core/utils/appLog';
 import analyticsTracker from '@/core/services/tracking/analytics';
 import axios from 'axios';
 import { checkCurlUrl } from './curlGuard.js';
+import { createAppCrypto } from './appCrypto.js';
 
 // ============================================
 // External HTTP (app.CURL) — SSRF-safe fetch
@@ -362,6 +363,10 @@ export async function createAppContext({
     // ===== SLEEP =====
     // For polling loops (wait for a row to change).
     sleep: createSleep(Date.now() + EXECUTION_TIMEOUT_MS),
+
+    // ===== CRYPTO =====
+    // Random tokens, hashes, HMAC — the sandbox has no crypto of its own.
+    crypto: createAppCrypto(),
 
     // ===== SITE ENVIRONMENT VARIABLES =====
     env: {

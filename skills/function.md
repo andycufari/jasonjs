@@ -80,6 +80,7 @@ async function functionName(app) {
     utils,            // { sendEmail(), generateSlug(), uploadFile(), sendWebhook() }
     CURL,             // Secure external HTTP
     sleep,            // await sleep(ms) — max 10s per call, never past the 60s run limit
+    crypto,           // { randomToken(), uuid(), hash(), hmac(), safeEqual() }
     env,              // { get(name, default), has(name), all() } - all async!
 
     // Helpers
@@ -167,6 +168,15 @@ const allEnv = await app.env.all();
 
 // ANALYTICS
 await app.trackEvent('order_completed', { amount: 99.99 });
+
+// CRYPTO (strings in, hex out by default)
+const key = 'sk_' + app.crypto.randomToken();          // 64 hex chars (32 bytes)
+const short = app.crypto.randomToken(16, 'base64url'); // bytes 1–1024; hex | base64 | base64url
+const id = app.crypto.uuid();
+const h = app.crypto.hash(key);                        // sha256
+const h512 = app.crypto.hash(key, 'sha512');           // sha256 | sha384 | sha512 | sha1 | md5
+const sig = app.crypto.hmac(secret, rawBody);          // sha256 HMAC, e.g. webhook signatures
+if (!app.crypto.safeEqual(sig, received)) { /* reject */ }  // constant-time
 ```
 
 ## Patterns
@@ -417,6 +427,9 @@ const apiKey = app.env['STRIPE_KEY'];   // undefined
 | Return non-JSON data | Return plain objects only |
 | Forget auth checks | Always validate `auth.isAuthenticated` |
 | Trust user input | Use `app.sanitizeData(params)` |
+| `Math.random()` for keys/tokens | `app.crypto.randomToken()` |
+| Compare secrets with `===` | `app.crypto.safeEqual(a, b)` |
+| `app.crypto.hash()` for passwords | `app.auth` handles passwords |
 
 ## Related
 

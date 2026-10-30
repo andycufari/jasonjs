@@ -59,6 +59,8 @@ async function example(app) {
     sanitizeData,  // Clean user input
     trackEvent,    // Analytics
     utils,         // Email, slugs, webhooks
+    crypto,        // Random tokens, hashes, HMAC
+    sleep,         // await sleep(ms) — for polling loops
     ai,            // AI chat
     cache,         // Cache API
     storage,       // Private files: await storage.signedUrl('installers/app.dmg')
@@ -305,6 +307,48 @@ async function utilsExample(app) {
 | `uploadFile(data, path, opts)` | Upload to storage |
 | `generatePDF(template, data)` | Generate PDF |
 | `optimizeImage(key, opts)` | Optimize image |
+
+---
+
+## Crypto
+
+The sandbox has no `crypto`, `Buffer` or `require()`. Use `app.crypto` to mint API keys,
+reset links and invite codes, and to check webhook signatures. Strings in, hex out by default.
+
+```javascript
+async function createApiKey(app) {
+  const { crypto, db, auth, response } = app;
+  if (!auth.isAuthenticated) return response({ error: 'Login required' }, 'AUTH');
+
+  const key = 'sk_' + crypto.randomToken();          // 32 random bytes → 64 hex chars
+  await db.use('api_keys', true).add({
+    userId: auth.user.id,
+    keyHash: crypto.hash(key)                          // store the hash, show the key once
+  });
+  return response({ key });
+}
+
+// Signed link: /api/download?file=X&exp=T&sig=S — no table needed to check it
+async function download(app) {
+  const { crypto, params, env, response } = app;
+  const secret = await env.get('LINK_SECRET');
+  const expected = crypto.hmac(secret, params.file + ':' + params.exp);
+  if (!crypto.safeEqual(expected, params.sig || '') || Date.now() > Number(params.exp)) {
+    return response({ error: 'Bad or expired link' }, 'FORBIDDEN');
+  }
+  return response({ url: await app.storage.signedUrl(params.file) });
+}
+```
+
+| Method | Returns |
+|--------|---------|
+| `randomToken(bytes = 32, encoding = 'hex')` | Random string. `bytes` 1–1024; encoding `hex`, `base64` or `base64url` |
+| `uuid()` | Random UUID v4 |
+| `hash(text, algorithm = 'sha256', encoding = 'hex')` | Digest. `sha256`, `sha384`, `sha512`; `sha1`/`md5` only for interop (Gravatar, old APIs) |
+| `hmac(secret, text, algorithm = 'sha256', encoding = 'hex')` | Keyed signature |
+| `safeEqual(a, b)` | Constant-time string compare — use it for tokens and signatures, never `===` |
+
+Text must be a string (or number); `JSON.stringify` objects first. Passwords are not hashed here — `app.auth` handles them.
 
 ---
 
@@ -576,4 +620,10 @@ trackEvent(event, props)     // Analytics
 utils.generateSlug(title)
 utils.sendEmail(options)
 utils.sendWebhook(url, data)
+
+// Crypto
+crypto.randomToken()         // 64 hex chars
+crypto.hash(text, 'sha512')  // sha256 by default
+crypto.hmac(secret, text)
+crypto.safeEqual(a, b)
 ```
