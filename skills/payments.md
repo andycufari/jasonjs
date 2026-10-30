@@ -141,8 +141,9 @@ every 2 s for up to a minute: "Confirming your payment…" → "You're in!".
 | Call | What it does |
 |---|---|
 | `app.billing.checkout(opts)` | Creates the checkout server-side. `{ provider, email, items: [{ name, description?, amount, quantity? }], currency, reference, onPaid, returnUrl, cancelUrl, expiresAt?, metadata? }` → `{ provider, id, url }` |
-| `app.billing.providers()` | Providers with keys on this site: `['stripe', 'mercadopago']` |
+| `app.billing.providers()` | Providers with keys on this site: `['stripe', 'mercadopago']` (+ `'test'` for an admin) |
 | `app.billing.refund({ provider, paymentId, reason? })` | Full refund through the provider that took it. Admin session or billing handler only |
+| `app.billing.payments({ limit?, status?, since? })` | The ledger (below), newest first. Admin session only |
 
 The handler gets `app.params = { event: 'succeeded' | 'failed' | 'expired', provider: 'stripe' | 'mercadopago', payment | checkout }`.
 `payment` = `{ id, amount (cents), currency, email, status, metadata, externalReference }`.
@@ -157,11 +158,39 @@ The handler gets `app.params = { event: 'succeeded' | 'failed' | 'expired', prov
 - [ ] Answer 4xx/5xx only when a retry can fix it: the provider retries and the money is already taken.
 - [ ] Don't set `config.auth = true` on the handler: it runs without a session.
 
+## Test mode: the whole flow without money
+
+`provider: 'test'` works for a **logged-in admin** only, with no keys. The checkout URL is a framework
+page (`/api/billing/test-checkout`) with **Pay (simulated)** and **Decline**; it runs your `onPaid`
+exactly like a webhook, with `provider: 'test'` and `payment.simulated === true`, then sends the
+browser to `returnUrl`. Your rows, mails, capacity and panel all run for real.
+
+- Offer it where an admin can see it: `app.billing.providers()` already returns `'test'` for admins,
+  so a page that renders one button per provider shows it only to you.
+- Decide what a simulated payment means in your handler (e.g. store `provider: 'test'` and leave it
+  out of totals). `app.billing.refund({ provider: 'test' })` "refunds" without calling anyone.
+- If the handler fails, the test page shows the error instead of retrying.
+
+## The ledger: every checkout, how it ended
+
+The framework records each `app.billing.checkout` in a shared ledger: amount, provider, buyer,
+function and reference, status (`open` → `succeeded` · `failed` · `expired` → `refunded`) and
+**whether your handler took it** (and its error when it didn't). You don't write to it.
+
+- `cm64 payments [--status failed] [--days 7] [--test]`: from the terminal.
+- `app.billing.payments()` (admin) for a panel inside the site.
+- A `⚠ handler` line means the provider charged and your function failed: the provider retries,
+  but look at the function now.
+
+Keep your own table anyway: the ledger knows about money, your table knows about your business
+(who has a seat, which code they used, whether the mail went out).
+
 ## Testing
 
 - Same-origin only: a `curl` to `/api/<fn>` gets `403 External API access not configured`.
   Send the headers a browser sends (`Origin`, `Referer` and `Sec-Fetch-Site: same-origin` with the site's URL),
   or expose the route in `setting/api.json` (`skill:settings/api`).
+- End to end without money: test mode (above).
 - Unit-test the two functions by evaluating their source with a fake `app` (in-memory `db`,
   `billing.checkout` that records its options, `utils.sendEmail` that collects mails). The money logic lives there.
 - `console`/`app.log` from a billing or trigger handler do **not** show in `cm64 debug`: they go to the server logs.
@@ -187,5 +216,6 @@ refund, resend mail with `.ics`, manual seats, reminder) and `component/TallerPa
 ## Related
 
 - `skill:billing` — subscriptions and plans
+- `cm64 payments` — the ledger from the terminal
 - `skill:function` — `app.params`, `app.source`, `app.crypto`, `app.utils.sendEmail` (its `calendarEvent` attaches an `.ics`)
 - `skill:database` — tables and triggers
