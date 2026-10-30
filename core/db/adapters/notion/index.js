@@ -928,6 +928,8 @@ export const updateData = async (updateConfig, databaseConfig) => {
 };
 
 export const deleteData = async (pageId, databaseConfig) => {
+  // Database.delete(id) passes { id }; a bare id works too.
+  if (pageId && typeof pageId === 'object') pageId = pageId.id;
   const notion = getNotionClient(databaseConfig.api_key);
   const response = await notion.pages.update({
     page_id: pageId,
