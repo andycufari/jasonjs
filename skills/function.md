@@ -313,6 +313,18 @@ file. It receives `params = { event, database, record }` and `app.source === 'tr
 Check `app.source` when the function must only run as a trigger — every function is also
 a public HTTP endpoint. See `skill:database` → Triggers.
 
+## Payment Handlers
+
+A function named in `app.billing.checkout({ onPaid })` runs when the provider confirms, fails or
+expires the payment: `params = { event, provider, payment | checkout }` and `app.source === 'billing'`.
+Same rule: check `app.source` first. See `skill:payments`.
+
+| `app.source` | Who ran it |
+|---|---|
+| `'http'` | A page or an API call (anyone, unless the function checks) |
+| `'trigger'` | A database write (`skill:database` → Triggers) |
+| `'billing'` | A payment webhook (`skill:payments`) |
+
 ## Calling from Components
 
 ```jsx

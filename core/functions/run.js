@@ -35,7 +35,7 @@ import appLog from '@/core/utils/appLog';
  * @param {Object} requestContext.session - Auth session (or null)
  * @param {string} requestContext.method - HTTP method
  * @param {Object} requestContext.request - Raw request (http source only)
- * @param {string} requestContext.source - 'http' | 'server' | 'internal' | 'trigger'
+ * @param {string} requestContext.source - 'http' | 'server' | 'internal' | 'trigger' | 'billing'
  * @param {boolean} requestContext.isStudioRequest - Studio IDE request flag
  * @param {Object} requestContext.databaseConfig - Pre-loaded database config (optional)
  * @param {Object} requestContext.settings - Pre-loaded site settings (optional)
