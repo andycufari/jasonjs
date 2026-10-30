@@ -1,5 +1,8 @@
 // app/api/auth/send-verification-code/route.js
 import { NextResponse } from 'next/server';
+import { randomInt } from 'node:crypto';
+import { getUserByEmail } from '@/core/auth/lib';
+import { getSite } from '@/core/sites/files';
 import { getMongoClient } from '@/core/db/adapters/mongodb/index.js';
 import { resolveSite } from '@/core/sites/resolve';
 import { getSiteInfo } from '@/core/utils/getSiteInfo';
@@ -13,7 +16,8 @@ export async function POST(request) {
   if (rateLimitError) return rateLimitError;
 
   try {
-    const { email, type, userId } = await request.json();
+    // userId is NOT read from the body: the account is looked up here, by email, in this site
+    const { email, type } = await request.json();
 
     if (!email || !type) {
       return NextResponse.json(
@@ -26,7 +30,26 @@ export async function POST(request) {
     const { host: domain } = await resolveSite(request);
 
     // Generate 6-digit verification code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    if (!['registration', 'login', 'password-reset'].includes(type)) {
+      return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
+    }
+
+    let siteId = null;
+    try {
+      const site = domain ? await getSite(domain) : null;
+      if (site && site._id) siteId = typeof site._id === 'string' ? site._id : site._id.toString();
+    } catch (error) {
+      console.error('Error getting site for verification code:', error);
+    }
+    if (!siteId) siteId = domain;
+
+    const user = await getUserByEmail(email.toLowerCase(), siteId);
+    if (!user) {
+      return NextResponse.json({ error: 'No account found with this email address' }, { status: 404 });
+    }
+    const userId = user.id;
+
+    const code = randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     // Store verification code in database
@@ -38,6 +61,7 @@ export async function POST(request) {
       code,
       type, // 'registration', 'login', 'password-reset'
       userId,
+      siteId,
       expiresAt,
       used: false,
       createdAt: new Date()

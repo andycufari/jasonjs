@@ -1,5 +1,6 @@
 // app/api/auth/change-email/route.js
 import { NextResponse } from 'next/server';
+import { randomInt } from 'node:crypto';
 import { getServerSession } from 'next-auth';
 import { createAuthOptions } from '@/core/auth/options';
 import { getUserByEmail, validateEmail, updateUser } from '@/core/auth/lib';
@@ -85,7 +86,7 @@ export async function POST(request) {
     }
 
     // Generate verification code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     // Store email change request

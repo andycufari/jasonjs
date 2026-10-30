@@ -1,5 +1,6 @@
 // app/api/auth/send-login-code/route.js
 import { NextResponse } from 'next/server';
+import { randomInt } from 'node:crypto';
 import { getUserByEmail } from '@/core/auth/lib';
 import { getMongoClient } from '@/core/db/adapters/mongodb/index.js';
 import { resolveSite } from '@/core/sites/resolve';
@@ -69,7 +70,7 @@ export async function POST(request) {
     }
 
     // Generate 6-digit verification code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     // Store verification code in database

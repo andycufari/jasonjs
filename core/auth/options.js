@@ -179,6 +179,13 @@ const createAuthOptionsInternal = cache(async (cacheKey, pageData) => {
               return null;
             }
 
+            // The code only opens the account it was sent to. Without this, a code minted for the
+            // attacker's email but stored with someone else's userId logged into that someone else.
+            if (String(user.email || '').toLowerCase() !== credentials.email.toLowerCase()) {
+              console.warn('[auth] verification-code: code email does not match the account — rejected');
+              return null;
+            }
+
             // Update user based on verification type
             if (credentials.type === 'registration') {
               await updateUser(verificationCode.userId, {
