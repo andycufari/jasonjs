@@ -41,3 +41,25 @@ export async function runAddonBillingHook({ addon, hook, domain, payload }) {
   await hooks[hook]({ ...payload, context });
   return true;
 }
+
+/**
+ * Whoever the payment's metadata names applies it: an addon (metadata.addon → its
+ * hooks/billing.js) or a site function (metadata.function → app.billing.checkout's onPaid,
+ * see functionHook.js). Throws when the handler failed, so the webhook can answer non-2xx.
+ * @returns {Promise<boolean>} true if a handler ran
+ */
+export async function runBillingHandler({ metadata, hook, domain, siteId, payload }) {
+  if (metadata?.addon) {
+    return runAddonBillingHook({ addon: metadata.addon, hook, domain, payload });
+  }
+  if (metadata?.function) {
+    const { runFunctionBillingHook } = await import('./functionHook.js');
+    return runFunctionBillingHook({ functionName: metadata.function, hook, siteId, domain, payload });
+  }
+  return false;
+}
+
+/** Does this payment/checkout belong to an addon or a site function? */
+export function hasBillingHandler(metadata) {
+  return !!(metadata?.addon || metadata?.function);
+}

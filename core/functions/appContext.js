@@ -279,7 +279,7 @@ export function isSiteAdmin(session, siteId, isStudioRequest) {
  * @param {string} options.functionName - Function being executed
  * @param {Object} options.params - Merged request params
  * @param {Object} options.session - Auth session (or null)
- * @param {string} options.source - 'http' | 'server' | 'internal' | 'trigger'
+ * @param {string} options.source - 'http' | 'server' | 'internal' | 'trigger' | 'billing'
  * @param {string} options.method - HTTP method
  * @param {Object} options.request - Raw request object (http source only)
  * @param {boolean} options.isStudioRequest - Studio IDE request flag
@@ -771,6 +771,27 @@ export async function createAppContext({
         }
 
         return hasFeature(siteId, session.user.id, feature, billingConfig);
+      },
+
+      // One-time payments sold by the function itself (see core/services/billing/functionCheckout.js).
+      // The price is whatever the function passes — never something the caller sends unchecked.
+      async checkout(options = {}) {
+        const { createFunctionBilling } = await import('@/core/services/billing/functionCheckout.js');
+        return createFunctionBilling({ siteId, domain }).checkout(options);
+      },
+
+      async providers() {
+        const { createFunctionBilling } = await import('@/core/services/billing/functionCheckout.js');
+        return createFunctionBilling({ siteId, domain }).providers();
+      },
+
+      // Money goes back: only from a payment handler (app.source === 'billing') or an admin.
+      async refund(options = {}) {
+        if (source !== 'billing' && session?.user?.role !== 'admin') {
+          throw new Error('app.billing.refund: only an admin session or a billing handler can refund');
+        }
+        const { createFunctionBilling } = await import('@/core/services/billing/functionCheckout.js');
+        return createFunctionBilling({ siteId, domain }).refund(options);
       }
     },
 

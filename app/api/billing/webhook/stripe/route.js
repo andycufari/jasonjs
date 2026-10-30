@@ -12,7 +12,7 @@ import {
 import { resolveSite } from '@/core/sites/resolve';
 import { emitWorkerEvent } from '@/core/worker/events';
 import { resolveStripeTarget } from '@/core/services/billing/stripeHub';
-import { runAddonBillingHook } from '@/core/services/billing/hooks';
+import { runBillingHandler, hasBillingHandler } from '@/core/services/billing/hooks';
 
 /**
  * Stripe webhook handler
@@ -25,7 +25,8 @@ import { runAddonBillingHook } from '@/core/services/billing/hooks';
  * - checkout.session.completed: Creates customer record if missing (fallback)
  * - customer.subscription.created/updated/deleted: Syncs subscription to database
  * - invoice.payment_succeeded/failed: Records payment history
- * - one-time payments with metadata.addon → that addon's hooks/billing.js
+ * - one-time payments with metadata.addon → that addon's hooks/billing.js;
+ *   with metadata.function (app.billing.checkout) → that site function
  * - one-time guest payments (metadata.guest + orderId) → worker event, like MercadoPago
  * - checkout.session.expired → addon hook (release whatever the checkout was holding)
  */
@@ -195,17 +196,19 @@ export async function POST(request) {
       case 'payment.failed': {
         const payment = normalizedEvent.data;
 
-        // ADDON payment: the addon named in metadata applies it (e.g. confirms a booking).
-        // A failing hook answers 500 so Stripe retries — the money may already be taken.
-        if (payment.metadata?.addon) {
+        // ADDON or FUNCTION payment: the addon (metadata.addon) or site function
+        // (metadata.function, from app.billing.checkout) applies it — e.g. confirms a booking.
+        // A failing handler answers 500 so Stripe retries — the money may already be taken.
+        if (hasBillingHandler(payment.metadata)) {
           const hook = normalizedEvent.type === 'payment.succeeded' ? 'onPaymentSucceeded' : 'onPaymentFailed';
+          const handler = payment.metadata.addon || payment.metadata.function;
           try {
-            await runAddonBillingHook({
-              addon: payment.metadata.addon, hook, domain, payload: { payment, provider },
+            await runBillingHandler({
+              metadata: payment.metadata, hook, domain, siteId, payload: { payment, provider },
             });
           } catch (error) {
-            console.error(`Stripe webhook - ${payment.metadata.addon}.${hook} failed for ${payment.id}:`, error);
-            return NextResponse.json({ error: 'Addon billing hook failed' }, { status: 500 });
+            console.error(`Stripe webhook - ${handler}.${hook} failed for ${payment.id}:`, error);
+            return NextResponse.json({ error: 'Billing handler failed' }, { status: 500 });
           }
           break;
         }
@@ -259,17 +262,17 @@ export async function POST(request) {
         console.log(`Payment pending for session ${normalizedEvent.data.sessionId}`);
         break;
 
-      // A checkout nobody paid: let the addon release whatever it was holding.
+      // A checkout nobody paid: let the addon / function release whatever it was holding.
       case 'checkout.expired': {
         const checkout = normalizedEvent.data;
-        if (checkout.metadata?.addon) {
+        if (hasBillingHandler(checkout.metadata)) {
           try {
-            await runAddonBillingHook({
-              addon: checkout.metadata.addon, hook: 'onCheckoutExpired', domain, payload: { checkout, provider },
+            await runBillingHandler({
+              metadata: checkout.metadata, hook: 'onCheckoutExpired', domain, siteId, payload: { checkout, provider },
             });
           } catch (error) {
-            console.error(`Stripe webhook - ${checkout.metadata.addon}.onCheckoutExpired failed:`, error);
-            return NextResponse.json({ error: 'Addon billing hook failed' }, { status: 500 });
+            console.error(`Stripe webhook - ${checkout.metadata.addon || checkout.metadata.function}.onCheckoutExpired failed:`, error);
+            return NextResponse.json({ error: 'Billing handler failed' }, { status: 500 });
           }
         }
         break;

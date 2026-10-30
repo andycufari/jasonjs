@@ -12,7 +12,7 @@ import {
 } from '@/core/services/billing/customer';
 import { resolveSite } from '@/core/sites/resolve';
 import { emitWorkerEvent } from '@/core/worker/events';
-import { runAddonBillingHook } from '@/core/services/billing/hooks';
+import { runBillingHandler, hasBillingHandler } from '@/core/services/billing/hooks';
 
 /**
  * MercadoPago webhook/IPN handler
@@ -140,17 +140,19 @@ export async function POST(request) {
       case 'payment.failed': {
         const payment = normalizedEvent.data;
 
-        // ADDON payment: the addon named in metadata applies it (e.g. confirms a booking).
-        // A failing hook answers 500 so MercadoPago retries — the money may already be taken.
-        if (payment.metadata?.addon) {
+        // ADDON or FUNCTION payment: the addon (metadata.addon) or site function
+        // (metadata.function, from app.billing.checkout) applies it — e.g. confirms a booking.
+        // A failing handler answers 500 so MercadoPago retries — the money may already be taken.
+        if (hasBillingHandler(payment.metadata)) {
           const hook = normalizedEvent.type === 'payment.succeeded' ? 'onPaymentSucceeded' : 'onPaymentFailed';
+          const handler = payment.metadata.addon || payment.metadata.function;
           try {
-            await runAddonBillingHook({
-              addon: payment.metadata.addon, hook, domain, payload: { payment, provider },
+            await runBillingHandler({
+              metadata: payment.metadata, hook, domain, siteId, payload: { payment, provider },
             });
           } catch (error) {
-            console.error(`MercadoPago webhook - ${payment.metadata.addon}.${hook} failed for ${payment.id}:`, error);
-            return NextResponse.json({ error: 'Addon billing hook failed' }, { status: 500 });
+            console.error(`MercadoPago webhook - ${handler}.${hook} failed for ${payment.id}:`, error);
+            return NextResponse.json({ error: 'Billing handler failed' }, { status: 500 });
           }
           break;
         }

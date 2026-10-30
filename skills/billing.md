@@ -298,6 +298,51 @@ const ProFeature = ({ children }) => {
 };
 ```
 
+## One-time payments from a function
+
+To sell something that isn't a plan (a workshop seat, a deposit, a ticket), let a **site
+function** set the price and create the checkout server-side. Never take the amount from the
+browser.
+
+```js
+// function/comprar.js: called by the page
+async function comprar(app) {
+  var precio = 5500000; // cents. The function decides it, not the request body.
+  var fila = await app.db.use('inscripciones', true).add({ email: app.params.email, estado: 'pendiente' });
+  var co = await app.billing.checkout({
+    provider: app.params.provider,          // 'stripe' | 'mercadopago'
+    email: app.params.email,
+    items: [{ name: 'Taller', description: 'Sábado 14/11', amount: precio }],
+    currency: app.params.provider === 'mercadopago' ? 'ARS' : 'USD',
+    reference: String(fila._id),            // back as payment.metadata.reference
+    onPaid: 'pagado',                       // function the webhook runs
+    returnUrl: 'https://' + app.domain + '/taller?pago=ok',
+    cancelUrl: 'https://' + app.domain + '/taller'
+  });
+  return app.response({ url: co.url });     // redirect the browser there
+}
+
+// function/pagado.js: run by the payment webhook, never by HTTP
+async function pagado(app) {
+  if (app.source !== 'billing') return app.response({ error: 'billing only' }, 'FORBIDDEN');
+  var p = app.params; // { event: 'succeeded' | 'failed' | 'expired', provider, payment | checkout }
+  if (p.event !== 'succeeded') return app.response({ ok: true });
+  var db = app.db.use('inscripciones', true);
+  var fila = await db.getById(p.payment.metadata.reference);
+  if (!fila || fila.estado === 'pagado') return app.response({ ok: true }); // providers deliver twice
+  // check p.payment.amount / currency against what you charged before trusting it
+  await db.update(String(fila._id), { estado: 'pagado', paymentId: p.payment.id });
+  return app.response({ ok: true });
+}
+```
+
+- `app.billing.providers()`: the providers this site has keys for (`['stripe', 'mercadopago']`).
+- `app.billing.refund({ provider, paymentId, reason })`: full refund. Only from an admin session or a billing handler.
+- The handler answering 4xx/5xx (or throwing) makes the webhook fail, and the provider retries:
+  **make it idempotent**. Its `metadata` keys `function`, `domain`, `siteId` and `reference` are reserved.
+- MercadoPago: every checkout names the site's own webhook, so there's nothing to set up in MP's panel.
+  Stripe: the account's webhook at `/api/billing/webhook/stripe` (it routes by `metadata.domain`).
+
 ## Webhooks
 
 Configure webhooks in Stripe dashboard:
@@ -325,6 +370,8 @@ Configure webhooks in Stripe dashboard:
 | `app.billing.cancelSubscription(opts)` | Cancel subscription |
 | `app.billing.getPayments(limit)` | Get payment history |
 | `app.billing.formatCurrency(amt, currency)` | Format price |
+| `app.billing.checkout(opts)` | **Function only.** One-time checkout at the function's price; `onPaid` runs on payment |
+| `app.billing.refund(opts)` | **Function only.** Full refund (admin or billing handler) |
 
 ## Gotchas
 
@@ -335,6 +382,7 @@ Configure webhooks in Stripe dashboard:
 | Expose priceId in components | Framework handles this |
 | Check subscription client-side only | Verify server-side for security |
 | Forget auth before checkout | Use `app.billing.subscribe()` (handles auth) |
+| Price a one-time sale from the request body | `app.billing.checkout()` in a function, price set server-side |
 
 ## Related
 
