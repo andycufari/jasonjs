@@ -18,15 +18,21 @@ const EVENTS = {
   onCheckoutExpired: 'expired',
 };
 
+async function defaultLedger(siteId) {
+  const { createBillingDB } = await import('../../billing/db.js');
+  return createBillingDB(siteId);
+}
+
 /**
  * @param {Object} opts
  * @param {string} opts.functionName - metadata.function
  * @param {string} opts.hook         - onPaymentSucceeded | onPaymentFailed | onCheckoutExpired
  * @param {Object} opts.payload      - { payment, provider } or { checkout, provider }
- * @param {Function} [opts.execute]  - executeFunction (injectable for tests)
+ * @param {Function} [opts.execute]  - runFunction wrapper (injectable for tests)
+ * @param {Function} [opts.ledger]   - siteId → BillingDB (injectable for tests)
  * @returns {Promise<boolean>} true if the function ran, false if there was nothing to run
  */
-export async function runFunctionBillingHook({ functionName, hook, siteId, domain, payload, execute }) {
+export async function runFunctionBillingHook({ functionName, hook, siteId, domain, payload, execute, ledger = defaultLedger }) {
   if (!FUNCTION_NAME.test(functionName || '')) {
     console.warn(`[billing] ignoring invalid function name in payment metadata: ${functionName}`);
     return false;
@@ -34,6 +40,19 @@ export async function runFunctionBillingHook({ functionName, hook, siteId, domai
   const event = EVENTS[hook];
   if (!event) return false;
   if (!siteId || !domain) throw new Error(`[billing] ${functionName}.${event}: site unknown`);
+
+  const obj = (payload && (payload.payment || payload.checkout)) || {};
+  const ledgerId = obj.metadata?.ledger;
+  // Bookkeeping only: a ledger failure never fails the webhook.
+  const book = async (ok, error) => {
+    if (!ledgerId) return;
+    try {
+      const db = await ledger(siteId);
+      await db.markCheckout(ledgerId, { status: event, paymentId: payload?.payment?.id, event, ok, error });
+    } catch (err) {
+      console.error('[billing] ledger update failed:', err.message);
+    }
+  };
 
   const run = execute || (async ({ domain: d, functionName: name, params: p, source }) => {
     const { runFunction } = await import('@/core/functions/run.js');
@@ -48,13 +67,17 @@ export async function runFunctionBillingHook({ functionName, hook, siteId, domai
   // Retrying can't create a function that isn't there: log it and let the provider move on.
   if (result?.__STATUS__ === 404 && /^Function not found/.test(result?.error || '')) {
     console.error(`[billing] payment for ${domain} names function "${functionName}", which doesn't exist`);
+    await book(false, `function ${functionName} not found`);
     return false;
   }
 
   const status = result?.__STATUS__ || (result?.error ? 500 : 200);
   if (status >= 400) {
-    throw new Error(`[billing] ${functionName} answered ${status} for ${event}: ${result?.error || ''}`);
+    const message = `${functionName} answered ${status}${result?.error ? `: ${result.error}` : ''}`;
+    await book(false, message);
+    throw new Error(`[billing] ${message} (${event})`);
   }
+  await book(true);
   return true;
 }
 

@@ -9,6 +9,8 @@
  * - billing_customers: Maps userId/accountId ↔ provider customerId
  * - billing_subscriptions: Subscription status synced from webhooks
  * - billing_payments: Payment history
+ * - billing_checkouts: One-time checkouts created by site functions (app.billing.checkout) and how
+ *   each one ended — the ledger behind app.billing.payments() and `cm64 payments`
  *
  * These are different from tenant collections like `{siteId}_todos` which
  * are prefixed with the tenant's siteId.
@@ -376,6 +378,55 @@ export class BillingDB {
       siteId: this.siteId,
       userId,
     }).sort({ createdAt: -1 }).limit(limit).toArray();
+  }
+
+  // ===== CHECKOUT LEDGER (app.billing.checkout) =====
+
+  /**
+   * One row per checkout a function created. `ledgerId` travels in the checkout's metadata
+   * (metadata.ledger), so the webhook finds the row whatever the provider.
+   */
+  async recordCheckout(data) {
+    const col = await this.collection('billing_checkouts');
+    const now = new Date();
+    const doc = { siteId: this.siteId, status: 'open', events: [], ...data, createdAt: now, updatedAt: now };
+    await col.insertOne(doc);
+    return doc;
+  }
+
+  /**
+   * What happened to a checkout: the provider's event and whether the site's handler took it.
+   * @param {string} ledgerId
+   * @param {Object} update - { status?, paymentId?, event, ok, error? }
+   */
+  async markCheckout(ledgerId, { status, paymentId, event, ok, error } = {}) {
+    const col = await this.collection('billing_checkouts');
+    const set = { updatedAt: new Date() };
+    if (status) set.status = status;
+    if (paymentId) set.paymentId = String(paymentId);
+    if (event) set.handler = { event, ok: !!ok, error: error || null, at: new Date() };
+    await col.updateOne(
+      { siteId: this.siteId, ledgerId: String(ledgerId) },
+      { $set: set, ...(event ? { $push: { events: { event, ok: !!ok, error: error || null, at: new Date() } } } : {}) }
+    );
+  }
+
+  async markRefunded(paymentId) {
+    const col = await this.collection('billing_checkouts');
+    await col.updateOne(
+      { siteId: this.siteId, paymentId: String(paymentId) },
+      { $set: { status: 'refunded', refundedAt: new Date(), updatedAt: new Date() } }
+    );
+  }
+
+  /** Newest first. */
+  async listCheckouts({ limit = 50, status, since } = {}) {
+    const col = await this.collection('billing_checkouts');
+    const filter = { siteId: this.siteId };
+    if (status) filter.status = status;
+    if (since) filter.createdAt = { $gte: new Date(since) };
+    return col.find(filter, { projection: { _id: 0 } })
+      .sort({ createdAt: -1 }).limit(Math.min(Math.max(parseInt(limit, 10) || 50, 1), 500)).toArray();
   }
 }
 

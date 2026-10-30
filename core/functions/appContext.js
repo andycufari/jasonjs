@@ -304,6 +304,13 @@ export async function createAppContext({
   // Set logging context
   setSiteContext(siteId, domain, session?.user?.id || null, functionName, { source, method });
 
+  // Same rule as app.auth.isAdmin (role or roles[])
+  const sessionIsAdmin = () => (session?.user?.roles || [session?.user?.role].filter(Boolean)).includes('admin');
+  const functionBilling = async () => {
+    const { createFunctionBilling } = await import('@/core/services/billing/functionCheckout.js');
+    return createFunctionBilling({ siteId, domain, isAdmin: sessionIsAdmin() });
+  };
+
   // Database setup
   const contextParams = {
     siteId,
@@ -775,23 +782,25 @@ export async function createAppContext({
 
       // One-time payments sold by the function itself (see core/services/billing/functionCheckout.js).
       // The price is whatever the function passes — never something the caller sends unchecked.
+      // provider 'test' and payments() are for an admin session only.
       async checkout(options = {}) {
-        const { createFunctionBilling } = await import('@/core/services/billing/functionCheckout.js');
-        return createFunctionBilling({ siteId, domain }).checkout(options);
+        return (await functionBilling()).checkout(options);
       },
 
       async providers() {
-        const { createFunctionBilling } = await import('@/core/services/billing/functionCheckout.js');
-        return createFunctionBilling({ siteId, domain }).providers();
+        return (await functionBilling()).providers();
+      },
+
+      async payments(options = {}) {
+        return (await functionBilling()).payments(options);
       },
 
       // Money goes back: only from a payment handler (app.source === 'billing') or an admin.
       async refund(options = {}) {
-        if (source !== 'billing' && session?.user?.role !== 'admin') {
+        if (source !== 'billing' && !sessionIsAdmin()) {
           throw new Error('app.billing.refund: only an admin session or a billing handler can refund');
         }
-        const { createFunctionBilling } = await import('@/core/services/billing/functionCheckout.js');
-        return createFunctionBilling({ siteId, domain }).refund(options);
+        return (await functionBilling()).refund(options);
       }
     },
 
