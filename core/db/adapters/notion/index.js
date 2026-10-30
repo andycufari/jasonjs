@@ -634,6 +634,10 @@ export const createData = async (data, databaseConfig) => {
   //console.log("Data: ", data);
   
   try {
+    // Database.create() passes { data } (that's what add() sends); jason and mongodb unwrap it the same way.
+    // Without this the row arrived as a single "data" field and Notion rejected it.
+    data = data.data || data;
+
     // Separate children data from main record
     const regularData = { ...data };
     const childrenToCreate = [];
