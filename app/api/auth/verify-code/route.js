@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getMongoClient } from '@/core/db/adapters/mongodb/index.js';
 import { ObjectId } from 'mongodb';
 import { checkCodeVerificationLimit, resetCodeVerificationLimit } from '@/core/auth/rateLimit';
+import { checkVerificationCode, clearVerificationAttempts } from '@/core/auth/codeAttempts';
 
 export async function POST(request) {
   // Strict rate limit for code verification (prevent brute force)
@@ -24,15 +25,17 @@ export async function POST(request) {
     const client = await getMongoClient(process.env.MONGODB_URI);
     const db = client.db(process.env.MONGODB_DB_NAME || 'jasonjs_universal');
 
-    const verificationCode = await db.collection('verification_codes').findOne({
-      email: email.toLowerCase(),
-      code: code.toString(),
-      type,
-      used: false,
-      expiresAt: { $gt: new Date() }
-    });
+    // Per-email attempt cap (the per-IP limit above trusts X-Forwarded-For, so it can be dodged)
+    const check = await checkVerificationCode(db, { email, code, type });
 
-    if (!verificationCode) {
+    if (check.status === 'locked') {
+      return NextResponse.json(
+        { error: 'Too many verification attempts. Request a new code and try again later.', retryAfter: check.retryAfter },
+        { status: 429, headers: { 'Retry-After': String(check.retryAfter) } }
+      );
+    }
+
+    if (check.status !== 'ok') {
       return NextResponse.json(
         { error: 'Invalid or expired verification code' },
         { status: 400 }
@@ -51,8 +54,9 @@ export async function POST(request) {
       );
     }
 
-    // Reset rate limit on successful verification
+    // Reset rate limits on successful verification
     resetCodeVerificationLimit(request);
+    await clearVerificationAttempts(db, { email, type });
 
     return NextResponse.json({
       success: true,

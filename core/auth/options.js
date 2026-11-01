@@ -146,22 +146,23 @@ const createAuthOptionsInternal = cache(async (cacheKey, pageData) => {
             const client = await getMongoClient(process.env.MONGODB_URI);
             const db = client.db(process.env.MONGODB_DB_NAME || 'jasonjs_universal');
 
-            // Find valid verification code
-            const verificationCode = await db.collection('verification_codes').findOne({
-              email: credentials.email.toLowerCase(),
-              code: credentials.code.toString(),
-              type: credentials.type,
-              used: false,
-              expiresAt: { $gt: new Date() }
+            // Find valid verification code. Every attempt counts against a per-email cap, because this
+            // callback (/api/auth/callback/verification-code) bypasses the per-IP limiter.
+            const { checkVerificationCode, clearVerificationAttempts } = await import('./codeAttempts.js');
+            const check = await checkVerificationCode(db, {
+              email: credentials.email,
+              code: credentials.code,
+              type: credentials.type
             });
 
-            if (!verificationCode) {
+            if (check.status !== 'ok') {
               return null;
             }
+            const verificationCode = check.record;
 
-            // Mark code as used
-            await db.collection('verification_codes').updateOne(
-              { _id: verificationCode._id },
+            // Mark code as used — only if nobody else did it first (two parallel requests, one code)
+            const consumed = await db.collection('verification_codes').updateOne(
+              { _id: verificationCode._id, used: false },
               {
                 $set: {
                   used: true,
@@ -169,6 +170,9 @@ const createAuthOptionsInternal = cache(async (cacheKey, pageData) => {
                 }
               }
             );
+            if (consumed.modifiedCount !== 1) {
+              return null;
+            }
 
             // Get user details
             const user = await db.collection('users').findOne({
@@ -185,6 +189,8 @@ const createAuthOptionsInternal = cache(async (cacheKey, pageData) => {
               console.warn('[auth] verification-code: code email does not match the account — rejected');
               return null;
             }
+
+            await clearVerificationAttempts(db, { email: credentials.email, type: credentials.type });
 
             // Update user based on verification type
             if (credentials.type === 'registration') {
