@@ -1,5 +1,6 @@
 // core/services/storage/s3.js
 // S3 Upload Service with tenant isolation
+import crypto from 'node:crypto';
 
 /**
  * S3 STORAGE SERVICE
@@ -385,6 +386,39 @@ export function resolvePrivateKey(siteId, path) {
   return `${prefix}${rel}`;
 }
 
+// Optional CloudFront in front of the private bucket (OAC + trusted key group).
+// Signed URLs then come from the nearest edge instead of us-east-1: for a
+// client far away with a small TCP window (an ESP32) the round trip, not the
+// bandwidth, sets the speed. Unset → plain S3 presigned URLs, as before.
+//   CLOUDFRONT_PRIVATE_DOMAIN   dxxxx.cloudfront.net
+//   CLOUDFRONT_KEY_PAIR_ID      public key id in the key group (K...)
+//   CLOUDFRONT_PRIVATE_KEY      RSA PEM, or the PEM in base64 (one line for .env)
+function cloudFrontConfig() {
+  const domain = process.env.CLOUDFRONT_PRIVATE_DOMAIN;
+  const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID;
+  let privateKey = process.env.CLOUDFRONT_PRIVATE_KEY;
+  if (!domain || !keyPairId || !privateKey) return null;
+  privateKey = privateKey.includes('BEGIN')
+    ? privateKey.replace(/\\n/g, '\n')
+    : Buffer.from(privateKey, 'base64').toString('utf8');
+  return { domain: domain.replace(/^https?:\/\//, '').replace(/\/+$/, ''), keyPairId, privateKey };
+}
+
+/**
+ * CloudFront signed URL with a canned policy (expiry only). Each request,
+ * Range requests included, is checked against the expiry when it arrives.
+ */
+export function signCloudFrontUrl({ domain, keyPairId, privateKey }, key, expiresAtEpoch) {
+  const path = key.split('/').map(encodeURIComponent).join('/');
+  const url = `https://${domain}/${path}`;
+  const policy = JSON.stringify({
+    Statement: [{ Resource: url, Condition: { DateLessThan: { 'AWS:EpochTime': expiresAtEpoch } } }]
+  });
+  const signature = crypto.sign('RSA-SHA1', Buffer.from(policy), privateKey)
+    .toString('base64').replace(/\+/g, '-').replace(/=/g, '_').replace(/\//g, '~');
+  return `${url}?Expires=${expiresAtEpoch}&Signature=${signature}&Key-Pair-Id=${keyPairId}`;
+}
+
 /**
  * Signed GET for a private file of this site.
  * @param {string} siteId - Tenant identifier (server-controlled)
@@ -396,6 +430,15 @@ export async function getPrivateDownloadUrl(siteId, path, options = {}) {
   if (!PRIVATE_BUCKET) throw new Error('S3_PRIVATE_BUCKET_NAME is not configured');
   const key = resolvePrivateKey(siteId, path);
   const expiresIn = Math.min(Math.max(parseInt(options.expiresIn, 10) || 600, 60), 86400);
+  const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
+
+  // CloudFront when configured. A forced filename needs S3's
+  // response-content-disposition, so that case stays on S3.
+  const cf = cloudFrontConfig();
+  if (cf && !options.filename) {
+    const url = signCloudFrontUrl(cf, key, expiresAt);
+    return { url, key, expiresAt: new Date(expiresAt * 1000).toISOString() };
+  }
 
   const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
   const { GetObjectCommand } = await import('@aws-sdk/client-s3');
