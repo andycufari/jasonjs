@@ -170,6 +170,14 @@ Path = `<folder>/<name>` as uploaded, relative to the site. `..` is rejected. An
 holding the link can use it until it expires: keep `expiresIn` short and do the
 check BEFORE calling `signedUrl`.
 
+**Where the link points.** If the server has `CLOUDFRONT_PRIVATE_DOMAIN`,
+`CLOUDFRONT_KEY_PAIR_ID` and `CLOUDFRONT_PRIVATE_KEY` set (see `.env.example`), the link is a CloudFront
+signed URL served from the nearest edge; otherwise it is an S3 presigned URL. Passing
+`filename` always returns an S3 link. Both accept `Range` requests (206) and keep-alive.
+The expiry is checked on every request, each `Range` chunk included: a client that
+downloads in pieces must finish before `expiresIn`, or ask the function for a new link
+when a chunk comes back 403.
+
 ### Delete Files with Record
 
 ```javascript
