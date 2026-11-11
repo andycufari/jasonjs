@@ -1,8 +1,25 @@
 // core/services/email.js - Comprehensive Email Service
 import nodemailer from 'nodemailer';
 import jasonConfig from '../../jason.config';
-import { getEnv } from '../sites/files.js';
+import { getEnv, getAllSettings } from '../sites/files.js';
 import { getTheme } from '../render/getTheme.js';
+import { getSiteInfo } from '../utils/getSiteInfo.js';
+
+// Sender name when the call has no fromName: use the site's name instead of the bare address
+// (without a name, mail clients show whatever they like, e.g. the provider's sender signature).
+// Order: setting email.fromName -> auth.ui.defaultName -> site name. Never breaks sending.
+async function resolveSiteFromName(domain) {
+  try {
+    const settings = (await getAllSettings(domain)) || {};
+    const fromSettings = settings.email?.fromName || settings.auth?.ui?.defaultName;
+    if (fromSettings) return String(fromSettings);
+    const siteInfo = await getSiteInfo(domain);
+    return siteInfo?.name ? String(siteInfo.name) : null;
+  } catch (error) {
+    console.warn(`[email] Could not resolve sender name for ${domain}: ${error.message}`);
+    return null;
+  }
+}
 
 /**
  * Create email transporter based on environment configuration (legacy)
@@ -464,7 +481,12 @@ END:VCALENDAR`;
     });
 
     // Prepare sender
-    const fromAddress = fromName ? `"${fromName}" <${finalFrom}>` : finalFrom;
+    // If EMAIL_FROM already has a name ("Name <addr>"), keep it as is.
+    const fromHasName = /<[^>]+>/.test(finalFrom);
+    const senderName = fromName || (fromHasName ? null : await resolveSiteFromName(domain));
+    const fromAddress = senderName
+      ? `"${String(senderName).replace(/["\\\r\n]/g, '')}" <${finalFrom}>`
+      : finalFrom;
 
     // Prepare HTML body
     let htmlBody = body;
