@@ -136,6 +136,42 @@ await test('create: valid form reaches the calendar step (no connections → 409
   assert.equal(unknown.status, 404);
 });
 
+await test('create: the same email can\'t book a second free intro (server-side, before Google)', async () => {
+  const later = new Date(Date.now() + 2 * 24 * 3600e3);
+  const edb = fakeDb({
+    bc_availability_rules: [type({ meetingType: 'intro' }), type({ meetingType: 'consulta', priceCents: 7900 })],
+    bc_bookings: [
+      { _id: 'e1', userId: 'andy', meetingType: 'intro', status: 'confirmed', guestEmail: 'ana.perez@gmail.com',
+        startUtc: later, endUtc: new Date(later.getTime() + 15 * 60e3) },
+      { _id: 'e2', userId: 'andy', meetingType: 'consulta', status: 'confirmed', guestEmail: 'ana.perez@gmail.com',
+        startUtc: later, endUtc: new Date(later.getTime() + 35 * 60e3) },
+    ],
+  });
+  const post = (body) => call(create, '/bookings/create', { db: edb, method: 'POST',
+    body: { ...base, answers: {}, guestEmail: 'AnaPerez+otra@gmail.com', ...body } });
+  const r = await post({ meetingType: 'intro', startUtc: new Date(later.getTime() + 24 * 3600e3).toISOString() });
+  assert.equal(r.status, 409);
+  assert.equal(r.body.error, 'email_limit');
+  assert.equal(r.body.reason, 'upcoming');
+  assert.equal(r.body.existingStartUtc, later.toISOString());
+  assert.equal((await edb.use('bc_bookings').fetch({})).length, 2, 'nothing written');
+  // Paid types: no limit by default — the same guest goes on to the calendar step.
+  const paid = await post({ meetingType: 'consulta', startUtc: new Date(later.getTime() + 3600e3).toISOString() });
+  assert.equal(paid.body.error, 'Host has no connected calendars');
+});
+
+await test('create: emailLimit false on a free type lets the same email through', async () => {
+  const later = new Date(Date.now() + 2 * 24 * 3600e3);
+  const edb = fakeDb({
+    bc_availability_rules: [type({ meetingType: 'intro', emailLimit: false })],
+    bc_bookings: [{ _id: 'e1', userId: 'andy', meetingType: 'intro', status: 'confirmed', guestEmail: 'ana@example.com',
+      startUtc: later, endUtc: new Date(later.getTime() + 15 * 60e3) }],
+  });
+  const r = await call(create, '/bookings/create', { db: edb, method: 'POST',
+    body: { ...base, meetingType: 'intro', answers: {}, startUtc: new Date(later.getTime() + 3600e3).toISOString() } });
+  assert.equal(r.body.error, 'Host has no connected calendars');
+});
+
 // ── Cancelling ──────────────────────────────────────────────────────────────────
 
 const soon = new Date(Date.now() + 3 * 24 * 3600e3);
@@ -324,8 +360,10 @@ const idb = fakeDb({
   bc_connections: [{ _id: 'c1', userId: 'andy', isPrimary: true, googleAccountEmail: 'andy@cm64.studio' }],
 });
 const startIn = (days, hourUtc) => { const d = new Date(Date.now() + days * 864e5); d.setUTCHours(hourUtc, 0, 0, 0); return d.toISOString(); };
+// A different guest per booking: the free type's emailLimit would reject the same email twice.
+let cafeGuest = 0;
 const cafeBody = (over) => ({
-  meetingType: 'cafe', guestName: 'Ana', guestEmail: 'ana@example.com', subject: 'Un café', returnPath: '/cafe/2', ...over,
+  meetingType: 'cafe', guestName: 'Ana', guestEmail: `ana${++cafeGuest}@example.com`, subject: 'Un café', returnPath: '/cafe/2', ...over,
 });
 
 await test('unlisted: out of the public list, but its page loads by code', async () => {
@@ -435,5 +473,6 @@ await test('panel save keeps mode, places, suggestions and unlisted (and drops j
   assert.deepEqual(saved.locations, [...PLACES, { name: 'Z', address: '', mapsUrl: '' }]);
 });
 
-console.log(`\nroutes: ${passed}/24 PASS`);
+console.log(`
+routes: ${passed}/26 PASS`);
 process.exit(0);

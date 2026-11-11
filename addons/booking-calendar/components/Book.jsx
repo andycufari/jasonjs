@@ -274,6 +274,13 @@ export default function Book({
       const data = await res.json();
       if (!res.ok) {
         setSubmitting(false);
+        if (data.error === 'email_limit') {
+          // This email already has one (lib/emailLimit.js): say when, in the guest's tz.
+          setError(data.reason === 'upcoming'
+            ? t.emailLimitUpcoming(formatLongDay(data.existingStartUtc, tz, locale), formatSlotLabel(data.existingStartUtc, tz, locale))
+            : t.emailLimitRecent(formatLongDay(data.existingStartUtc, tz, locale), formatLongDay(data.nextAllowedUtc, tz, locale)));
+          return;
+        }
         if (res.status === 409) {
           // Taken meanwhile: back to the calendar, with fresh times.
           setSlotsByMonth({});

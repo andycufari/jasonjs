@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 import { SLUG_RE, normalizeName, normalizeDescription, normalizeQuestions } from '../../../lib/meetingTypes.js';
 import { normalizeMode, normalizeLocations } from '../../../lib/location.js';
 import { idOf, updateOrThrow } from '../../../lib/db.js';
+import { normalizeEmailLimit } from '../../../lib/emailLimit.js';
 
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -62,6 +63,9 @@ export async function POST(request) {
         ? body.eventTitleTemplate
         : '{guestName} · {type}',
     };
+    // Unset = the default for its price (free: one per email per 7 days). See lib/emailLimit.js.
+    const emailLimit = normalizeEmailLimit(body.emailLimit);
+    if (emailLimit !== undefined) rules.emailLimit = emailLimit;
 
     // `id` = editing an existing type (its code may change); no id = a new type.
     const coll = database.use('bc_availability_rules');

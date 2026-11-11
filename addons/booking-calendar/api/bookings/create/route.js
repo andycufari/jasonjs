@@ -8,7 +8,8 @@
 // the type's places, 0-based) or { custom: "place and address" } when the type allows it.
 //
 // Flow:
-//   1. Validate inputs; the meeting type must exist and be active.
+//   1. Validate inputs; the meeting type must exist and be active; the guest's email must be
+//      within the type's emailLimit (lib/emailLimit.js) → 409 { error: 'email_limit', … }.
 //   2. Re-verify the slot against live freebusy of EVERY connection (fails closed).
 //   3. Insert a row carrying slotLock — the unique index on slotLock rejects a
 //      concurrent booking of the same host + start right here, at the DB.
@@ -30,6 +31,7 @@ import {
   releaseStaleHold, HOLD_MS, resolveHostUserId, validateAnswers,
 } from '../../../lib/meetingTypes.js';
 import { resolveLocation, isInPerson } from '../../../lib/location.js';
+import { checkEmailLimit, normalizeEmail } from '../../../lib/emailLimit.js';
 
 export async function POST(request) {
   try {
@@ -76,6 +78,14 @@ export async function POST(request) {
     const isPaid = (rules.priceCents || 0) > 0 || (rules.priceArsCents || 0) > 0;
 
     const startDt = new Date(startUtc);
+
+    // One guest, one meeting: before touching Google, so a refused guest costs nothing.
+    const conflict = await checkEmailLimit(database, {
+      userId, meetingType, rules, email: guestEmail, startUtc: startDt,
+    });
+    if (conflict) {
+      return NextResponse.json({ error: 'email_limit', ...conflict }, { status: 409 });
+    }
     const endDt = new Date(startDt.getTime() + (rules.durationMinutes || 30) * 60 * 1000);
 
     // Pull host's connections.
@@ -126,6 +136,7 @@ export async function POST(request) {
       meetingType,
       guestName,
       guestEmail,
+      guestEmailKey: normalizeEmail(guestEmail),
       guestNotes,
       subject,
       whatsapp,

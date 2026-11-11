@@ -8,6 +8,7 @@
     "meetingType":      { "type": "string", "default": "default" },
     "guestName":        { "type": "string", "required": true },
     "guestEmail":       { "type": "string", "required": true },
+    "guestEmailKey":    { "type": "string", "description": "guestEmail normalized (lowercase, no +alias, no dots on Gmail) — what emailLimit compares" },
     "guestNotes":       { "type": "string" },
     "subject":          { "type": "string", "description": "What the meeting is about (required when booking)" },
     "whatsapp":         { "type": "string" },

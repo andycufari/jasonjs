@@ -203,6 +203,18 @@ export default function AvailabilityEditor({ initialRules, onSaved, onDeleted })
             onChange={(e) => updateField('showDuration', e.target.checked)} />
           Show duration publicly
         </label>
+        <label className="flex items-center gap-2" title="The same email can't book this type twice within these days, nor hold two upcoming at once. 0 = no limit. Default: 7 for free types, none for paid.">
+          One booking per email every
+          <input type="number" min={0} max={365}
+            value={rules.emailLimit === false ? 0
+              : (rules.emailLimit?.days ?? (((rules.priceCents || 0) > 0 || (rules.priceArsCents || 0) > 0) ? 0 : 7))}
+            onChange={(e) => {
+              const days = parseInt(e.target.value, 10) || 0;
+              updateField('emailLimit', days > 0 ? { days } : false);
+            }}
+            className="w-16 p-1 rounded border" />
+          days
+        </label>
         <label className="flex items-center gap-2">
           Order
           <input type="number" value={rules.order || 0}

@@ -17,6 +17,7 @@
     "allowCustomLocation":{ "type": "boolean", "default": false, "description": "in_person: the guest may type another place; it's booked anyway (the host cancels if it doesn't work)" },
     "order":              { "type": "number",  "default": 0 },
     "showDuration":       { "type": "boolean", "default": true, "description": "Show the duration on the public page" },
+    "emailLimit":         { "type": "object",  "description": "{ days } — the same email can't book this type twice less than `days` apart, nor hold two upcoming at once. false = no limit. Unset: free types { days: 7 }, paid types no limit" },
     "questions":          { "type": "array",   "description": "Asked when booking, besides name/email/subject/WhatsApp: [{ key, label: {es,en}, type: text|textarea|select|url, options: [{es,en}], required }]" },
     "durationMinutes":    { "type": "number",  "default": 30 },
     "bufferBeforeMin":    { "type": "number",  "default": 0 },
