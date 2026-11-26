@@ -148,6 +148,15 @@ function BookingsPane() {
             {b.guestName} · {b.guestEmail}{b.whatsapp ? ` · WhatsApp ${b.whatsapp}` : ''}
           </div>
           <div>{new Date(b.startUtc).toLocaleString()}</div>
+          {b.location && (
+            <div className="text-xs">
+              <span className="text-muted-foreground">{b.location.custom ? 'Place suggested by the guest:' : 'Place:'}</span>{' '}
+              {b.location.mapsUrl
+                ? <a href={b.location.mapsUrl} target="_blank" rel="noopener noreferrer" className="underline">{b.location.name}</a>
+                : b.location.name}
+              {b.location.address ? ` · ${b.location.address}` : ''}
+            </div>
+          )}
           {(b.answers || []).map(a => (
             <div key={a.key} className="text-xs">
               <span className="text-muted-foreground">{a.label}:</span> {a.value}

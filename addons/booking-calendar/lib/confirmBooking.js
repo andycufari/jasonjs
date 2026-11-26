@@ -5,6 +5,7 @@
 import { makeCalendarForConnection, insertEvent } from './googleClient.js';
 import { notifyHostOfBooking } from './notify.js';
 import { idOf, updateOrThrow } from './db.js';
+import { isInPerson, locationLine } from './location.js';
 
 /**
  * Where the guest cancels: the page they booked on (the Book widget opens its cancel
@@ -36,6 +37,7 @@ export function bookingForEmail(booking, typeName, meetLink) {
     startUtc: new Date(booking.startUtc).toISOString(),
     timezoneGuest: booking.timezoneGuest,
     meetLink: meetLink ?? booking.meetLink ?? null,
+    location: booking.location || null,
   };
 }
 
@@ -48,6 +50,8 @@ export async function confirmBooking({ database, domain, origin, booking, rules,
   const cancelUrl = cancelUrlFor(origin, booking.cancelToken, booking.pagePath);
 
   const typeName = typeNameOf(rules, booking.meetingType);
+  // In person: the event carries the place, and no Meet link.
+  const inPerson = !!booking.location || isInPerson(rules);
 
   let eventResult;
   try {
@@ -69,6 +73,8 @@ export async function confirmBooking({ database, domain, origin, booking, rules,
       endUtc: new Date(booking.endUtc).toISOString(),
       attendees: [{ email: booking.guestEmail, displayName: booking.guestName }],
       guestTimezone: booking.timezoneGuest,
+      location: locationLine(booking.location),
+      conference: !inPerson,
     });
   } catch (err) {
     console.error('[booking-calendar] insertEvent failed:', err);
@@ -77,7 +83,7 @@ export async function confirmBooking({ database, domain, origin, booking, rules,
     throw failed;
   }
 
-  const meetLink = eventResult.meetLink || eventResult.hangoutLink || null;
+  const meetLink = inPerson ? null : (eventResult.meetLink || eventResult.hangoutLink || null);
   await updateOrThrow(database.use('bc_bookings'), idOf(booking), {
     status: 'confirmed',
     googleEventId: eventResult.eventId,
@@ -99,9 +105,17 @@ export async function confirmBooking({ database, domain, origin, booking, rules,
 }
 
 // What the host reads when the meeting starts: who, what about, and their answers.
-function buildEventDescription({ guestName, guestEmail, subject, whatsapp, answers, guestNotes, cancelUrl, amountCents, currency }) {
+export function buildEventDescription({ guestName, guestEmail, subject, whatsapp, answers, guestNotes, cancelUrl, amountCents, currency, location }) {
   const lines = [];
   if (subject) lines.push(subject, '');
+  if (location?.custom) {
+    lines.push('Place suggested by the guest (not one of yours):', location.name, '');
+  } else if (location) {
+    lines.push(`Place: ${location.name}`);
+    if (location.address) lines.push(location.address);
+    if (location.mapsUrl) lines.push(location.mapsUrl);
+    lines.push('');
+  }
   lines.push(`${guestName} <${guestEmail}>`);
   if (whatsapp) lines.push(`WhatsApp: ${whatsapp}`);
   if (amountCents) lines.push(`Paid: ${currency} ${amountCents / 100}`);

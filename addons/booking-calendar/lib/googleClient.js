@@ -117,24 +117,28 @@ export async function fetchAllBusy({ database, connections, env, fromUtc, toUtc 
 /**
  * Insert an event on the primary (write) calendar for a connection.
  * Google handles invite delivery to attendees.
+ * conference: false (in-person meetings) → no Meet link; `location` is the place.
  */
-export async function insertEvent({ calendar, calendarId, summary, description, startUtc, endUtc, attendees, guestTimezone }) {
+export async function insertEvent({ calendar, calendarId, summary, description, startUtc, endUtc, attendees, guestTimezone, location = '', conference = true }) {
   const { data } = await calendar.events.insert({
     calendarId: calendarId || 'primary',
     sendUpdates: 'all',
-    conferenceDataVersion: 1,
+    conferenceDataVersion: conference ? 1 : 0,
     requestBody: {
       summary,
       description: description || '',
+      ...(location ? { location } : {}),
       start: { dateTime: startUtc, timeZone: 'UTC' },
       end: { dateTime: endUtc, timeZone: 'UTC' },
       attendees: attendees || [],
-      conferenceData: {
-        createRequest: {
-          requestId: `bc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          conferenceSolutionKey: { type: 'hangoutsMeet' },
+      ...(conference ? {
+        conferenceData: {
+          createRequest: {
+            requestId: `bc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            conferenceSolutionKey: { type: 'hangoutsMeet' },
+          },
         },
-      },
+      } : {}),
     },
   });
   return {

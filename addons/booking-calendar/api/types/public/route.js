@@ -1,11 +1,12 @@
 // GET /api/addons/booking-calendar/types/public?[userId=<host>][&meetingType=<code>]
 // Public: the host's active meeting types, only the fields a visitor may see.
-// With meetingType, returns that one type (404 if missing or switched off).
+// With meetingType, returns that one type (404 if missing or switched off). Unlisted types
+// are left out of the list but answer by their code: only people with the link find them.
 // Each paid type lists `providers`: how it can be paid on this site (stripe, mercadopago).
 // Without userId: the site's only host (see resolveHostUserId).
 
 import { NextResponse } from 'next/server';
-import { isBookable, publicType, resolveHostUserId } from '../../../lib/meetingTypes.js';
+import { isBookable, isListed, publicType, resolveHostUserId } from '../../../lib/meetingTypes.js';
 import { configuredProviders, payableProviders } from '../../../lib/payments.js';
 
 export async function GET(request) {
@@ -25,6 +26,7 @@ export async function GET(request) {
     const configured = await configuredProviders(domain);
     const types = (Array.isArray(result) ? result : (result?.data || []))
       .filter(isBookable)
+      .filter(rules => meetingType || isListed(rules))
       .map(rules => ({ ...publicType(rules), providers: payableProviders(rules, configured) }))
       .sort((a, b) => a.order - b.order);
 

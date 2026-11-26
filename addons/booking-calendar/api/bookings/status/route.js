@@ -27,6 +27,7 @@ export async function GET(request) {
       startUtc: row.startUtc,
       guestEmail: row.guestEmail,
       meetLink: row.status === 'confirmed' ? row.meetLink || null : null,
+      location: row.location || null,
     });
   } catch (err) {
     console.error('[booking-calendar] bookings/status error:', err);

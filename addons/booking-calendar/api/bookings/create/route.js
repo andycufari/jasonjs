@@ -1,10 +1,11 @@
 // POST /api/addons/booking-calendar/bookings/create
 // Body: { userId?, meetingType?, startUtc, guestName, guestEmail, subject, whatsapp?, answers?,
-//         guestNotes?, timezoneGuest?, returnPath?, provider? }
+//         guestNotes?, timezoneGuest?, returnPath?, provider?, location? }
 // provider ('stripe' | 'mercadopago') only matters for paid types; default: the first one
 // the site and the type support.
 // userId may be omitted on a single-host site. answers = { questionKey: value } for the
-// type's questions (select → option index).
+// type's questions (select → option index). location, for in-person types: { index } (one of
+// the type's places, 0-based) or { custom: "place and address" } when the type allows it.
 //
 // Flow:
 //   1. Validate inputs; the meeting type must exist and be active.
@@ -28,6 +29,7 @@ import {
   fetchRules, isBookable, fetchActiveBookings, slotLockFor, isDuplicateKeyError,
   releaseStaleHold, HOLD_MS, resolveHostUserId, validateAnswers,
 } from '../../../lib/meetingTypes.js';
+import { resolveLocation, isInPerson } from '../../../lib/location.js';
 
 export async function POST(request) {
   try {
@@ -66,6 +68,10 @@ export async function POST(request) {
     const checked = validateAnswers(rules.questions, body.answers);
     if (checked.error) {
       return NextResponse.json({ error: checked.error }, { status: 400 });
+    }
+    const where = resolveLocation(rules, body.location);
+    if (where.error) {
+      return NextResponse.json({ error: where.error }, { status: 400 });
     }
     const isPaid = (rules.priceCents || 0) > 0 || (rules.priceArsCents || 0) > 0;
 
@@ -124,6 +130,9 @@ export async function POST(request) {
       subject,
       whatsapp,
       answers: checked.answers,
+      ...(where.location ? { location: where.location } : {}),
+      // In person: the type's buffers are travel time, blocked for every type (see fetchActiveBookings).
+      ...(isInPerson(rules) ? { travelBeforeMin: rules.bufferBeforeMin || 0, travelAfterMin: rules.bufferAfterMin || 0 } : {}),
       startUtc: startDt,
       endUtc: endDt,
       timezoneGuest,
@@ -200,7 +209,9 @@ export async function POST(request) {
       throw err;
     }
 
-    return NextResponse.json({ bookingId, meetLink: confirmed.meetLink, cancelUrl: confirmed.cancelUrl });
+    return NextResponse.json({
+      bookingId, meetLink: confirmed.meetLink, cancelUrl: confirmed.cancelUrl, location: where.location,
+    });
   } catch (err) {
     if (err.code === 'CALENDAR_UNAVAILABLE') {
       return NextResponse.json({ error: 'calendar_unavailable' }, { status: 503 });

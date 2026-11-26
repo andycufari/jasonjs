@@ -21,6 +21,12 @@ const HOUR_MS = 60 * 60 * 1000;
  * userId only when the site has more than one host. No auth required for guests.
  * Steps: pick (month calendar + that day's times) → form → done. The guest's cancel link
  * points back to this page with ?cancel=<token>, which opens the cancel view instead.
+ *
+ * In-person types (mode "in_person") show their places on top of the calendar.
+ *   location:    which place starts selected, 1-based ("{{params.n}}" works; anything
+ *                else → the first one)
+ *   alternative: { label, href } — a secondary button, e.g. { label: "Prefer online",
+ *                href: "/meet/intro" }
  */
 export default function Book({
   userId,
@@ -28,6 +34,8 @@ export default function Book({
   lang = 'es',
   showHeader = true,
   brand = {},
+  location: initialLocation,
+  alternative = null,
 }) {
   const t = getStrings(lang);
   const locale = localeFor(lang);
@@ -57,6 +65,8 @@ export default function Book({
   const [subject, setSubject] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [answers, setAnswers] = useState({}); // questionKey → value (select: option index)
+  const [place, setPlace] = useState(0); // in person: index of the type's places, or 'custom'
+  const [customPlace, setCustomPlace] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // { meetLink, cancelUrl, startUtc, guestName, guestEmail }
   const [notice, setNotice] = useState(null); // outcome of a checkout we came back from
@@ -104,7 +114,7 @@ export default function Book({
         const data = await res.json();
         if (res.ok && data.status === 'confirmed') {
           setNotice(null);
-          setResult({ meetLink: data.meetLink, startUtc: data.startUtc, guestEmail: data.guestEmail });
+          setResult({ meetLink: data.meetLink, startUtc: data.startUtc, guestEmail: data.guestEmail, location: data.location });
           setStep('done');
           return;
         }
@@ -124,7 +134,14 @@ export default function Book({
       .then(r => r.json().then(data => ({ ok: r.ok, status: r.status, data })))
       .then(({ ok, status, data }) => {
         if (status === 404) { setNotFound(true); return; }
-        if (ok) setType(data.type);
+        if (!ok) return;
+        setType(data.type);
+        if (data.type.mode === 'in_person') {
+          const count = (data.type.locations || []).length;
+          const n = parseInt(initialLocation, 10);
+          setPlace(count === 0 && data.type.allowCustomLocation ? 'custom'
+            : (Number.isInteger(n) && n >= 1 && n <= count ? n - 1 : 0));
+        }
       })
       .catch(() => {});
   }, [userId, meetingType]);
@@ -205,6 +222,11 @@ export default function Book({
   };
 
   const questions = type?.questions || [];
+  const inPerson = type?.mode === 'in_person';
+  const places = (inPerson && type.locations) || [];
+  const chosenPlace = !inPerson ? null
+    : place === 'custom' ? { name: customPlace.trim(), custom: true }
+    : places[place] || null;
   const isPaid = (type?.priceCents || 0) > 0 || (type?.priceArsCents || 0) > 0;
   // How this type can be paid here (the API only lists providers the site has keys for).
   const providers = type?.providers || (type?.priceCents ? ['stripe'] : []);
@@ -216,6 +238,10 @@ export default function Book({
     if (!selectedSlot) return;
     if (!guestName.trim() || !guestEmail.trim() || !subject.trim()) {
       setError(t.nameEmailRequired);
+      return;
+    }
+    if (inPerson && place === 'custom' && !customPlace.trim()) {
+      setError(t.placeRequired);
       return;
     }
     const missing = questions.find(q => q.required && (answers[q.key] === undefined || answers[q.key] === ''));
@@ -242,6 +268,7 @@ export default function Book({
           timezoneGuest: tz,
           returnPath: window.location.pathname,
           ...(isPaid && provider ? { provider } : {}),
+          ...(inPerson ? { location: place === 'custom' ? { custom: customPlace.trim() } : { index: place } } : {}),
         }),
       });
       const data = await res.json();
@@ -266,7 +293,7 @@ export default function Book({
       }
       setResult({
         meetLink: data.meetLink, cancelUrl: data.cancelUrl, startUtc: selectedSlot.startUtc,
-        guestName: guestName.trim(), guestEmail: guestEmail.trim(),
+        guestName: guestName.trim(), guestEmail: guestEmail.trim(), location: data.location,
       });
       setSubmitting(false);
       go('done');
@@ -328,6 +355,18 @@ export default function Book({
               </span>
             </div>
           )}
+          {result.location && (
+            <div className="bc-detail">
+              <span className="bc-detail-icon">📍</span>
+              <span>
+                <strong>{result.location.custom ? t.placeSuggested : result.location.name}</strong>
+                {result.location.custom ? result.location.name : result.location.address}
+                {result.location.mapsUrl && (
+                  <> · <a className="bc-link" href={result.location.mapsUrl} target="_blank" rel="noopener noreferrer">{t.openMaps} ↗</a></>
+                )}
+              </span>
+            </div>
+          )}
           <div className="bc-detail">
             <span className="bc-detail-icon">✉️</span>
             <span>{t.inviteIn(result.guestEmail)}</span>
@@ -351,10 +390,14 @@ export default function Book({
       <div className="bc-badges">
         <span className="bc-badge">{typePriceLabel(type, lang)}</span>
         {type.durationMinutes ? <span className="bc-badge">⏱ {t.minutes(type.durationMinutes)}</span> : null}
+        {inPerson ? <span className="bc-badge">📍 {t.inPerson}</span> : null}
       </div>
       {pickLang(type.description, lang) && <p className="bc-desc">{pickLang(type.description, lang)}</p>}
     </div>
   );
+
+  const altLabel = alternative?.href ? pickLang(alternative.label, lang) : '';
+  const altButton = altLabel ? <a className="bc-btn bc-btn-ghost" href={alternative.href}>{altLabel}</a> : null;
 
   if (step === 'form' && selectedSlot) {
     const w = when(selectedSlot.startUtc);
@@ -366,7 +409,7 @@ export default function Book({
       : p === 'mercadopago'
         ? t.payWithMp(priceLabel(type.priceArsCents, 'ARS', lang))
         : t.payWithCard(priceLabel(type.priceCents, type.currency, lang)));
-    const fine = !isPaid ? t.freeFine
+    const fine = !isPaid ? (inPerson ? t.freeFineInPerson : t.freeFine)
       : providers.length > 1 ? t.paidFineBoth
       : providers[0] === 'mercadopago' ? t.paidFineMp : t.paidFine;
     return shell(
@@ -377,6 +420,9 @@ export default function Book({
             <div>
               <div className="bc-summary-when">{w.day}</div>
               <div className="bc-muted">{w.time} · {tzLabel(tz, locale)}</div>
+              {chosenPlace && (
+                <div className="bc-muted">📍 {chosenPlace.custom ? `${t.placeSuggested}: ${chosenPlace.name || '…'}` : chosenPlace.name}</div>
+              )}
             </div>
             <button type="button" className="bc-link" onClick={() => { setError(null); go('pick'); }}>{t.change}</button>
           </div>
@@ -448,6 +494,15 @@ export default function Book({
   return shell(
     <>
       {header}
+      {inPerson && (
+        <PlacePicker
+          t={t} places={places} allowCustom={type.allowCustomLocation === true}
+          place={place} customPlace={customPlace} alt={altButton}
+          onPick={(p) => { setPlace(p); setError(null); }}
+          onCustom={setCustomPlace}
+        />
+      )}
+      {!inPerson && altButton && <div className="bc-alt">{altButton}</div>}
       {notice && <p className="bc-notice">{notice}</p>}
       <div className="bc-picker">
         <div className="bc-panel">
@@ -495,6 +550,46 @@ export default function Book({
         </div>
       </div>
     </>
+  );
+}
+
+// In person: where to meet. One of the type's places (with its Maps link) or, if the type
+// allows it, a place the guest types in.
+function PlacePicker({ t, places, allowCustom, place, customPlace, alt, onPick, onCustom }) {
+  return (
+    <div className="bc-panel bc-places">
+      <div className="bc-places-title">{t.whereTitle}</div>
+      <div className="bc-places-list" role="radiogroup" aria-label={t.whereTitle}>
+        {places.map((l, i) => (
+          <div key={i} className={`bc-place${place === i ? ' is-selected' : ''}`}>
+            <button type="button" role="radio" aria-checked={place === i} className="bc-place-pick" onClick={() => onPick(i)}>
+              <span className="bc-place-dot" aria-hidden="true" />
+              <span className="bc-place-text">
+                <strong>{l.name}</strong>
+                {l.address && <span className="bc-muted">{l.address}</span>}
+              </span>
+            </button>
+            {l.mapsUrl && (
+              <a className="bc-link bc-place-map" href={l.mapsUrl} target="_blank" rel="noopener noreferrer">{t.openMaps} ↗</a>
+            )}
+          </div>
+        ))}
+        {allowCustom && (
+          <div className={`bc-place${place === 'custom' ? ' is-selected' : ''}`}>
+            <button type="button" role="radio" aria-checked={place === 'custom'} className="bc-place-pick" onClick={() => onPick('custom')}>
+              <span className="bc-place-dot" aria-hidden="true" />
+              <span className="bc-place-text"><strong>{t.suggestPlace}</strong></span>
+            </button>
+          </div>
+        )}
+      </div>
+      {place === 'custom' && (
+        <input type="text" maxLength={300} value={customPlace} placeholder={t.suggestPlaceholder}
+          aria-label={t.suggestPlace} autoFocus
+          onChange={(e) => onCustom(e.target.value)} className="bc-input bc-place-custom" />
+      )}
+      {alt && <div className="bc-alt">{alt}</div>}
+    </div>
   );
 }
 
@@ -646,6 +741,7 @@ function errorMessage(status, data, t, questions = [], lang = 'es') {
   const err = data?.error || '';
   if (err === 'payment_unavailable') return t.paymentUnavailable;
   if (err === 'whatsapp_invalid') return t.whatsappInvalid;
+  if (err === 'location_required' || err === 'location_invalid') return t.placeRequired;
   const [kind, key] = err.split(':');
   const q = questions.find(x => x.key === key);
   if (q && kind === 'required') return t.required(pickLang(q.label, lang));

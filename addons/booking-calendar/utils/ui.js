@@ -97,6 +97,24 @@ textarea.bc-input{resize:vertical;min-height:84px}
 .bc-error{border:1px solid color-mix(in srgb,var(--bc-danger) 50%,transparent);background:color-mix(in srgb,var(--bc-danger) 10%,transparent);color:var(--bc-danger);border-radius:10px;padding:10px 14px;font-size:14px;margin:0 0 14px}
 .bc-notice{border:1px solid var(--bc-border);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:14px}
 
+/* Book: in person — where to meet */
+.bc-places{margin-bottom:16px}
+.bc-places-title{font-weight:700;font-size:17px;margin-bottom:12px}
+.bc-places-list{display:grid;gap:8px}
+.bc-place{display:flex;align-items:center;gap:12px;border:1px solid var(--bc-border);border-radius:12px;padding:0 14px 0 0;transition:border-color .12s,background-color .12s}
+.bc-place:hover{border-color:var(--bc-primary)}
+.bc-place.is-selected{border-color:var(--bc-primary);background:var(--bc-tint)}
+.bc-place-pick{flex:1;min-width:0;display:flex;align-items:flex-start;gap:12px;padding:12px 0 12px 14px;border:0;background:transparent;text-align:left;cursor:pointer}
+.bc-place-dot{flex:none;width:18px;height:18px;margin-top:2px;border-radius:50%;border:2px solid var(--bc-muted)}
+.bc-place.is-selected .bc-place-dot{border-color:var(--bc-primary);background:radial-gradient(circle,var(--bc-primary) 0 4px,transparent 5px)}
+.bc-place-text{display:grid;gap:2px;line-height:1.4}
+.bc-place-text .bc-muted{font-size:14px}
+.bc-place-map{flex:none;font-size:13px}
+.bc-place-custom{margin-top:10px}
+.bc-alt{margin-top:14px}
+.bc-btn-ghost{background:transparent;color:var(--bc-fg);border:1px solid var(--bc-border)}
+.bc-btn-ghost:hover:not(:disabled){border-color:var(--bc-primary);color:var(--bc-primary);filter:none}
+
 /* Book: done */
 .bc-panel.bc-done{text-align:center;padding:32px 24px 24px}
 .bc-check{width:76px;height:76px;margin:0 auto 18px;border-radius:50%;background:var(--bc-primary);color:var(--bc-on-primary);display:flex;align-items:center;justify-content:center;animation:bc-pop .5s cubic-bezier(.2,1.6,.4,1) both}

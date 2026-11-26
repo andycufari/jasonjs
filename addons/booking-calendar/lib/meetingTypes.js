@@ -2,6 +2,8 @@
 // `meetingType` is the URL code (/meet/<code>); name/description are what people see.
 // Price and duration always come from this row, never from the client.
 
+import { normalizeMode, normalizeLocations } from './location.js';
+
 export const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
 
 const MAX_NAME = 80;
@@ -104,8 +106,14 @@ export function isBookable(rules) {
   return !!rules && rules.active !== false;
 }
 
+/** Unlisted types are bookable by their link but left out of the public list. */
+export function isListed(rules) {
+  return rules?.unlisted !== true;
+}
+
 /** What the public widgets may see. Duration is hidden when the host chose so. */
 export function publicType(rules) {
+  const mode = normalizeMode(rules.mode);
   return {
     meetingType: rules.meetingType,
     name: rules.name || { es: rules.meetingType, en: '' },
@@ -117,6 +125,11 @@ export function publicType(rules) {
     order: rules.order || 0,
     questions: Array.isArray(rules.questions) ? rules.questions : [],
     maxAdvanceDays: rules.maxAdvanceDays || 365, // same default as slotEngine
+    mode, // online (Google Meet) | in_person (the guest picks a place)
+    ...(mode === 'in_person' ? {
+      locations: normalizeLocations(rules.locations),
+      allowCustomLocation: rules.allowCustomLocation === true,
+    } : {}),
   };
 }
 
@@ -148,6 +161,8 @@ export function holdsSlot(b, now = new Date()) {
 /**
  * Bookings that hold their time slot. Newest start first, so a long history never
  * pushes upcoming bookings out of the limit.
+ * An in-person booking also holds its travel time (travelBeforeMin / travelAfterMin,
+ * copied from its type's buffers): an online call can't land while the host is on the way.
  */
 export async function fetchActiveBookings(database, userId, { limit = 500, excludeId = null } = {}) {
   const result = await database.use('bc_bookings').fetch({
@@ -161,7 +176,15 @@ export async function fetchActiveBookings(database, userId, { limit = 500, exclu
     .filter(b => b.startUtc && b.endUtc && holdsSlot(b, now))
     .filter(b => !excludeId || String(b._id || b.id) !== String(excludeId))
     .filter(hasValidTimes)
-    .map(b => ({ startUtc: new Date(b.startUtc).toISOString(), endUtc: new Date(b.endUtc).toISOString() }));
+    .map(b => ({
+      startUtc: new Date(new Date(b.startUtc).getTime() - minutesMs(b.travelBeforeMin)).toISOString(),
+      endUtc: new Date(new Date(b.endUtc).getTime() + minutesMs(b.travelAfterMin)).toISOString(),
+    }));
+}
+
+function minutesMs(m) {
+  const n = Number(m);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 240) * 60 * 1000 : 0;
 }
 
 // One row with unparseable times used to throw here and take down every slots request

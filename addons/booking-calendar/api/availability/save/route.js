@@ -4,6 +4,7 @@
 
 import { NextResponse } from 'next/server';
 import { SLUG_RE, normalizeName, normalizeDescription, normalizeQuestions } from '../../../lib/meetingTypes.js';
+import { normalizeMode, normalizeLocations } from '../../../lib/location.js';
 import { idOf, updateOrThrow } from '../../../lib/db.js';
 
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
@@ -41,9 +42,13 @@ export async function POST(request) {
       currency: typeof body.currency === 'string' && /^[A-Z]{3}$/.test(body.currency) ? body.currency : 'USD',
       priceArsCents: clampInt(body.priceArsCents, 0, 1_000_000_000, 0),
       active: body.active !== false,
+      unlisted: body.unlisted === true,
       order: clampInt(body.order, -1000, 1000, 0),
       showDuration: body.showDuration !== false,
       questions: normalizeQuestions(body.questions),
+      mode: normalizeMode(body.mode),
+      locations: normalizeLocations(body.locations),
+      allowCustomLocation: body.allowCustomLocation === true,
       durationMinutes: clampInt(body.durationMinutes, 5, 480, 30),
       bufferBeforeMin: clampInt(body.bufferBeforeMin, 0, 240, 0),
       bufferAfterMin: clampInt(body.bufferAfterMin, 0, 240, 10),

@@ -288,5 +288,152 @@ await test('a booking with unparseable times is skipped, not a 500 for every slo
   } finally { console.error = err; }
 });
 
-console.log(`\nroutes: ${passed}/17 PASS`);
+// ── In person + unlisted ────────────────────────────────────────────────────────
+// The whole booking, Google included (faked): what the event, the row and the host's
+// email carry when the meeting is at a place instead of on Meet.
+
+const { google } = await import('googleapis');
+const { POST: saveRules } = await import('../api/availability/save/route.js');
+for (const k of ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI', 'BOOKING_CALENDAR_STATE_SECRET']) {
+  process.env[k] ||= `test-${k}`;
+}
+const inserts = [];
+google.calendar = () => ({
+  freebusy: { query: async () => ({ data: { calendars: { primary: { busy: [] } } } }) },
+  events: {
+    insert: async (args) => {
+      inserts.push(args);
+      const meet = args.requestBody.conferenceData ? 'https://meet.google.com/abc-defg-hij' : undefined;
+      return { data: { id: `ev${inserts.length}`, hangoutLink: meet } };
+    },
+  },
+});
+
+const ALL_DAY = Object.fromEntries(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+  .map(d => [d, [{ start: '00:00', end: '23:45' }]]));
+const PLACES = [
+  { name: 'Bar A', address: 'Calle 1 100, CABA', mapsUrl: 'https://maps.app.goo.gl/aaa' },
+  { name: 'Café B', address: 'Calle 2 200, CABA', mapsUrl: 'https://maps.app.goo.gl/bbb' },
+];
+const idb = fakeDb({
+  bc_availability_rules: [
+    type({ meetingType: 'intro', weeklyHours: ALL_DAY, minNoticeHours: 0 }),
+    type({ meetingType: 'cafe', durationMinutes: 45, bufferBeforeMin: 30, bufferAfterMin: 30, weeklyHours: ALL_DAY,
+      minNoticeHours: 0, mode: 'in_person', locations: PLACES, allowCustomLocation: true, unlisted: true, order: 5 }),
+  ],
+  bc_connections: [{ _id: 'c1', userId: 'andy', isPrimary: true, googleAccountEmail: 'andy@cm64.studio' }],
+});
+const startIn = (days, hourUtc) => { const d = new Date(Date.now() + days * 864e5); d.setUTCHours(hourUtc, 0, 0, 0); return d.toISOString(); };
+const cafeBody = (over) => ({
+  meetingType: 'cafe', guestName: 'Ana', guestEmail: 'ana@example.com', subject: 'Un café', returnPath: '/cafe/2', ...over,
+});
+
+await test('unlisted: out of the public list, but its page loads by code', async () => {
+  const list = await call(typesPublic, '/types/public', { db: idb });
+  assert.deepEqual(list.body.types.map(t => t.meetingType), ['intro']);
+  const one = await call(typesPublic, '/types/public?meetingType=cafe', { db: idb });
+  assert.equal(one.status, 200);
+  assert.equal(one.body.type.mode, 'in_person');
+  assert.deepEqual(one.body.type.locations.map(l => l.name), ['Bar A', 'Café B']);
+  assert.equal(one.body.type.allowCustomLocation, true);
+  assert.equal(list.body.types[0].mode, 'online');
+});
+
+await test('in person: no place → 400 before touching the calendar', async () => {
+  inserts.length = 0;
+  const r = await call(create, '/bookings/create', { db: idb, method: 'POST', body: cafeBody({ startUtc: startIn(3, 13) }) });
+  assert.equal(r.status, 400);
+  assert.equal(r.body.error, 'location_required');
+  const bad = await call(create, '/bookings/create', { db: idb, method: 'POST', body: cafeBody({ startUtc: startIn(3, 13), location: { index: 9 } }) });
+  assert.equal(bad.body.error, 'location_required');
+  assert.equal(inserts.length, 0);
+});
+
+await test('in person: booked at a listed place — event has the place and NO Meet; row, response and host email too', async () => {
+  inserts.length = 0; sent.length = 0;
+  const r = await call(create, '/bookings/create', { db: idb, method: 'POST',
+    body: cafeBody({ startUtc: startIn(3, 13), location: { index: 1 } }) });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.meetLink, null);
+  assert.equal(r.body.location.name, 'Café B');
+
+  assert.equal(inserts.length, 1);
+  const ev = inserts[0];
+  assert.equal(ev.conferenceDataVersion, 0);
+  assert.ok(!('conferenceData' in ev.requestBody), 'no Meet requested');
+  assert.equal(ev.requestBody.location, 'Café B, Calle 2 200, CABA');
+  assert.match(ev.requestBody.description, /Place: Café B\nCalle 2 200, CABA\nhttps:\/\/maps\.app\.goo\.gl\/bbb/);
+  assert.equal(new Date(ev.requestBody.end.dateTime) - new Date(ev.requestBody.start.dateTime), 45 * 60e3);
+
+  const row = (await idb.use('bc_bookings').fetch({ filters: { _id: r.body.bookingId } }))[0];
+  assert.equal(row.status, 'confirmed');
+  assert.equal(row.meetLink, null);
+  assert.deepEqual(row.location, { ...PLACES[1], custom: false });
+  assert.equal(row.pagePath, '/cafe/2');
+
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].body, /Where:<\/strong> Café B<br>Calle 2 200, CABA<br><a href="https:\/\/maps\.app\.goo\.gl\/bbb">/);
+  assert.doesNotMatch(sent[0].body, /Meet link/);
+});
+
+await test('in person: a suggested place is booked anyway, flagged for the host', async () => {
+  inserts.length = 0; sent.length = 0;
+  const r = await call(create, '/bookings/create', { db: idb, method: 'POST',
+    body: cafeBody({ startUtc: startIn(4, 13), location: { custom: 'Mi oficina, Av. Siempreviva 742' } }) });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(inserts[0].requestBody.location, 'Mi oficina, Av. Siempreviva 742');
+  assert.match(inserts[0].requestBody.description, /suggested by the guest/);
+  assert.match(sent[0].body, /suggested by the guest/);
+  assert.match(sent[0].body, /Mi oficina, Av\. Siempreviva 742/);
+});
+
+await test('travel time: the café\'s buffers block every type around it', async () => {
+  // Café 13:00–13:45 on day 3, 30 min of travel each side → busy 12:30–14:15.
+  const row = (await idb.use('bc_bookings').fetch({ filters: { meetingType: 'cafe' } }))[0];
+  assert.equal(row.travelBeforeMin, 30);
+  assert.equal(row.travelAfterMin, 30);
+  const intro = (startUtc) => call(create, '/bookings/create', { db: idb, method: 'POST',
+    body: { meetingType: 'intro', guestName: 'Bea', guestEmail: 'bea@example.com', subject: 'Hola', startUtc } });
+  assert.equal((await intro(startIn(3, 14))).status, 409, 'on the way back');
+  const q = `fromUtc=${encodeURIComponent(startIn(3, 12))}&toUtc=${encodeURIComponent(startIn(3, 15))}`;
+  const offered = (await call(slots, `/slots?meetingType=intro&${q}`, { db: idb })).body.slots.map(s => s.startUtc.slice(11, 16));
+  assert.deepEqual(offered, ['12:00', '12:15', '14:15', '14:30', '14:45']);
+  // Online bookings keep no travel time.
+  const r = await intro(startIn(3, 14).replace('14:00', '14:15'));
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const online = (await idb.use('bc_bookings').fetch({ filters: { _id: r.body.bookingId } }))[0];
+  assert.ok(!('travelBeforeMin' in online));
+});
+
+await test('online types still get their Meet link (no location)', async () => {
+  inserts.length = 0;
+  const r = await call(create, '/bookings/create', { db: idb, method: 'POST',
+    body: { meetingType: 'intro', guestName: 'Ana', guestEmail: 'ana@example.com', subject: 'Hola', startUtc: startIn(5, 13),
+      location: { index: 0 } } });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.meetLink, 'https://meet.google.com/abc-defg-hij');
+  assert.equal(inserts[0].conferenceDataVersion, 1);
+  assert.ok(inserts[0].requestBody.conferenceData);
+  assert.ok(!('location' in inserts[0].requestBody));
+  assert.equal(r.body.location, null);
+});
+
+await test('panel save keeps mode, places, suggestions and unlisted (and drops junk)', async () => {
+  const sdb = fakeDb({ bc_availability_rules: [] });
+  const req = new Request('https://andy.test/availability/save', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ meetingType: 'cafe', weeklyHours: { mon: [] }, mode: 'in_person', unlisted: true,
+      allowCustomLocation: true, bufferBeforeMin: 30, bufferAfterMin: 30,
+      locations: [...PLACES, { name: '', address: 'x' }, { name: 'Z', mapsUrl: 'http://inseguro' }] }) });
+  req.addonContext = { database: sdb, domain: 'andy.test', session: { user: { id: 'andy' } } };
+  const res = await saveRules(req);
+  assert.equal(res.status, 200);
+  const saved = (await sdb.use('bc_availability_rules').fetch({}))[0];
+  assert.equal(saved.mode, 'in_person');
+  assert.equal(saved.unlisted, true);
+  assert.equal(saved.allowCustomLocation, true);
+  assert.equal(saved.bufferBeforeMin, 30);
+  assert.deepEqual(saved.locations, [...PLACES, { name: 'Z', address: '', mapsUrl: '' }]);
+});
+
+console.log(`\nroutes: ${passed}/24 PASS`);
 process.exit(0);

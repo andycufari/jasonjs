@@ -54,11 +54,24 @@ function renderBooking(b, hostTimezone) {
       ${b.whatsapp ? `<p><strong>WhatsApp:</strong> ${escapeHtml(b.whatsapp)}</p>` : ''}
       <p><strong>When:</strong> ${formatWhen(b.startUtc, tz)} (${escapeHtml(tz || 'UTC')})</p>
       ${b.amountCents ? `<p><strong>Paid:</strong> ${escapeHtml(b.currency)} ${b.amountCents / 100}</p>` : ''}
+      ${renderLocation(b.location)}
       ${b.meetLink ? `<p><strong>Meet link:</strong> <a href="${escapeHtml(b.meetLink)}">${escapeHtml(b.meetLink)}</a></p>` : ''}
       ${(b.answers || []).map(a => `<p><strong>${escapeHtml(a.label)}</strong><br>${escapeHtml(a.value).replace(/\n/g, '<br>')}</p>`).join('')}
       ${b.guestNotes ? `<p><strong>Notes:</strong><br>${escapeHtml(b.guestNotes).replace(/\n/g, '<br>')}</p>` : ''}
     </div>
   `;
+}
+
+function renderLocation(l) {
+  if (!l) return '';
+  if (l.custom) {
+    return `<p><strong>Where — suggested by the guest:</strong><br>${escapeHtml(l.name)}<br>`
+      + `<em>Not one of your places. If it doesn't work for you, cancel the booking or talk it over with them.</em></p>`;
+  }
+  return `<p><strong>Where:</strong> ${escapeHtml(l.name)}`
+    + (l.address ? `<br>${escapeHtml(l.address)}` : '')
+    + (l.mapsUrl ? `<br><a href="${escapeHtml(l.mapsUrl)}">${escapeHtml(l.mapsUrl)}</a>` : '')
+    + '</p>';
 }
 
 function escapeHtml(s) {

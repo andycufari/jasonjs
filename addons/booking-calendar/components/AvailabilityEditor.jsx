@@ -81,6 +81,16 @@ export default function AvailabilityEditor({ initialRules, onSaved, onDeleted })
     }).filter(o => o.es || o.en);
   }
 
+  // Places, for in-person types: { name, address, mapsUrl }.
+  const locations = rules.locations || [];
+  function setLocations(next) {
+    setRules(r => ({ ...r, locations: next }));
+    setMessage(null);
+  }
+  function updateLocation(idx, patch) {
+    setLocations(locations.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
+  }
+
   async function save() {
     setSaving(true);
     setError(null);
@@ -184,6 +194,11 @@ export default function AvailabilityEditor({ initialRules, onSaved, onDeleted })
           Active (listed and bookable)
         </label>
         <label className="flex items-center gap-2">
+          <input type="checkbox" checked={rules.unlisted === true}
+            onChange={(e) => updateField('unlisted', e.target.checked)} />
+          Unlisted (not in the public list — only people with the link)
+        </label>
+        <label className="flex items-center gap-2">
           <input type="checkbox" checked={rules.showDuration !== false}
             onChange={(e) => updateField('showDuration', e.target.checked)} />
           Show duration publicly
@@ -194,6 +209,56 @@ export default function AvailabilityEditor({ initialRules, onSaved, onDeleted })
             onChange={(e) => updateField('order', parseInt(e.target.value, 10) || 0)}
             className="w-20 p-1 rounded border" />
         </label>
+      </div>
+
+      <div>
+        <h3 className="font-medium mb-1">Where</h3>
+        <div className="flex flex-wrap items-center gap-4 text-sm mb-3">
+          <select value={rules.mode === 'in_person' ? 'in_person' : 'online'}
+            onChange={(e) => updateField('mode', e.target.value)}
+            className="p-1 rounded border">
+            <option value="online">Online — Google Meet link</option>
+            <option value="in_person">In person — the guest picks a place (no Meet)</option>
+          </select>
+          {rules.mode === 'in_person' && (
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={rules.allowCustomLocation === true}
+                onChange={(e) => updateField('allowCustomLocation', e.target.checked)} />
+              Guests may suggest another place (it's booked anyway)
+            </label>
+          )}
+        </div>
+        {rules.mode === 'in_person' && (
+          <>
+            <p className="text-xs text-muted-foreground mb-3">
+              The place goes in the calendar event, the invite and the booking email. Page attribute
+              {' '}<code>location</code> (1, 2…) preselects one.
+            </p>
+            <div className="space-y-3">
+              {locations.map((l, idx) => (
+                <div key={idx} className="border rounded p-3 space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <input type="text" value={l.name || ''} maxLength={120} placeholder="Name"
+                      onChange={(e) => updateLocation(idx, { name: e.target.value })}
+                      className="w-full p-2 rounded border" />
+                    <input type="text" value={l.address || ''} maxLength={200} placeholder="Address"
+                      onChange={(e) => updateLocation(idx, { address: e.target.value })}
+                      className="w-full p-2 rounded border" />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 text-sm">
+                    <input type="url" value={l.mapsUrl || ''} maxLength={500} placeholder="Google Maps link (https://…)"
+                      onChange={(e) => updateLocation(idx, { mapsUrl: e.target.value })}
+                      className="flex-1 p-2 rounded border" />
+                    <button type="button" onClick={() => setLocations(locations.filter((_, i) => i !== idx))}
+                      className="text-xs text-red-600 hover:underline">remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={() => setLocations([...locations, { name: '', address: '', mapsUrl: '' }])}
+              className="mt-2 text-xs text-muted-foreground hover:text-foreground">+ add place</button>
+          </>
+        )}
       </div>
 
       <div>
@@ -252,6 +317,11 @@ export default function AvailabilityEditor({ initialRules, onSaved, onDeleted })
         <Field label="Duration (min)">
           <input type="number" min={5} max={480} value={rules.durationMinutes}
             onChange={(e) => updateField('durationMinutes', parseInt(e.target.value, 10) || 30)}
+            className="w-full p-2 rounded border" />
+        </Field>
+        <Field label="Buffer before (min)">
+          <input type="number" min={0} max={240} value={rules.bufferBeforeMin || 0}
+            onChange={(e) => updateField('bufferBeforeMin', parseInt(e.target.value, 10) || 0)}
             className="w-full p-2 rounded border" />
         </Field>
         <Field label="Buffer after (min)">
