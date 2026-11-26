@@ -284,6 +284,8 @@ Incoming Request
 
 Requests with **none** of these headers (cURL, Postman, server-to-server, scripts) are treated as **external** and must pass through api.json validation.
 
+> **Security:** these headers can be forged by any non-browser client, so same-origin is **not** a security boundary. A route that declares `keys` **always** requires a valid `X-API-Key`, even when the request looks same-origin. Functions without `keys` are reachable by anyone (same as calling them from the browser): protect them with the session (`app.auth`) inside the function.
+
 ## Important: Origins vs API Keys
 
 `origins` only restricts **browser** requests (which send Origin headers). Non-browser clients (cURL, webhooks, server-to-server) don't send Origin headers, so the `origins` check alone won't stop them.

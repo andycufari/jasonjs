@@ -137,6 +137,8 @@ Incoming Request
 
 Same-origin requests always allowed (no `api.json` needed). Same-origin is detected via `Sec-Fetch-Site`, `Origin`, or `Referer` headers. Requests with **none** of these (cURL, Postman, server-to-server) are treated as external.
 
+> **Security:** these headers can be forged by any non-browser client, so same-origin is **not** a security boundary. A route that declares `keys` **always** requires a valid `X-API-Key`, even when the request looks same-origin. Functions without `keys` are reachable by anyone (same as calling them from the browser): protect them with the session (`app.auth`) inside the function.
+
 > **Important:** `origins` only restricts **browser** requests. Non-browser clients (cURL, webhooks, scripts) don't send Origin headers, so `origins` alone won't protect endpoints. Always use `keys` for server-to-server and webhook endpoints.
 
 ## Examples

@@ -243,11 +243,27 @@ export async function validateApiAccess(headersList, host, functionName, isDev =
     const origin = headersList.get('origin');
     const apiKey = headersList.get('x-api-key');
 
-    // STEP 1: Same-origin requests are always allowed
-    // Uses Sec-Fetch-Site, Origin, and Referer headers for detection
+    const apiConfig = await getApiConfig(host, isDev);
+
+    // STEP 1: Same-origin requests are allowed without api.json config.
+    // Uses Sec-Fetch-Site, Origin, and Referer headers for detection.
+    //
+    // SECURITY: those headers are only trustworthy coming from a browser — any client
+    // (cURL, scripts) can send "Sec-Fetch-Site: same-origin". So a route that declares
+    // `keys` ALWAYS requires a valid X-API-Key, same-origin or not. Without this, the
+    // keys in api.json could be skipped with a single forged header.
     if (isSameOrigin(headersList, host)) {
-        const apiConfig = await getApiConfig(host, isDev);
         const match = matchRoute(functionName, apiConfig.routes);
+        const routeKeys = match?.config?.keys || [];
+
+        if (routeKeys.length > 0) {
+            if (!apiKey) {
+                return { allowed: false, error: 'API key required', status: 401 };
+            }
+            if (!(await validateApiKey(apiKey, routeKeys, host))) {
+                return { allowed: false, error: 'Invalid API key', status: 401 };
+            }
+        }
 
         return {
             allowed: true,
@@ -256,8 +272,7 @@ export async function validateApiAccess(headersList, host, functionName, isDev =
         };
     }
 
-    // STEP 2: External request - load API configuration
-    const apiConfig = await getApiConfig(host, isDev);
+    // STEP 2: External request - check API configuration
 
     if (!apiConfig.routes || Object.keys(apiConfig.routes).length === 0) {
         return {
